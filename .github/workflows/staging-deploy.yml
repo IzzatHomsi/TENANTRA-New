@@ -1,0 +1,67 @@
+name: Staging Deploy (HO-DOCKER-22)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    name: Deploy to Staging Host
+    runs-on:
+      - self-hosted
+      - windows
+    timeout-minutes: 45
+    steps:
+      - name: Checkout (fetch-depth 0)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Diagnose runtime
+        shell: pwsh
+        run: |
+          $PSVersionTable | Format-List *
+          git --version
+          docker version
+          docker compose version
+
+      - name: Sync repo on host and deploy via compose
+        shell: pwsh
+        env:
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          TENANTRA_ENV: staging
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $repo = 'D:\\Docker\\tenantra-platform'
+          if (-not (Test-Path $repo)) { throw "Repo dir missing: $repo" }
+          Set-Location $repo
+          git remote set-url origin https://github.com/IzzatHomsi/tenantra-platform.git
+          git fetch origin --prune
+          git checkout -q main
+          git reset --hard origin/main
+          git config core.longpaths true
+          git config core.autocrlf false
+          git config pull.ff only
+          .\\ops\\pull_and_redeploy.ps1
+
+      - name: Post-deploy health (host-level)
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $composeDir = 'D:\\Docker\\tenantra-platform\\docker'
+          Set-Location $composeDir
+          docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+          try { curl -fsS http://localhost/api/health } catch { Write-Host "api/health failed" }
+          try { curl -fsS http://localhost/health } catch { Write-Host "root /health failed" }
+
+      - name: Upload deploy artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-deploy-artifacts
+          path: |
+            D:\\Docker\\tenantra-platform\\artifacts\\**\\*
+            D:\\Docker\\tenantra-platform\\Staging_GitSync_FixLog.txt
+            D:\\Docker\\tenantra-platform\\Staging_Sync_Report.md

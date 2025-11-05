@@ -1,0 +1,12 @@
+FROM nginx:stable
+
+# Copy our repo nginx main config and includes so the image is self-contained
+# Paths are relative to the build context (docker/)
+COPY nginx/nginx.conf /etc/nginx/nginx.conf
+## Copy only the main dev default.conf to avoid pulling staging/prod configs
+COPY nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf
+COPY nginx/includes /etc/nginx/includes
+# nginx.conf expects /etc/nginx/security_headers.conf, copy the file there as well
+COPY nginx/includes/common/security-headers.conf /etc/nginx/security_headers.conf
+
+# Keep the default user and entrypoint from the base image

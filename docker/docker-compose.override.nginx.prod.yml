@@ -1,0 +1,9 @@
+services:
+  nginx:
+    volumes:
+      - ./nginx/conf.d/prod:/etc/nginx/conf.d:ro
+      - ./nginx/includes/common:/etc/nginx/includes/common:ro
+      - ./nginx/certs/prod:/etc/nginx/certs/prod:ro
+    ports:
+      - "127.0.0.1:80:8080"
+      - "127.0.0.1:443:8443"

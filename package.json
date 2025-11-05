@@ -1,0 +1,18 @@
+{
+  "dependencies": {
+    "axios": "^1.11.0",
+    "jwt-decode": "^4.0.0",
+    "react-router-dom": "^7.7.1"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.11",
+    "@playwright/test": "^1.47.2"
+  },
+  "scripts": {
+    "e2e:init": "npx playwright install --with-deps",
+    "e2e:smoke": "playwright test --project=chromium --reporter=list",
+    "e2e:report": "npx playwright show-report"
+  }
+}

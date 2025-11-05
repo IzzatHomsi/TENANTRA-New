@@ -1,0 +1,122 @@
+name: Backend CI
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'docker/**'
+      - '.github/workflows/backend-ci.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'docker/**'
+      - '.github/workflows/backend-ci.yml'
+
+jobs:
+  preflight:
+    name: Preflight checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify CI_DB_PASSWORD secret exists
+        run: |
+          if [ -z "${{ secrets.CI_DB_PASSWORD }}" ]; then
+            echo 'ERROR: secrets.CI_DB_PASSWORD is not set. Add it in repository Settings → Secrets → Actions.'
+            exit 1
+          fi
+          echo 'secrets.CI_DB_PASSWORD is set.'
+
+  backend:
+    needs: preflight
+    name: Lint, test & security
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:14
+        ports: ["5432:5432"]
+        env:
+          POSTGRES_USER: tenantra
+          POSTGRES_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
+          POSTGRES_DB: tenantra
+        options: >-
+          --health-cmd "pg_isready -U tenantra"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      CI_DB_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
+      DATABASE_URL: postgresql://tenantra:${{ secrets.CI_DB_PASSWORD }}@localhost:5432/tenantra
+      DB_URL: postgresql://tenantra:${{ secrets.CI_DB_PASSWORD }}@localhost:5432/tenantra
+      POSTGRES_USER: tenantra
+      POSTGRES_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
+      POSTGRES_DB: tenantra
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      PYTHONPATH: ${{ github.workspace }}/backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff mypy bandit pytest
+
+      - name: Verify migration tracking matches git
+        run: python backend/scripts/verify_migration_tracking.py
+
+      - name: Check for untracked migration files
+        working-directory: backend
+        run: python scripts/check_untracked_migrations.py
+
+      - name: Run database migrations
+        working-directory: backend
+        run: alembic upgrade head
+
+      - name: Verify migrations applied (debug)
+        working-directory: backend
+        run: |
+          alembic current || true
+          alembic heads || true
+          ls -la alembic/versions || true
+          python scripts/check_migrations.py
+
+      - name: Seed database
+        working-directory: backend
+        env:
+          SEED_ADMIN_PASSWORD: Admin@1234
+        run: python -m app.scripts.db_seed
+
+      - name: Ruff (lint)
+        working-directory: backend
+        run: ruff check .
+
+      - name: Mypy (type check)
+        working-directory: backend
+        run: mypy --config-file mypy.ini app
+
+      - name: Bandit (security scan)
+        working-directory: backend
+        run: bandit -r app -c bandit.yaml -q
+
+      - name: Pytest
+        working-directory: backend
+        run: pytest -q
+
+      - name: Generate OpenAPI (temp) and verify snapshot freshness
+        working-directory: .
+        run: |
+          python backend/tools/generate_openapi.py --output openapi.generated.json
+          if ! diff -u openapi.json openapi.generated.json; then
+            echo "OpenAPI snapshot is outdated. Regenerate via: python backend/tools/generate_openapi.py --output openapi.json" >&2
+            exit 1
+          fi
+          rm -f openapi.generated.json

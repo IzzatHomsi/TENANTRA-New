@@ -1,0 +1,103 @@
+services:
+  redis:
+    container_name: ${CONTAINER_PREFIX:-TEN-S-}redis
+    image: redis:7-bookworm@sha256:88e81357a782cf72ad2c4a8bac4391d193bae19ab119bb1bff3ea9344ab675be
+    user: redis
+    command:
+      - sh
+      - -lc
+      - "exec redis-server --appendonly no --save '' --protected-mode yes --requirepass \"$$(cat /run/secrets/redis_password)\""
+    volumes:
+      - redis_data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,uid=999,gid=999,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./security/seccomp-default.json
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "redis-cli -a $$(cat /run/secrets/redis_password) ping | grep -q PONG"
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    logging:
+      driver: json-file
+    secrets:
+      - source: redis_password
+        target: redis_password
+        uid: "999"
+        gid: "999"
+        mode: 0400
+    networks:
+      - core
+
+  worker:
+    user: root
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    container_name: ${CONTAINER_PREFIX:-TEN-S-}worker
+    depends_on:
+      db:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    env_file:
+      - ../.env.${TENANTRA_ENV:-development}
+    environment:
+      - TENANTRA_ENABLE_NOTIFICATIONS_WORKER=0
+      - REDIS_PASSWORD_FILE=/run/secrets/redis_password
+      - REDIS_HOST=redis
+      - POSTGRES_PASSWORD_FILE=/app/secret/db_password
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    command:
+      - sh
+      - -lc
+      - |
+        export POSTGRES_PASSWORD="$(cat /app/secret/db_password 2>/dev/null || echo "$POSTGRES_PASSWORD")";
+        # Drop privileges to appuser for runtime using gosu
+        exec gosu appuser python -m app.worker.run_notifications_worker
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,uid=1000,gid=1000,mode=1777
+    volumes:
+      - ../secrets/db_password.txt:/app/secret/db_password:ro
+    cap_add:
+      - SETUID
+      - SETGID
+    security_opt:
+      - seccomp=./security/seccomp-default.json
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          python -c "import sys,urllib.request,json; j=json.load(urllib.request.urlopen('http://127.0.0.1:8081/worker/health'));
+          sys.exit(0 if j.get('status')=='ok' else 1)"
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    logging:
+      driver: json-file
+    secrets:
+      - source: redis_password
+        target: redis_password
+        uid: "1000"
+        gid: "1000"
+        mode: 0400
+      # db_password secret not used directly by worker now; bind-mounted above for appuser readability
+    networks:
+      - core
+
+volumes:
+  redis_data:
+
+secrets:
+  redis_password:
+    file: ../secrets/redis_password.txt

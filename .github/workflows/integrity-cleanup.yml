@@ -1,0 +1,57 @@
+name: Integrity Cleanup (Nightly)
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: tenantra
+          POSTGRES_PASSWORD: tenantra
+          POSTGRES_DB: tenantra
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U tenantra"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://tenantra:tenantra@localhost:5432/tenantra
+      DB_URL: postgresql://tenantra:tenantra@localhost:5432/tenantra
+      PYTHONPATH: ${{ github.workspace }}/backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install backend deps
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run database migrations
+        working-directory: backend
+        run: alembic upgrade head
+
+      - name: Seed database (if empty)
+        working-directory: backend
+        env:
+          SEED_ADMIN_PASSWORD: Admin@1234
+        run: python -m app.scripts.db_seed || true
+
+      - name: Run cleanup script with defaults
+        working-directory: backend
+        run: python scripts/cleanup_integrity.py
+

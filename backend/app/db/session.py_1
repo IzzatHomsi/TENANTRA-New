@@ -1,0 +1,33 @@
+# backend/app/db/session.py
+# Engine + Session factory + helpers, with no model imports.
+
+import os
+from contextlib import contextmanager
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+DATABASE_URL = (
+    os.getenv("DATABASE_URL")
+    or os.getenv("DB_URL")
+    or "postgresql+psycopg://tenantra:tenantra@tenantra_db:5432/tenantra"
+)
+
+engine = create_engine(DATABASE_URL, echo=False, pool_pre_ping=True)
+SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+
+def get_db():
+    """FastAPI dependency: yields a session and closes it after use."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@contextmanager
+def get_db_session():
+    """Script/worker helper: with get_db_session() as db: ..."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

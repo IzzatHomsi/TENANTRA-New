@@ -1,0 +1,5 @@
+services:
+  backend:
+    environment:
+      TENANTRA_ENABLE_MODULE_SCHEDULER: "1"
+      TENANTRA_SCHEDULER_INTERVAL: "30"

@@ -1,0 +1,4 @@
+﻿services:
+  worker:
+    # Wrap the worker in a small loop so the container remains long-lived
+    command: ["sh","-lc","while true; do python -m app.worker.run_notifications_worker || echo worker crashed; sleep 5; done"]

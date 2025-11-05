@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Compliance Alert</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; }
+    .container { background: #fff; padding: 20px; border-radius: 8px; }
+    .header { font-size: 18px; color: #d9534f; margin-bottom: 10px; }
+    .content { font-size: 14px; color: #333; }
+    .footer { margin-top: 20px; font-size: 12px; color: #888; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">🚨 Compliance Failure Alert</div>
+    <div class="content">
+      <p>Hello,</p>
+      <p>A compliance scan has reported a <strong>failure</strong> in the system:</p>
+      <ul>
+        <li><strong>Module:</strong> {{ module_name }}</li>
+        <li><strong>Agent:</strong> {{ agent_name }}</li>
+        <li><strong>Date:</strong> {{ timestamp }}</li>
+        <li><strong>Status:</strong> Failed</li>
+      </ul>
+      <p>Please investigate this issue as soon as possible.</p>
+    </div>
+    <div class="footer">
+      © Tenantra Security Platform
+    </div>
+  </div>
+</body>
+</html>

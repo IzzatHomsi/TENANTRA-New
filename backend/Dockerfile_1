@@ -1,0 +1,134 @@
+###########################################
+# Backend service Dockerfile for Tenantra #
+###########################################
+
+#
+# This Dockerfile builds the Tenantra backend.  It is based off of
+# the official Python slim image and includes a hardened APT layer
+# that avoids caching the APT metadata directory.  In the previous
+# version of the Dockerfile the APT cache was mounted over
+# `/var/lib/apt`, which could leave a stale lock file behind when a
+# build was interrupted.  That resulted in build failures like:
+#
+#   E: Could not get lock /var/lib/apt/lists/lock. It is held by process 0
+#
+# To remedy this we do **not** cache `/var/lib/apt` and we defensively
+# remove any leftover lock files before running `apt-get update`.  We
+# still cache `/var/cache/apt` so that downloaded `.deb` archives can
+# be reused across builds.  See DEPLOY.md for more details.
+
+# Use a slim base image with pinned digest for reproducibility
+FROM python:3.11-slim-bookworm AS base
+
+# Install core system packages and development tools.  Caching only
+# /var/cache/apt avoids stale lock issues while speeding up package
+# downloads.  We explicitly install build-essential and libyaml-dev to
+# support building Python packages like PyYAML if needed in the future.
+RUN --mount=type=cache,target=/var/cache/apt \
+    set -eux; \
+    export DEBIAN_FRONTEND=noninteractive; \
+    # Remove any stale lock files from previous runs to prevent apt
+    # failures.  These files can be left behind if a build is
+    # interrupted.
+    rm -f /var/lib/apt/lists/lock /var/cache/apt/archives/lock \
+          /var/lib/dpkg/lock /var/lib/dpkg/lock-frontend || true; \
+    dpkg --configure -a || true; \
+    apt-get update; \
+    # Install required development tools and libraries.  We avoid placing
+    # comments on the same line as a continuation backslash because
+    # Docker cannot parse those correctly.  Instead, we document the
+    # purpose of each package above the command.
+    #   build-essential: compilers and make, required for building C extensions
+    #   libyaml-dev: header files for PyYAML and other YAML parsers
+    #   curl: used by helper scripts and entrypoints
+    #   ca-certificates: ensure HTTPS requests work correctly
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        libyaml-dev \
+        curl \
+        ca-certificates; \
+    # Clean up apt metadata to reduce image size
+    rm -rf /var/lib/apt/lists/*; \
+    apt-get clean
+
+# Create a non-privileged user to run the application.  We explicitly
+# assign UID/GID 1000 to match the docker-compose tmpfs mount options.
+RUN groupadd -g 1000 appuser && useradd --no-log-init -u 1000 -g appuser appuser
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy the backend source code into the image.  We copy the entire
+# directory so that hot reloading in development works correctly.  If
+# you prefer a smaller image you can adjust this to only copy what is
+# needed at runtime.
+COPY backend/ /app
+
+# Install Python dependencies.  The Tenantra backend uses a minimal
+# pyproject.toml, so we need to explicitly install a number of runtime
+# libraries after installing Poetry dependencies.  We first upgrade
+# packaging tools and install Poetry.  We then install dependencies
+# declared in pyproject (if present), followed by all additional
+# packages required at runtime.  Note that pydantic is pinned below
+# version 2 for compatibility with FastAPI v0.100.x.  We also pin
+# bcrypt to 3.2.0 because passlib relies on the `__about__.__version__`
+# attribute which was removed in bcrypt 4.0.  Comments below explain
+# why each package is included.
+RUN set -eux; \
+    # Upgrade pip, setuptools, and wheel, and install Poetry
+    pip install --no-cache-dir --upgrade pip setuptools wheel poetry; \
+    # Disable Poetry virtualenv creation; we want to install into the
+    # system site-packages instead of an isolated venv
+    poetry config virtualenvs.create false; \
+    # Install project dependencies from pyproject.toml if it exists
+    if [ -f pyproject.toml ]; then \
+        poetry install --no-interaction --no-ansi --no-root; \
+    fi; \
+    # Install runtime Python libraries.  We specify each package on its
+    # own line with a trailing backslash for readability.  Comments are
+    # placed above the pip install command to avoid Dockerfile parser
+    # errors when comments follow a backslash.
+    #
+    # The following packages are required by the backend code but are not
+    # declared in pyproject.toml.  Installing them here ensures they are
+    # available at runtime:
+    #   uvicorn[standard]: ASGI server with performance extras (uvloop, httptools)
+    #   sqlalchemy: ORM for database access
+    #   alembic: Database migrations tool
+    #   fastapi: Web framework used by the backend
+    #   pydantic<2: Data validation library pinned for compatibility with FastAPI
+    #   python-jose[cryptography]: JWT token handling
+    #   psycopg2-binary: PostgreSQL driver used by SQLAlchemy
+    #   pycryptodome: Provides Crypto.Cipher API for AES encryption
+    #   passlib[bcrypt]: Password hashing utilities
+    #   prometheus_client: Exposes application metrics for observability
+    #   jinja2: Template engine used to render emails and reports
+    #   fpdf2: PDF generation library used for exports
+    #   requests: HTTP client used for outbound requests
+    #   bcrypt==3.2.0: Pin bcrypt version for passlib compatibility (bcrypt 4 removed __about__.__version__)
+    pip install --no-cache-dir \
+        'uvicorn[standard]' \
+        sqlalchemy \
+        alembic \
+        fastapi \
+        'pydantic<2' \
+        'python-jose[cryptography]' \
+        psycopg2-binary \
+        pycryptodome \
+        'passlib[bcrypt]' \
+        prometheus_client \
+        jinja2 \
+        fpdf2 \
+        requests \
+        'bcrypt==3.2.0'
+
+# Switch to the non-privileged user for security
+USER appuser
+
+# Expose the port the backend listens on
+EXPOSE 5000
+
+# Default command: start the FastAPI application using uvicorn.  If you
+# need to change host/port or reload behaviour you can override these
+# arguments via docker-compose.
+CMD ["uvicorn", "app.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "5000"]

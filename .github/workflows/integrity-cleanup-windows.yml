@@ -1,0 +1,19 @@
+name: Integrity Cleanup (Windows)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: [self-hosted, windows, TENAT, staging]
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cleanup temp artifacts
+        run: |
+          Get-ChildItem -Path backend\reports -Filter *.xml -Recurse -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+          Get-ChildItem -Path frontend\dist -Recurse -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Host "Cleanup completed."
+

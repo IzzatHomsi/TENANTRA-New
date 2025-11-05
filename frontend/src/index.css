@@ -1,0 +1,76 @@
+/* frontend/src/index.css */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Optional: Custom base styles */
+body {
+  @apply bg-neutral text-primary-text;
+}
+
+@layer components {
+  /* Legacy page scaffolding mapped to Tailwind */
+  .page-stack { @apply space-y-6; }
+  .page-stack--loose { @apply space-y-8; }
+  .page-header { @apply border-b border-border-color pb-4; }
+  .page-header__eyebrow { @apply text-xs uppercase tracking-wide text-secondary-text; }
+  .page-header__title { @apply text-xl font-semibold text-primary-text; }
+  .page-header__subtitle { @apply mt-1 text-sm text-secondary-text; }
+
+  .stat-grid { @apply grid gap-4 sm:grid-cols-2 lg:grid-cols-3; }
+  .stat-card { @apply rounded-lg border border-border-color bg-surface p-4 shadow-sm; }
+  .stat-card__value { @apply text-3xl font-semibold text-primary-text; }
+  .stat-card__label { @apply mt-1 text-sm font-medium text-secondary-text; }
+  .muted-text { @apply text-xs text-secondary-text; }
+
+  .auth-screen { @apply min-h-[calc(100vh-3.5rem)] grid place-items-center px-4; }
+  .auth-card { @apply w-full max-w-sm rounded-lg border border-border-color bg-surface p-6 shadow-sm; }
+  .auth-card__title { @apply text-lg font-semibold text-primary-text; }
+  .auth-card__subtitle { @apply text-sm text-secondary-text; }
+  .banner { @apply mb-3 rounded-md border p-2 text-sm; }
+  .banner--error { @apply border-red-200 bg-red-50 text-red-700; }
+  .form-grid { @apply space-y-3; }
+  .primary-button { @apply mt-4 inline-flex w-full items-center justify-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-[#166FE5] disabled:opacity-60; }
+
+  /* Panels, tables, lists */
+  .panel { @apply rounded-lg border border-border-color bg-surface shadow-sm; }
+  .panel-header { @apply flex items-center justify-between border-b border-border-color p-4; }
+  .panel-title { @apply text-base font-semibold text-primary-text; }
+  .panel-subtitle { @apply mt-1 text-sm text-secondary-text; }
+  .panel-toolbar { @apply flex items-center gap-2; }
+  .panel-body { @apply p-4; }
+
+  .table-wrapper { @apply overflow-x-auto; }
+  .data-table { @apply w-full border-collapse; }
+  .data-table thead tr { @apply bg-gray-100; }
+  .data-table th { @apply px-3 py-2 text-left text-sm font-semibold text-secondary-text; }
+  .data-table td { @apply px-3 py-2 text-sm text-primary-text; }
+  .data-table tr + tr { @apply border-t border-border-color; }
+  .data-table__empty { @apply p-4 text-sm text-secondary-text; }
+
+  .field-control { @apply w-full rounded-md border border-border-color px-2 py-1 text-sm; }
+  .ghost-button { @apply rounded-md border border-border-color bg-surface px-3 py-1.5 text-sm text-primary-text hover:bg-neutral; }
+  .ghost-button--danger { @apply border-red-300 text-red-700 hover:bg-red-50; }
+
+  .list-soft { @apply space-y-4; }
+  .list-soft__item { @apply rounded-md border border-border-color bg-surface p-4; }
+
+  .banner--success { @apply border-emerald-200 bg-emerald-50 text-emerald-700; }
+  /* Module catalog */
+  .module-layout { @apply grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)] items-start; }
+  .module-panel { @apply grid gap-4 rounded-lg border border-border-color bg-surface p-4; }
+  .module-list { @apply grid gap-3 max-h-[70vh] overflow-y-auto pr-1; }
+  .module-list__item { @apply grid gap-1 rounded-lg border border-border-color bg-surface px-3 py-3 text-left text-sm transition hover:border-blue-200; }
+  .module-list__item--active { @apply border-blue-300 bg-blue-50; }
+  .module-meta { @apply text-xs text-secondary-text; }
+  .module-meta-strong { @apply text-xs font-semibold text-secondary-text; }
+  .module-schema-card { @apply rounded-md border border-border-color p-3; }
+  .module-alert-warning { @apply rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700; }
+  .module-alert-error { @apply rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700; }
+  .module-alert-success { @apply rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700; }
+  .module-form-grid { @apply grid gap-2; }
+    .module-form-label { @apply grid gap-1 text-sm text-primary-text; }
+  .module-json { @apply rounded-md border border-border-color bg-neutral p-3 font-mono text-xs text-primary-text; }
+}
+

@@ -1,0 +1,150 @@
+services:
+  db:
+    image: postgres:14-bookworm@sha256:3f20fa7c02b7ef070178f4daf87231add5979ba9d22692b08a8138b057abf29b
+    container_name: ${CONTAINER_PREFIX:-TEN-S-}db
+    user: postgres
+    environment:
+      POSTGRES_USER: tenantra
+      POSTGRES_DB: tenantra
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - source: db_password
+        target: db_password
+        mode: 0400
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - tenantra_db_data:/var/lib/postgresql/data
+    tmpfs:
+      - /tmp:size=64m,uid=999,gid=999,mode=1777
+      - /var/run/postgresql:size=16m,uid=999,gid=999,mode=770
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./security/seccomp-default.json
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tenantra -d tenantra"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+    networks:
+      - core
+
+  backend:
+    user: appuser
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    container_name: ${CONTAINER_PREFIX:-TEN-S-}backend
+    ports:
+      - "127.0.0.1:5000:5000"
+    env_file:
+      - ../.env.${TENANTRA_ENV:-development}
+    # Provide DB password secret to backend so it uses same password as the DB service
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      POSTGRES_PASSWORD: ""
+      TENANTRA_EXPORT_DIR: /app/export_out
+      TENANTRA_ENABLE_MODULE_SCHEDULER: "1"
+      TENANTRA_SCHEDULER_INTERVAL: "30"
+      PATH: "/app/.local/bin:$PATH"
+    secrets:
+      - source: db_password
+        target: db_password
+        mode: 0400
+    volumes:
+      - ../backend:/app
+      - ../docs:/app/docs:ro
+      - ./export_out:/app/export_out
+    depends_on:
+      - db
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,uid=1000,gid=1000,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./security/seccomp-default.json
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -fsS http://127.0.0.1:5000/health || exit 1
+      interval: 15s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+    networks:
+      - core
+      - external
+
+  frontend:
+    build:
+      # Use the repository root as the build context so the Dockerfile can
+      # COPY files from other directories (for example docker/nginx/frontend_default.conf).
+      context: ..
+      dockerfile: frontend/Dockerfile
+    container_name: ${CONTAINER_PREFIX:-TEN-S-}frontend
+    ports:
+      # Map host FRONTEND_HOST_PORT (default 8080) to container 80 (runtime Nginx serves on 80)
+      - "127.0.0.1:${FRONTEND_HOST_PORT:-8080}:80"
+    env_file:
+      - ../.env.${TENANTRA_ENV:-development}
+    depends_on:
+      - backend
+    # No tmpfs for frontend; use container filesystem so nginx can create temp dirs
+    restart: unless-stopped
+    logging:
+      driver: json-file
+    networks:
+      - core
+
+  adminer:
+    user: root
+    image: adminer:4.8.1-standalone@sha256:7b346bacc32a9fc9f0d434d0e14c875b9ec54c82b3ea47a87c925389291e67d1
+    container_name: ${CONTAINER_PREFIX:-TEN-S-}adminer
+    profiles:
+      - dev
+      - staging
+    ports:
+      - "127.0.0.1:18081:8080"
+    depends_on:
+      - db
+    tmpfs:
+      - /tmp:size=32m,uid=33,gid=33,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./security/seccomp-default.json
+    restart: unless-stopped
+    logging:
+      driver: json-file
+    networks:
+      - core
+
+volumes:
+  tenantra_db_data:
+
+networks:
+  core:
+    driver: bridge
+    internal: true
+  edge:
+    driver: bridge
+  external:
+    driver: bridge
+
+
+secrets:
+  db_password:
+    file: ../secrets/db_password.txt

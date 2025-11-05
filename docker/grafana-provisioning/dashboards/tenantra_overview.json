@@ -1,0 +1,106 @@
+{
+  "id": null,
+  "uid": "tenantra-overview",
+  "title": "Tenantra Overview",
+  "timezone": "",
+  "schemaVersion": 38,
+  "version": 2,
+  "refresh": "30s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Backend Up",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 0 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      },
+      "targets": [ { "expr": "up{job=\"tenantra-backend\"}", "refId": "A" } ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Notifications Sent (rate 5m)",
+      "gridPos": { "w": 16, "h": 8, "y": 0, "x": 8 },
+      "targets": [ { "expr": "sum by (channel,status) (rate(notifications_sent_total[5m]))", "refId": "A" } ],
+      "options": { "legend": { "displayMode": "table", "placement": "right" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Scheduler Runs (rate 5m)",
+      "gridPos": { "w": 12, "h": 8, "y": 6, "x": 0 },
+      "targets": [ { "expr": "sum by (status) (rate(scheduler_runs_total[5m]))", "refId": "A" } ]
+    },
+    {
+      "type": "timeseries",
+      "title": "API Latency Quantiles (5m)",
+      "gridPos": { "w": 12, "h": 8, "y": 6, "x": 12 },
+      "targets": [
+        { "expr": "job:http_request_duration_seconds:p90", "refId": "A" },
+        { "expr": "job:http_request_duration_seconds:p95", "refId": "B" },
+        { "expr": "job:http_request_duration_seconds:p99", "refId": "C" }
+      ],
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "type": "stat",
+      "title": "Audit Logs Written (rate 5m)",
+      "gridPos": { "w": 12, "h": 6, "y": 14, "x": 0 },
+      "options": {
+        "reduceOptions": { "fields": "", "calcs": ["lastNotNull"], "values": false }
+      },
+      "targets": [ { "expr": "rate(audit_logs_written_total[5m])", "refId": "A" } ]
+    },
+    {
+      "type": "stat",
+      "title": "5xx Error Ratio (5m)",
+      "gridPos": { "w": 6, "h": 6, "y": 14, "x": 12 },
+      "options": {
+        "reduceOptions": { "fields": "", "calcs": ["lastNotNull"], "values": false },
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto"
+      },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "decimals": 2 }, "overrides": [] },
+      "targets": [ { "expr": "job:http_requests_error_ratio_5m", "refId": "A" } ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Requests per second (1m)",
+      "gridPos": { "w": 6, "h": 6, "y": 14, "x": 18 },
+      "targets": [ { "expr": "sum(rate(http_requests_total[1m]))", "refId": "A" } ],
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP Status RPS (1m)",
+      "gridPos": { "w": 18, "h": 8, "y": 20, "x": 0 },
+      "targets": [
+        { "expr": "sum(rate(http_requests_total{status=~\"2..\"}[1m]))", "refId": "A", "legendFormat": "2xx" },
+        { "expr": "sum(rate(http_requests_total{status=~\"4..\"}[1m]))", "refId": "B", "legendFormat": "4xx" },
+        { "expr": "sum(rate(http_requests_total{status=~\"5..\"}[1m]))", "refId": "C", "legendFormat": "5xx" }
+      ],
+      "options": { "legend": { "displayMode": "table", "placement": "right" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Requests by Method (1m)",
+      "gridPos": { "w": 12, "h": 8, "y": 28, "x": 0 },
+      "targets": [
+        { "expr": "sum by (method) (rate(http_requests_total[1m]))", "refId": "A", "legendFormat": "{{method}}" }
+      ],
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Top 5 Error Paths (5m)",
+      "gridPos": { "w": 12, "h": 8, "y": 28, "x": 12 },
+      "targets": [
+        { "expr": "topk(5, sum by (path) (rate(http_requests_total{status=~\\\"5..\\\"}[5m])))", "refId": "A", "legendFormat": "{{path}}" }
+      ],
+      "options": { "legend": { "displayMode": "list", "placement": "right" } }
+    }
+  ],
+  "templating": { "list": [] },
+  "time": { "from": "now-15m", "to": "now" }
+}

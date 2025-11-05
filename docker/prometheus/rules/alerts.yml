@@ -1,0 +1,66 @@
+groups:
+  - name: tenantra-red-use
+    interval: 30s
+    rules:
+      - alert: BackendDown
+        expr: up{job="tenantra-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Backend instance is down
+          description: Prometheus target up==0 for job tenantra-backend
+
+      - alert: APIHighErrorRate
+        # 5xx ratio over last 5 minutes > 5%
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[5m]))
+            / clamp_min(sum(rate(http_requests_total[5m])), 1) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Elevated 5xx error rate
+          description: 5xx responses exceed 5% of total over 5 minutes
+
+      - alert: APIErrorRatioWarning
+        # Recording rule job:http_requests_error_ratio_5m > 2% for 10 min
+        expr: job:http_requests_error_ratio_5m > 0.02
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 5xx error ratio > 2% (10m)
+          description: job:http_requests_error_ratio_5m above 2% for 10 minutes
+
+      - alert: APIErrorRatioCritical
+        # Error ratio above 10% for 5 minutes
+        expr: job:http_requests_error_ratio_5m > 0.10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 5xx error ratio > 10% (5m)
+          description: job:http_requests_error_ratio_5m above 10% for 5 minutes
+
+      - alert: APIHighLatency
+        # 95th percentile latency > 1.5s over 5m (approx via histogram not implemented)
+        # Using mean as proxy from REQ_LATENCY buckets is not exposed; fallback to gauge via recording rules if added.
+        expr: |
+          avg(rate(http_request_duration_seconds_sum[5m]))
+            / clamp_min(avg(rate(http_request_duration_seconds_count[5m])), 1) > 1.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High API latency
+          description: Average request latency exceeds 1.5 seconds over 5 minutes
+
+      - alert: NotificationsStalled
+        expr: rate(notifications_sent_total[10m]) == 0
+        for: 30m
+        labels:
+          severity: info
+        annotations:
+          summary: No notifications flowing
+          description: notifications_sent_total shows zero rate for 30 minutes

@@ -1,0 +1,101 @@
+services:
+  prometheus:
+    image: prom/prometheus:v2.54.1@sha256:69961df6ffa67598048a31aa2822d61f3c93b91d7db24e44d9bb03f99d520da9
+    container_name: ${CONTAINER_PREFIX:-TEN-S-}prometheus
+    user: nobody
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,uid=65534,gid=65534,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./security/seccomp-default.json
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://127.0.0.1:9090/-/healthy > /dev/null || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+    networks:
+      - core
+
+  grafana:
+    image: grafana/grafana:11.3.0@sha256:83c713850a2cf743813febc1bb8fb14e57ae2e76913ba5dea5d423f7c321a2c5
+    container_name: ${CONTAINER_PREFIX:-TEN-S-}grafana
+    user: "472:472"
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./grafana-data:/var/lib/grafana
+      - ./grafana-provisioning:/etc/grafana/provisioning:ro
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SERVER_DOMAIN=localhost
+      - GF_SERVER_HTTP_PORT=3000
+      - GF_SERVER_ROOT_URL=http://localhost/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_SECURITY_ADMIN_PASSWORD__FILE=/run/secrets/grafana_admin_password
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+      - GRAFANA_ALERT_EMAILS=${GRAFANA_ALERT_EMAILS:-alerts@example.com}
+    depends_on:
+      - prometheus
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,uid=472,gid=472,mode=1777
+      - /var/run/grafana:size=16m,uid=472,gid=472,mode=755
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./security/seccomp-default.json
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://127.0.0.1:3000/api/health > /dev/null || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+    secrets:
+      - source: grafana_admin_password
+        target: grafana_admin_password
+        uid: "472"
+        gid: "472"
+        mode: 0400
+    networks:
+      - core
+
+  backend:
+    environment:
+      - GRAFANA_USER_FILE=/run/secrets/grafana_admin_user
+      - GRAFANA_PASS_FILE=/run/secrets/grafana_admin_password
+    secrets:
+      - source: grafana_admin_user
+        target: grafana_admin_user
+        mode: 0400
+      - source: grafana_admin_password
+        target: grafana_admin_password
+        mode: 0400
+
+secrets:
+  grafana_admin_password:
+    file: ../secrets/grafana_admin_password.txt
+  grafana_admin_user:
+    file: ../secrets/grafana_admin_user.txt

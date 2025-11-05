@@ -1,0 +1,31 @@
+services:
+  db:
+    env_file:
+      - ../.env.development
+    environment:
+      # Ensure password is set even if secrets are not used locally
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+
+  backend:
+    env_file:
+      - ../.env.development
+    # In dev, we can rely on POSTGRES_PASSWORD env or DATABASE_URL from env file
+    environment:
+      TENANTRA_TEST_BOOTSTRAP: "1"
+      # Enable Panorama stub runner in dev by default (safe: returns 'skipped' if not enabled)
+      TENANTRA_ENABLE_PANORAMA_STUB: "true"
+      # SMTP settings for notifications (use a local mailhog or leave empty to no-op)
+      # Example with MailHog: SMTP_HOST=mailhog, SMTP_PORT=1025, SMTP_TLS=false
+      SMTP_HOST: ""
+      SMTP_PORT: "587"
+      SMTP_USER: ""
+      SMTP_PASS: ""
+      SMTP_FROM: "no-reply@tenantra.local"
+      SMTP_TLS: "true"
+    volumes:
+      - ../backend:/app
+      - ./export_out:/app/export_out
+
+  frontend:
+    env_file:
+      - ../.env.development

@@ -1,0 +1,41 @@
+name: Compose & YAML Lint
+
+on:
+  pull_request:
+    paths:
+      - '**/*.yml'
+      - '**/*.yaml'
+  push:
+    branches: [ main ]
+
+jobs:
+  compose-yaml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Docker Compose validate
+        run: |
+          set -euo pipefail
+          docker compose version || true
+          files=$(find . -name 'docker-compose*.yml' -o -name 'docker-compose*.yaml' | sort)
+          if [ -z "$files" ]; then
+            echo "No docker compose files detected."
+            exit 0
+          fi
+          for f in $files; do
+            echo "Validating $f"
+            docker compose -f "$f" config >/dev/null
+          done
+
+      - name: yamllint
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install yamllint
+          yamllint .
+

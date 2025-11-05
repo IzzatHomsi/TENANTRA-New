@@ -1,0 +1,17 @@
+/*
+PATCH App.jsx (S-6): gate admin routes
+
+import RequireRole from "./routes/RequireRole";
+
+<Route path="/users" element={
+  <RequireRole role="admin">
+    <DashboardLayout><Users/></DashboardLayout>
+  </RequireRole>
+} />
+
+<Route path="/notifications" element={
+  <RequireRole role="admin">
+    <DashboardLayout><Notifications/></DashboardLayout>
+  </RequireRole>
+} />
+*/

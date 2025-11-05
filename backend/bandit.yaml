@@ -1,0 +1,7 @@
+# Bandit config tuned for FastAPI backend
+skips: ["B101", "B110"]  # allow assert in tests; ignore try/except/pass
+exclude_dirs:
+  - "alembic/versions"
+  - "tests"
+severity: "LOW"
+confidence: "MEDIUM"

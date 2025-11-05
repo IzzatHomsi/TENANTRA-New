@@ -1,0 +1,21 @@
+# Exclude node modules and build artifacts from docker build context
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+
+# VCS and editor files
+.git/
+.gitignore
+.vscode/
+
+# Environment files
+.env
+.env.*
+
+# Logs and temp
+*.log
+tmp/
+
+# Docker files that are only used for compose orchestration (keep docker/nginx)
+# Do not exclude docker/nginx because we COPY frontend_default.conf from it.

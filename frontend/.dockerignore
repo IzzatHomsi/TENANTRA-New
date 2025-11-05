@@ -1,0 +1,23 @@
+# This .dockerignore file prevents unneeded files from being sent to the
+# Docker daemon when building the frontend image. Excluding node_modules and
+# other generated or local directories reduces build time and avoids errors
+# caused by copying large dependency trees into the build context.
+
+# Ignore local node modules; dependencies will be installed inside the container
+node_modules
+
+# Ignore operating system files and caches
+.DS_Store
+.cache
+
+# Ignore Git metadata and archives
+.git
+*.zip
+
+# Ignore build outputs
+dist
+build
+
+# Ignore coverage and debug files
+coverage
+npm-debug.log

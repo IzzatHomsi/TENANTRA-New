@@ -1,0 +1,24 @@
+name: Validation runners (example)
+
+# Copy this job into your workflow (e.g., .github/workflows/validation.yml)
+on: [push, pull_request]
+
+jobs:
+  validations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install backend deps
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run validators
+        working-directory: .
+        run: |
+          tools/run_all_validations.sh "$PWD/tools/reports"
+        # This job will fail if any validator fails because the runner is strict

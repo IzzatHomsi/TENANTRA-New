@@ -1,0 +1,4 @@
+# Minimal bandit configuration
+skips: ['B101','B110']
+targets:
+  - backend

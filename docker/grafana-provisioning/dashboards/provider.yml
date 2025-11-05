@@ -1,0 +1,13 @@
+apiVersion: 1
+
+providers:
+  - name: 'Tenantra'
+    orgId: 1
+    folder: 'Tenantra'
+    type: file
+    disableDeletion: false
+    editable: true
+    allowUiUpdates: true
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards

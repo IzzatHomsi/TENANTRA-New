@@ -1,0 +1,58 @@
+{
+  "title": "Integrity Overview",
+  "tags": ["integrity"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Ingest Rows by Kind (rate)",
+      "gridPos": {"x":0, "y":0, "w":12, "h":8},
+      "targets": [
+        {"expr": "rate(integrity_ingested_rows{kind=\"registry\"}[5m])"},
+        {"expr": "rate(integrity_ingested_rows{kind=\"service\"}[5m])"},
+        {"expr": "rate(integrity_ingested_rows{kind=\"task\"}[5m])"},
+        {"expr": "rate(integrity_ingested_rows{kind=\"boot\"}[5m])"}
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Drift Events by Severity",
+      "gridPos": {"x":12, "y":0, "w":12, "h":8},
+      "targets": [
+        {"expr": "sum by(severity) (rate(integrity_drift_events{kind=\"service\"}[5m]))"},
+        {"expr": "sum by(severity) (rate(integrity_drift_events{kind=\"registry\"}[5m]))"}
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Last Ingest (Registry)",
+      "gridPos": {"x":0, "y":8, "w":6, "h":4},
+      "targets": [{"expr": "integrity_last_ingest_timestamp{kind=\"registry\"}"}],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}}
+    },
+    {
+      "type": "stat",
+      "title": "Last Ingest (Service)",
+      "gridPos": {"x":6, "y":8, "w":6, "h":4},
+      "targets": [{"expr": "integrity_last_ingest_timestamp{kind=\"service\"}"}],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}}
+    },
+    {
+      "type": "stat",
+      "title": "Last Ingest (Task)",
+      "gridPos": {"x":12, "y":8, "w":6, "h":4},
+      "targets": [{"expr": "integrity_last_ingest_timestamp{kind=\"task\"}"}],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}}
+    },
+    {
+      "type": "stat",
+      "title": "Last Ingest (Boot)",
+      "gridPos": {"x":18, "y":8, "w":6, "h":4},
+      "targets": [{"expr": "integrity_last_ingest_timestamp{kind=\"boot\"}"}],
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}}
+    }
+  ]
+}
+

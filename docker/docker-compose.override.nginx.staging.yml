@@ -1,0 +1,25 @@
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile.edge
+    container_name: docker-nginx-1
+    depends_on:
+      - backend
+      - frontend
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - core
+      - edge
+    volumes:
+      - ./nginx/conf.d/staging:/etc/nginx/conf.d:ro
+      - ./nginx/includes/common:/etc/nginx/includes/common:ro
+      - ./nginx/includes/staging:/etc/nginx/includes/staging:ro
+      - ./nginx/certs/staging:/etc/nginx/certs/staging:ro
+    ports:
+      - "0.0.0.0:80:8080"
+      - "0.0.0.0:443:8443"

@@ -1,0 +1,14 @@
+/*
+PATCH Login.jsx (S-6): store user for role gating
+
+After successful login response, replace:
+  localStorage.setItem("token", data.access_token);
+
+With:
+  import { saveAuth } from "../lib/auth";
+  saveAuth(data.access_token, data.user);
+
+And (optional) add a Logout button to clear auth:
+  import { clearAuth } from "../lib/auth";
+  // call clearAuth() on logout
+*/

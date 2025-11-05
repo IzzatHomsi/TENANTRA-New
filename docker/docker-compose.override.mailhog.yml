@@ -1,0 +1,15 @@
+services:
+  mailhog:
+    image: mailhog/mailhog:latest
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+
+  backend:
+    environment:
+      # Point backend notifications to MailHog in dev
+      SMTP_HOST: mailhog
+      SMTP_PORT: "1025"
+      SMTP_TLS: "false"
+      SMTP_FROM: "no-reply@tenantra.local"

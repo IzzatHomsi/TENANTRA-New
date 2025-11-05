@@ -1,0 +1,51 @@
+services:
+  backend:
+    environment:
+    - PYTHONPATH=/app
+    volumes:
+    - ../backend:/app
+    - ../docker/tenants/data:/app/data
+    - ../docker/tenants/reports:/app/reports
+    - ../docker/export_out:/app/export_out
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 4096M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+  frontend:
+    volumes:
+    - ../frontend:/app
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+  db:
+    volumes:
+    - tenantra_db_data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          cpus: '1.00'
+          memory: 1024M
+        reservations:
+          cpus: '0.50'
+          memory: 512M
+  adminer:
+    volumes: []
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+volumes:
+  tenantra_db_data: null
