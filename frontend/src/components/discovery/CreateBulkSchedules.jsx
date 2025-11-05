@@ -98,7 +98,7 @@ export default function CreateBulkSchedules({ isAdmin }) {
             value={bulkText}
             onChange={(e) => setBulkText(e.target.value)}
             placeholder={"1=10.0.1.0/24;10.0.2.0/24\n2=192.168.1.0/24"}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
           />
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -108,7 +108,7 @@ export default function CreateBulkSchedules({ isAdmin }) {
               value={ports}
               onChange={(e) => setPorts(e.target.value)}
               placeholder="22,80,443"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
             />
           </div>
           <div>
@@ -117,7 +117,7 @@ export default function CreateBulkSchedules({ isAdmin }) {
               value={cron}
               onChange={(e) => setCron(e.target.value)}
               placeholder="*/30 * * * *"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
             />
           </div>
         </div>

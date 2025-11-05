@@ -38,7 +38,7 @@ async function createServer() {
       template = await vite.transformIndexHtml(url, template);
 
       const { createApp } = await vite.ssrLoadModule("/src/entry-server.jsx");
-      const { app: appElement, queryClient } = await createApp(url);
+      const { app: appElement, queryClient } = await createApp({ url, headers: req.headers });
 
       const [head, tail] = template.split('<div id="root"></div>');
       if (!head || tail === undefined) {

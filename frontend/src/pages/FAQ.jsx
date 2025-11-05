@@ -41,7 +41,7 @@ const FAQ_DATA = [
 
 export default function FAQ() {
   return (
-    <div className="bg-facebook-gray p-8">
+    <div className="bg-neutral p-8">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Frequently Asked Questions (FAQ)</h1>
       </header>

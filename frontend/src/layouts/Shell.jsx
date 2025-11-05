@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
@@ -67,8 +67,14 @@ export default function Shell() {
   } = useUIStore();
   const onboardingChecked = useRef(false);
   const fetchedTenantsRef = useRef(false);
+  const extensionHintsRef = useRef(new Set());
+  const extensionDismissedRef = useRef(
+    typeof window !== "undefined" && localStorage.getItem("tena_extension_notice") === "1"
+  );
   const [features, setFeatureState] = useState(featureFlags || {});
   const [searchQuery, setSearchQuery] = useState("");
+  const [extensionWarning, setExtensionWarning] = useState(false);
+  const [extensionHints, setExtensionHints] = useState([]);
 
   const { data: supportSettings } = useSupportSettings({ suspense: false, retry: 1 });
 
@@ -165,6 +171,98 @@ export default function Shell() {
     probe();
     timer = setInterval(probe, 5000);
     return () => { if (timer) clearInterval(timer); };
+  }, []);
+
+  const dismissExtensionWarning = useCallback(() => {
+    extensionDismissedRef.current = true;
+    setExtensionWarning(false);
+    setExtensionHints([]);
+    try {
+      localStorage.setItem("tena_extension_notice", "1");
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (extensionDismissedRef.current) return;
+
+    const markers = ["chrome-extension://", "moz-extension://", "safari-web-extension://"];
+    const messageTriggers = ["runtime.lastError", "content_script"];
+
+    const recordHint = (hint) => {
+      if (extensionDismissedRef.current) return;
+      if (!hint) hint = "browser extension";
+      extensionHintsRef.current.add(hint);
+      setExtensionHints(Array.from(extensionHintsRef.current));
+      setExtensionWarning(true);
+    };
+
+    const sanitizeSource = (source) => {
+      if (!source) return "";
+      const match = source.match(/^[a-z-]+:\/\/([^/]+)/);
+      return match ? match[1] : source;
+    };
+
+    const scanResources = () => {
+      try {
+        const entries = performance.getEntriesByType("resource") || [];
+        for (const entry of entries) {
+          if (typeof entry?.name === "string" && markers.some((marker) => entry.name.startsWith(marker))) {
+            recordHint(sanitizeSource(entry.name));
+          }
+        }
+      } catch {}
+      try {
+        document.querySelectorAll("script[src]").forEach((script) => {
+          const src = script.getAttribute("src") || "";
+          if (markers.some((marker) => src.startsWith(marker))) {
+            recordHint(sanitizeSource(src));
+          }
+        });
+      } catch {}
+    };
+
+    const onError = (event) => {
+      if (extensionDismissedRef.current) return;
+      const filename = event?.filename || "";
+      const message = event?.message || "";
+      if (
+        markers.some((marker) => filename.startsWith(marker) || message.includes(marker)) ||
+        messageTriggers.some((needle) => message.includes(needle))
+      ) {
+        recordHint(sanitizeSource(filename) || "extension runtime");
+      }
+    };
+
+    const onRejection = (event) => {
+      if (extensionDismissedRef.current) return;
+      const reason = event?.reason;
+      const text =
+        typeof reason === "string"
+          ? reason
+          : reason && typeof reason.message === "string"
+            ? reason.message
+            : "";
+      if (!text) return;
+      if (
+        markers.some((marker) => text.includes(marker)) ||
+        messageTriggers.some((needle) => text.includes(needle))
+      ) {
+        recordHint("extension runtime");
+      }
+    };
+
+    scanResources();
+    const rescanTimer = window.setTimeout(scanResources, 1500);
+
+    window.addEventListener("error", onError);
+    window.addEventListener("unhandledrejection", onRejection);
+
+    return () => {
+      window.removeEventListener("error", onError);
+      window.removeEventListener("unhandledrejection", onRejection);
+      window.clearTimeout(rescanTimer);
+    };
   }, []);
 
   // Listen for runtime settings updates (e.g., theme color) and show a toast
@@ -289,6 +387,29 @@ export default function Shell() {
   return (
     <div className="min-h-screen bg-neutral text-primary-text dark:bg-neutral dark:text-primary-text">
       <GlobalNotice kind={notice.kind} message={notice.message} onClose={() => setNotice({ kind: "info", message: "" })} />
+      {extensionWarning && (
+        <div className="mx-auto max-w-7xl px-4 pt-4">
+          <div className="flex flex-col gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 shadow-sm md:flex-row md:items-center md:justify-between">
+            <div>
+              <strong className="font-semibold">Browser extensions detected.</strong>{" "}
+              Some corporate extensions inject scripts (runtime.lastError / content_script) that can break Admin Settings. Disable them or add Tenantra to the allowlist for the smoothest experience.
+              {extensionHints.length > 0 && (
+                <span className="mt-1 block text-xs text-amber-700/80">
+                  Examples: {extensionHints.slice(0, 3).join(", ")}
+                  {extensionHints.length > 3 ? "…" : ""}
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={dismissExtensionWarning}
+              className="btn btn-ghost self-start text-sm md:self-auto"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
       {/* Top bar */}
       <header className="fb-header sticky top-0 z-10">
         <div className="mx-auto max-w-7xl flex items-center justify-between" style={{ paddingLeft: 'var(--space-4)', paddingRight: 'var(--space-4)', height: 56 }}>
@@ -464,8 +585,4 @@ export default function Shell() {
       </div>
     </div>
   );
-}
-
-function navLinkClass({ isActive }) {
-  return `layout-shell__link${isActive ? " is-active" : ""}`;
 }

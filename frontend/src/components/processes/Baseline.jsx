@@ -68,7 +68,7 @@ export default function Baseline({ baseline, setBaseline, onSave, scopeLabel }) 
                     value={entry.process_name}
                     placeholder="process.exe"
                     onChange={(e) => updateBaselineEntry(index, "process_name", e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                   />
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
@@ -76,7 +76,7 @@ export default function Baseline({ baseline, setBaseline, onSave, scopeLabel }) 
                     value={entry.executable_path}
                     placeholder="/usr/bin/process"
                     onChange={(e) => updateBaselineEntry(index, "executable_path", e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                   />
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
@@ -84,7 +84,7 @@ export default function Baseline({ baseline, setBaseline, onSave, scopeLabel }) 
                     value={entry.expected_hash}
                     placeholder="sha256..."
                     onChange={(e) => updateBaselineEntry(index, "expected_hash", e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                   />
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
@@ -92,7 +92,7 @@ export default function Baseline({ baseline, setBaseline, onSave, scopeLabel }) 
                     value={entry.expected_user}
                     placeholder="SYSTEM"
                     onChange={(e) => updateBaselineEntry(index, "expected_user", e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                   />
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
@@ -100,7 +100,7 @@ export default function Baseline({ baseline, setBaseline, onSave, scopeLabel }) 
                     type="checkbox"
                     checked={entry.is_critical}
                     onChange={() => toggleCritical(index)}
-                    className="h-4 w-4 rounded border-gray-300 text-facebook-blue focus:ring-facebook-blue"
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                   />
                 </td>
                 <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">

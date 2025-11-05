@@ -38,7 +38,7 @@ export default function Metrics() {
   const panelIdList = useMemo(() => panelIds.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => !isNaN(n)), [panelIds]);
 
   return (
-    <div className="bg-facebook-gray p-8">
+    <div className="bg-neutral p-8">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Metrics</h1>
         <p className="mt-2 text-sm text-gray-600">Embedded Grafana dashboard and optional panels.</p>
@@ -64,7 +64,7 @@ export default function Metrics() {
               value={panelIds}
               onChange={(e) => setPanelIds(e.target.value)}
               placeholder="Panel IDs (comma-separated), e.g., 2,4,6"
-              className="w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+              className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
             />
             <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               {panelIdList.map((id) => (

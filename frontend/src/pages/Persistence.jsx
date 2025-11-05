@@ -111,7 +111,7 @@ export default function Persistence() {
   }, [refreshData]);
 
   return (
-    <div className="bg-facebook-gray p-8">
+    <div className="bg-neutral p-8">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Persistence & Integrity</h1>
         <p className="mt-2 text-sm text-gray-600">
@@ -126,14 +126,14 @@ export default function Persistence() {
             placeholder="Agent ID"
             value={agentId}
             onChange={(e) => setAgentId(e.target.value)}
-            className="w-32 rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="w-32 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
           />
           <input
             type="text"
             placeholder="Hive filter"
             value={hive}
             onChange={(e) => setHive(e.target.value)}
-            className="w-52 rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="w-52 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
           />
           <Button onClick={refreshData} disabled={loading}>
             {loading ? "Refreshing..." : "Refresh"}

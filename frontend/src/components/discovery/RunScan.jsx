@@ -67,7 +67,7 @@ export default function RunScan() {
             value={cidr}
             onChange={(e) => setCidr(e.target.value)}
             placeholder="10.0.0.0/24"
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
           />
         </div>
         <div>
@@ -77,7 +77,7 @@ export default function RunScan() {
             value={hosts}
             onChange={(e) => setHosts(e.target.value)}
             placeholder={"10.0.0.5\nexample.local"}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
           />
         </div>
         <div>
@@ -86,7 +86,7 @@ export default function RunScan() {
             value={ports}
             onChange={(e) => setPorts(e.target.value)}
             placeholder="22,80,443"
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
           />
         </div>
         <Button onClick={run} disabled={busy}>

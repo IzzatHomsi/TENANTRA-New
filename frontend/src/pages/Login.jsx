@@ -36,18 +36,18 @@ export default function Login() {
   };
 
   return (
-    <div className="bg-facebook-gray flex min-h-screen flex-col items-center justify-center">
+    <div className="bg-neutral flex min-h-screen flex-col items-center justify-center">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold text-facebook-blue">tenantra</h1>
+          <h1 className="text-5xl font-bold text-primary">tenantra</h1>
           <p className="text-xl">Connect with friends and the world around you on Tenantra.</p>
         </div>
-        <div className="bg-facebook-white p-8 rounded-lg shadow-lg">
+        <div className="bg-surface p-8 rounded-lg shadow-lg">
           <form onSubmit={handleLogin}>
             <ErrorBanner message={error} onClose={() => setError("")} />
             <div className="mb-4">
               <input
-                className="w-full rounded-md border border-gray-300 px-4 py-3 text-lg focus:border-facebook-blue focus:outline-none"
+                className="w-full rounded-md border border-gray-300 px-4 py-3 text-lg focus:border-primary focus:outline-none"
                 type="text"
                 autoComplete="username"
                 value={username}
@@ -58,7 +58,7 @@ export default function Login() {
             </div>
             <div className="mb-4">
               <input
-                className="w-full rounded-md border border-gray-300 px-4 py-3 text-lg focus:border-facebook-blue focus:outline-none"
+                className="w-full rounded-md border border-gray-300 px-4 py-3 text-lg focus:border-primary focus:outline-none"
                 type="password"
                 autoComplete="current-password"
                 value={password}
@@ -69,14 +69,14 @@ export default function Login() {
             </div>
             <button
               type="submit"
-              className="w-full rounded-md bg-facebook-blue px-4 py-3 text-lg font-bold text-white hover:bg-blue-600 disabled:opacity-60"
+              className="w-full rounded-md bg-primary px-4 py-3 text-lg font-bold text-white hover:bg-blue-600 disabled:opacity-60"
               disabled={submitting}
             >
               {submitting ? "Logging In..." : "Log In"}
             </button>
           </form>
           <div className="text-center mt-4">
-            <a href="#" className="text-facebook-blue hover:underline">
+            <a href="#" className="text-primary hover:underline">
               Forgot password?
             </a>
           </div>

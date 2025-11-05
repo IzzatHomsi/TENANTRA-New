@@ -49,7 +49,7 @@ export default function RunModule({ module, onRun, runError, runMessage, runBusy
           type="checkbox"
           checked={useForm}
           onChange={(e) => setUseForm(e.target.checked)}
-          className="h-4 w-4 rounded border-gray-300 text-facebook-blue focus:ring-facebook-blue"
+          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
         />
         <label className="ml-2 text-sm text-gray-700">Use parameter form</label>
       </div>
@@ -71,7 +71,7 @@ export default function RunModule({ module, onRun, runError, runMessage, runBusy
                   } catch {}
                 }}
                 placeholder={descriptor?.description || ""}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
               />
             </div>
           ))}
@@ -81,7 +81,7 @@ export default function RunModule({ module, onRun, runError, runMessage, runBusy
           value={runPayload}
           onChange={(e) => setRunPayload(e.target.value)}
           rows={8}
-          className="w-full rounded-md border-gray-300 font-mono text-sm shadow-sm focus:border-facebook-blue focus:ring-facebook-blue"
+          className="w-full rounded-md border-gray-300 font-mono text-sm shadow-sm focus:border-primary focus:ring-primary"
         />
       )}
       {runError && <div className="mt-4 rounded-md bg-red-100 p-4 text-red-700">{runError}</div>}

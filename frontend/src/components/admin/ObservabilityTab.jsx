@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState, memo } from "react";
 import CollapsibleSection from "./CollapsibleSection.jsx";
 import Button from "../ui/Button.jsx";
 
@@ -38,7 +38,7 @@ const writeCachedHealth = (payload) => {
   } catch {}
 };
 
-export default function ObservabilityTab({ headers, onSavedHealth }) {
+function ObservabilityTab({ headers, onSavedHealth }) {
   const [statusPayload, setStatusPayload] = useState(null);
   const [healthMeta, setHealthMeta] = useState(null);
   const [activeProbe, setActiveProbe] = useState("Grafana health");
@@ -189,6 +189,21 @@ export default function ObservabilityTab({ headers, onSavedHealth }) {
     return `Last check: ${relative} • HTTP ${healthMeta.status}${latency ? ` • ${latency}` : ""}`;
   }, [healthMeta]);
 
+  const detailMessage = useMemo(() => {
+    if (!statusPayload) return "";
+    const detail = statusPayload.detail;
+    if (typeof detail === "string") {
+      return detail;
+    }
+    if (detail && typeof detail === "object" && typeof detail.message === "string") {
+      return detail.message;
+    }
+    if (typeof statusPayload.message === "string") {
+      return statusPayload.message;
+    }
+    return "";
+  }, [statusPayload]);
+
   return (
     <div className="space-y-4">
       <CollapsibleSection
@@ -323,7 +338,7 @@ export default function ObservabilityTab({ headers, onSavedHealth }) {
         ) : (
           <p className="text-xs text-secondary-text">Run a probe to populate diagnostics.</p>
         )}
-        {statusPayload?.detail === "grafana.url not configured" && (
+        {(detailMessage === "grafana.url not configured" || statusPayload?.configured === false) && (
           <p className="mt-4 text-xs text-amber-600">
             grafana.url is missing. Navigate to Branding → Grafana integration to configure it, then re-run the health check.
           </p>
@@ -332,3 +347,5 @@ export default function ObservabilityTab({ headers, onSavedHealth }) {
     </div>
   );
 }
+
+export default memo(ObservabilityTab);

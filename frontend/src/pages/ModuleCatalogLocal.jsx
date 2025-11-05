@@ -10,6 +10,7 @@ import ModuleDetails from "../components/modules/ModuleDetails.jsx";
 import RunModule from "../components/modules/RunModule.jsx";
 import ScheduleModule from "../components/modules/ScheduleModule.jsx";
 import ModuleRuns from "../components/modules/ModuleRuns.jsx";
+import { fetchModules, updateModule } from "../api/modules";
 
 const API_BASE = getApiBase();
 
@@ -49,20 +50,17 @@ export default function ModuleCatalogLocal() {
       if (!token) {
         throw new Error("Not authenticated.");
       }
-      const res = await fetch(`${API_BASE}/modules/`, { headers: authHeaders(token), signal });
-      if (res.status === 401) {
-        signOut?.();
-        const err = new Error("Session expired. Please sign in again.");
-        err.status = 401;
-        throw err;
+      if (signal.aborted) return [];
+      try {
+        const modules = await fetchModules(token);
+        return modules;
+      } catch (error) {
+        // @ts-expect-error status is attached in apiFetch
+        if (error?.status === 401) {
+          signOut?.();
+        }
+        throw error;
       }
-      if (!res.ok) {
-        const err = new Error(`Failed to load modules (HTTP ${res.status}).`);
-        err.status = res.status;
-        throw err;
-      }
-      const payload = await res.json();
-      return Array.isArray(payload) ? payload : [];
     },
   });
 
@@ -135,23 +133,17 @@ export default function ModuleCatalogLocal() {
         err.status = 401;
         throw err;
       }
-      const res = await fetch(`${API_BASE}/modules/${module.id}`, {
-        method: "PUT",
-        headers: authHeaders(token),
-        body: JSON.stringify({ enabled: !module.enabled }),
-      });
-      if (res.status === 401) {
-        signOut?.();
-        const err = new Error("Session expired. Please sign in again.");
-        err.status = 401;
-        throw err;
+      const payload = { enabled: !module.enabled };
+      try {
+        const updated = await updateModule(module.id, payload, token);
+        return updated;
+      } catch (error) {
+        // @ts-expect-error status is attached
+        if (error?.status === 401) {
+          signOut?.();
+        }
+        throw error;
       }
-      if (!res.ok) {
-        const err = new Error(`Failed to update module (HTTP ${res.status}).`);
-        err.status = res.status;
-        throw err;
-      }
-      return res.json();
     },
     onSuccess: (updated) => {
       queryClient.setQueryData(modulesQueryKey, (prev = []) =>
@@ -232,7 +224,7 @@ export default function ModuleCatalogLocal() {
   }, [refetch]);
 
   return (
-    <div className="bg-facebook-gray p-8">
+    <div className="bg-neutral p-8">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Module Catalog</h1>
         <p className="mt-2 text-sm text-gray-600">
@@ -247,12 +239,12 @@ export default function ModuleCatalogLocal() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search modules..."
-          className="w-full max-w-xs rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+          className="w-full max-w-xs rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
         />
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className="rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+          className="rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
         >
           <option value="">All categories</option>
           {categories.map((category) => (
@@ -264,7 +256,7 @@ export default function ModuleCatalogLocal() {
         <select
           value={phaseFilter}
           onChange={(e) => setPhaseFilter(e.target.value)}
-          className="rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+          className="rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
         >
           <option value="">Any phase</option>
           {phases.map((phase) => (
@@ -276,7 +268,7 @@ export default function ModuleCatalogLocal() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+          className="rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
         >
           <option value="all">All states</option>
           <option value="enabled">Enabled</option>

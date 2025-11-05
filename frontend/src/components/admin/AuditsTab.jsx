@@ -1,8 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState, memo } from "react";
 import CollapsibleSection from "./CollapsibleSection.jsx";
 import Button from "../ui/Button.jsx";
 
-export default function AuditsTab({ headers }) {
+function AuditsTab({ headers }) {
   const [items, setItems] = useState([]);
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
@@ -213,3 +213,5 @@ export default function AuditsTab({ headers }) {
     </div>
   );
 }
+
+export default memo(AuditsTab);

@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, memo } from "react";
 import Button from "../ui/Button.jsx";
 
-export default function LogsTab({ headers }) {
+function LogsTab({ headers }) {
   const [lines, setLines] = useState([]);
   const [path, setPath] = useState("");
   const [error, setError] = useState("");
@@ -73,3 +73,5 @@ export default function LogsTab({ headers }) {
     </div>
   );
 }
+
+export default memo(LogsTab);

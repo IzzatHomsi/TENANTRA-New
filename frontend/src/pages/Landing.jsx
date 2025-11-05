@@ -66,13 +66,13 @@ export default function Landing() {
   }
 
   return (
-    <div className="bg-facebook-gray text-gray-800">
+    <div className="bg-neutral text-gray-800">
       <header className="bg-white shadow-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <h1 className="text-3xl font-bold text-facebook-blue">tenantra</h1>
+          <h1 className="text-3xl font-bold text-primary">tenantra</h1>
           <nav className="flex items-center space-x-4">
-            <Link to="/login" className="text-gray-600 hover:text-facebook-blue">Login</Link>
-            <Link to="/app/faq" className="text-gray-600 hover:text-facebook-blue">FAQ</Link>
+            <Link to="/login" className="text-gray-600 hover:text-primary">Login</Link>
+            <Link to="/app/faq" className="text-gray-600 hover:text-primary">FAQ</Link>
             <Button as={Link} to="/login">Get Started</Button>
           </nav>
         </div>
@@ -124,7 +124,7 @@ export default function Landing() {
                       value={form.name}
                       onChange={handleChange}
                       required
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                     />
                   </div>
                   <div>
@@ -135,7 +135,7 @@ export default function Landing() {
                       value={form.email}
                       onChange={handleChange}
                       required
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                     />
                   </div>
                   <div>
@@ -146,7 +146,7 @@ export default function Landing() {
                       value={form.company}
                       onChange={handleChange}
                       required
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                     />
                   </div>
                   <div>
@@ -155,7 +155,7 @@ export default function Landing() {
                       name="plan"
                       value={form.plan}
                       onChange={handleChange}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                     >
                       <option value="starter">Starter – launch your first framework</option>
                       <option value="growth">Growth – scale compliance across teams</option>
@@ -175,9 +175,9 @@ export default function Landing() {
           <div className="flex items-center justify-between">
             <p className="text-gray-600">&copy; {new Date().getFullYear()} Tenantra. All rights reserved.</p>
             <div className="flex space-x-4">
-              <Link to="/login" className="text-gray-600 hover:text-facebook-blue">Login</Link>
-              <a href="#subscribe" className="text-gray-600 hover:text-facebook-blue">Subscribe</a>
-              <Link to="/app/dashboard" className="text-gray-600 hover:text-facebook-blue">Product tour</Link>
+              <Link to="/login" className="text-gray-600 hover:text-primary">Login</Link>
+              <a href="#subscribe" className="text-gray-600 hover:text-primary">Subscribe</a>
+              <Link to="/app/dashboard" className="text-gray-600 hover:text-primary">Product tour</Link>
             </div>
           </div>
         </div>

@@ -104,7 +104,7 @@ export default function RetentionExports() {
   ];
 
   return (
-    <div className="bg-facebook-gray p-8">
+    <div className="bg-neutral p-8">
       <header className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Retention & Exports</h1>
@@ -132,7 +132,7 @@ export default function RetentionExports() {
                 max={1825}
                 value={retentionDays}
                 onChange={(e) => setRetentionDays(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
               />
             </div>
             <div>
@@ -140,7 +140,7 @@ export default function RetentionExports() {
               <input
                 value={archive}
                 onChange={(e) => setArchive(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
               />
             </div>
             <div>
@@ -148,7 +148,7 @@ export default function RetentionExports() {
               <input
                 value={formats}
                 onChange={(e) => setFormats(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
               />
             </div>
             <Button onClick={updatePolicy} disabled={loading}>
@@ -166,7 +166,7 @@ export default function RetentionExports() {
                 value={exportType}
                 onChange={(e) => setExportType(e.target.value)}
                 placeholder="Export type (e.g. alerts)"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
               />
             </div>
             <div>
@@ -175,7 +175,7 @@ export default function RetentionExports() {
                 value={exportFormats}
                 onChange={(e) => setExportFormats(e.target.value)}
                 placeholder="Formats"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
               />
             </div>
             <Button onClick={requestExport} disabled={loading}>

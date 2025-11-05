@@ -10,6 +10,28 @@ body {
 }
 
 @layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-lg border border-transparent px-3 py-2 text-sm font-semibold transition duration-150 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply bg-primary text-white shadow-sm hover:brightness-105;
+  }
+  .btn-ghost {
+    @apply border border-border-color bg-transparent text-primary-text hover:bg-neutral;
+  }
+  .btn-outline {
+    @apply border border-primary bg-transparent text-primary hover:bg-blue-50;
+  }
+  .btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-500;
+  }
+  .card {
+    @apply rounded-xl border border-border-color bg-surface transition-[transform,box-shadow] duration-150 ease-in-out hover:-translate-y-0.5 hover:shadow-lg;
+  }
+  .shadow-soft {
+    @apply shadow-md;
+  }
+
   /* Legacy page scaffolding mapped to Tailwind */
   .page-stack { @apply space-y-6; }
   .page-stack--loose { @apply space-y-8; }

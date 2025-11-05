@@ -76,7 +76,7 @@ export default function LogViewer() {
   ];
 
   return (
-    <div className="bg-facebook-gray p-8">
+    <div className="bg-neutral p-8">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Log Viewer</h1>
         <p className="mt-2 text-sm text-gray-600">Live tail of recent backend log lines (autorefresh every 3 seconds).</p>
@@ -88,7 +88,7 @@ export default function LogViewer() {
             type="text"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
             placeholder="Filter logs..."
           />
         </div>

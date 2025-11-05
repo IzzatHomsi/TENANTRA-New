@@ -76,7 +76,7 @@ export default function ScanOrchestration() {
   ];
 
   return (
-    <div className="bg-facebook-gray p-8">
+    <div className="bg-neutral p-8">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Scan Orchestration</h1>
         <p className="mt-2 text-sm text-gray-600">
@@ -89,7 +89,7 @@ export default function ScanOrchestration() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
           >
             <option value="">All jobs</option>
             <option value="pending">Pending</option>

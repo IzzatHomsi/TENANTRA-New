@@ -78,14 +78,14 @@ export default function AlertSettings() {
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center bg-facebook-gray">
+      <div className="flex h-full items-center justify-center bg-neutral">
         <p>Loading alert settings...</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-facebook-gray p-8">
+    <div className="bg-neutral p-8">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Alert Settings</h1>
         <p className="mt-2 text-sm text-gray-600">Manage notification channels, event triggers, and digest preferences.</p>
@@ -106,7 +106,7 @@ export default function AlertSettings() {
                 type="checkbox"
                 checked={channels.email}
                 onChange={(e) => setChannels({ ...channels, email: e.target.checked })}
-                className="h-4 w-4 rounded border-gray-300 text-facebook-blue focus:ring-facebook-blue"
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
               />
               <span className="ml-2 text-sm text-gray-700">Email</span>
             </label>
@@ -115,7 +115,7 @@ export default function AlertSettings() {
                 type="checkbox"
                 checked={channels.webhook}
                 onChange={(e) => setChannels({ ...channels, webhook: e.target.checked })}
-                className="h-4 w-4 rounded border-gray-300 text-facebook-blue focus:ring-facebook-blue"
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
               />
               <span className="ml-2 text-sm text-gray-700">Webhook</span>
             </label>
@@ -131,7 +131,7 @@ export default function AlertSettings() {
                   type="checkbox"
                   checked={events[key]}
                   onChange={(e) => setEvents({ ...events, [key]: e.target.checked })}
-                  className="h-4 w-4 rounded border-gray-300 text-facebook-blue focus:ring-facebook-blue"
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                 />
                 <span className="ml-2 text-sm text-gray-700">
                   {EVENT_LABELS[key] || key.replace(/_/g, " ")}
@@ -146,7 +146,7 @@ export default function AlertSettings() {
           <select
             value={digest}
             onChange={(e) => setDigest(e.target.value)}
-            className="mt-4 block w-full max-w-xs rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="mt-4 block w-full max-w-xs rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
           >
             <option value="immediate">Immediate</option>
             <option value="hourly">Hourly</option>

@@ -1,7 +1,7 @@
 """Audit log API endpoints."""
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
@@ -13,6 +13,23 @@ from app.models.audit_log import AuditLog
 from app.models.user import User
 
 router = APIRouter(prefix="/audit-logs", tags=["Audit Logs"])
+
+
+def _serialize_audit_log(log: AuditLog) -> Dict[str, Any]:
+    data = log.as_dict()
+    created_at = data.get("created_at")
+    if isinstance(created_at, datetime):
+        iso = created_at.isoformat()
+        data["created_at"] = iso
+        data.setdefault("timestamp", iso)
+    updated_at = data.get("updated_at")
+    if isinstance(updated_at, datetime):
+        data["updated_at"] = updated_at.isoformat()
+    try:
+        data["details"] = log.details
+    except Exception:
+        data["details"] = None
+    return data
 
 
 @router.get("")
@@ -33,11 +50,11 @@ def get_audit_logs(
     try:
         if start_date:
             start_dt = datetime.strptime(start_date, "%Y-%m-%d")
-            query = query.filter(AuditLog.timestamp >= start_dt)
+            query = query.filter(AuditLog.created_at >= start_dt)
         if end_date:
             end_dt = datetime.strptime(end_date, "%Y-%m-%d")
             end_dt = end_dt.replace(hour=23, minute=59, second=59)
-            query = query.filter(AuditLog.timestamp <= end_dt)
+            query = query.filter(AuditLog.created_at <= end_dt)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format; expected YYYY-MM-DD")
     if result:
@@ -53,7 +70,7 @@ def get_audit_logs(
         "total": total,
         "page": page,
         "page_size": page_size,
-        "items": [log.as_dict() for log in logs],
+        "items": [_serialize_audit_log(log) for log in logs],
     }
 
 
@@ -71,7 +88,11 @@ def _iter_csv(rows: list[AuditLog]):
 
         yield ",".join(
             [
-                esc(r.timestamp.isoformat() if getattr(r, "timestamp", None) else ""),
+                esc(
+                    r.created_at.isoformat()
+                    if isinstance(getattr(r, "created_at", None), datetime)
+                    else ""
+                ),
                 esc(r.user_id),
                 esc(r.action),
                 esc(r.result),
@@ -97,11 +118,11 @@ def export_audit_logs(
     try:
         if start_date:
             start_dt = datetime.strptime(start_date, "%Y-%m-%d")
-            query = query.filter(AuditLog.timestamp >= start_dt)
+            query = query.filter(AuditLog.created_at >= start_dt)
         if end_date:
             end_dt = datetime.strptime(end_date, "%Y-%m-%d")
             end_dt = end_dt.replace(hour=23, minute=59, second=59)
-            query = query.filter(AuditLog.timestamp <= end_dt)
+            query = query.filter(AuditLog.created_at <= end_dt)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format; expected YYYY-MM-DD")
     if result:

@@ -3,7 +3,7 @@ import App from "./App.jsx";
 import { AppProviders } from "./AppProviders.jsx";
 import { StaticRouter } from "react-router-dom/server";
 import { createQueryClient } from "./lib/queryClient.js";
-import { prefetchSupportSettings } from "./queries/supportSettings.js";
+import { runLoaders } from "../server/loaders.mjs";
 
 const SSR_API_BASE =
   process.env.SSR_API_BASE ||
@@ -11,12 +11,17 @@ const SSR_API_BASE =
   process.env.VITE_API_BASE ||
   null;
 
-export async function createApp(url) {
+const NORMALIZED_API_BASE = SSR_API_BASE ? SSR_API_BASE.replace(/\/+$/, "") : null;
+
+export async function createApp({ url, headers }) {
   const queryClient = createQueryClient();
 
-  if (SSR_API_BASE) {
-    await prefetchSupportSettings(queryClient, SSR_API_BASE.replace(/\/+$/, ""));
-  }
+  await runLoaders({
+    url,
+    headers,
+    queryClient,
+    apiBase: NORMALIZED_API_BASE,
+  });
 
   const app = (
     <AppProviders queryClient={queryClient}>

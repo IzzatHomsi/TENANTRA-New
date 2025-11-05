@@ -57,28 +57,28 @@ export default function TaskBaseline({ baseline, setBaseline, onSave }) {
                   <input
                     value={row.name || ""}
                     onChange={(e) => handleChange(index, "name", e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                   />
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
                   <input
                     value={row.task_type || ""}
                     onChange={(e) => handleChange(index, "task_type", e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                   />
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
                   <input
                     value={row.expected_schedule || ""}
                     onChange={(e) => handleChange(index, "expected_schedule", e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                   />
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
                   <input
                     value={row.expected_command || ""}
                     onChange={(e) => handleChange(index, "expected_command", e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                   />
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
@@ -86,14 +86,14 @@ export default function TaskBaseline({ baseline, setBaseline, onSave }) {
                     type="checkbox"
                     checked={!!row.is_critical}
                     onChange={(e) => handleChange(index, "is_critical", e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-facebook-blue focus:ring-facebook-blue"
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                   />
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
                   <input
                     value={row.notes || ""}
                     onChange={(e) => handleChange(index, "notes", e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                   />
                 </td>
                 <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">

@@ -1,5 +1,6 @@
 from typing import Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException
+import logging
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 import requests
 import os
@@ -10,8 +11,10 @@ from app.core.auth import get_admin_user
 from app.database import get_db
 from app.models.app_setting import AppSetting
 from app.models.user import User
+from app.observability.metrics import record_grafana_health, record_grafana_misconfig
 
 router = APIRouter(prefix="/admin/observability", tags=["Admin Observability"])
+logger = logging.getLogger(__name__)
 
 
 def _get_setting(db: Session, key: str) -> Optional[str]:
@@ -48,6 +51,7 @@ class _HealthState:
                 self.failure_count += 1
                 if self.failure_count >= HEALTH_FAILURE_THRESHOLD:
                     self.circuit_open_until = self.last_checked + max(HEALTH_CIRCUIT_TIMEOUT, 30)
+        record_grafana_health(success)
         return payload
 
     def cached(self, reason: str) -> Optional[Dict[str, Any]]:
@@ -77,10 +81,20 @@ _GRAFANA_HEALTH_STATE = _HealthState()
 def grafana_health(db: Session = Depends(get_db), _: User = Depends(get_admin_user)) -> dict:
     base = _get_setting(db, 'grafana.url')
     if not base:
+        record_grafana_health(False)
+        record_grafana_misconfig()
+        logger.warning("Grafana health check aborted: grafana.url app setting not configured")
         cached = _GRAFANA_HEALTH_STATE.cached("missing-config")
         if cached:
+            cached["configured"] = False
+            cached.setdefault("ok", False)
+            cached.setdefault("message", "grafana.url not configured")
+            cached.setdefault("detail", "grafana.url not configured")
             return cached
-        raise HTTPException(status_code=404, detail="grafana.url not configured")
+        raise HTTPException(
+            status_code=status.HTTP_424_FAILED_DEPENDENCY,
+            detail={"message": "grafana.url not configured", "configured": False},
+        )
     if _GRAFANA_HEALTH_STATE.should_short_circuit():
         cached = _GRAFANA_HEALTH_STATE.cached("circuit-open")
         if cached:

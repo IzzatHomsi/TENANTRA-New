@@ -1,0 +1,17 @@
+[
+  {
+    "resourceSizes": [
+      { "resourceType": "script", "budget": 250 },
+      { "resourceType": "total", "budget": 350 }
+    ],
+    "resourceCounts": [
+      { "resourceType": "third-party", "budget": 10 }
+    ]
+  },
+  {
+    "timings": [
+      { "metric": "interactive", "budget": 3000 },
+      { "metric": "largest-contentful-paint", "budget": 2500 }
+    ]
+  }
+]

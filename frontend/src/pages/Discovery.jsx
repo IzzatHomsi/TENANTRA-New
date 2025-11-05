@@ -9,7 +9,7 @@ export default function Discovery() {
   const isAdmin = role === "admin" || role === "super_admin";
 
   return (
-    <div className="bg-facebook-gray p-8">
+    <div className="bg-neutral p-8">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Network Discovery</h1>
         <p className="mt-2 text-sm text-gray-600">

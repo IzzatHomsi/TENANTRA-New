@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, memo } from "react";
 import CollapsibleSection from "./CollapsibleSection.jsx";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export default function BrandingTab({ form, updateField, onValidationChange }) {
+function BrandingTab({ form, updateField, onValidationChange }) {
   const [errors, setErrors] = useState({});
 
   const grafanaUrl = form["grafana.url"] || "";
@@ -179,3 +179,5 @@ export default function BrandingTab({ form, updateField, onValidationChange }) {
     </div>
   );
 }
+
+export default memo(BrandingTab);

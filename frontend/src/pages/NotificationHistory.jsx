@@ -66,7 +66,7 @@ export default function NotificationHistory() {
   ];
 
   return (
-    <div className="bg-facebook-gray p-8">
+    <div className="bg-neutral p-8">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Notification History</h1>
         <p className="mt-2 text-sm text-gray-600">
@@ -81,20 +81,20 @@ export default function NotificationHistory() {
             value={filters.channel}
             onChange={handleFilterChange}
             placeholder="Channel (email, sms, webhook)"
-            className="rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
           />
           <input
             name="recipient"
             value={filters.recipient}
             onChange={handleFilterChange}
             placeholder="Recipient"
-            className="rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
           />
           <select
             name="limit"
             value={filters.limit}
             onChange={handleFilterChange}
-            className="rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
           >
             {[50, 100, 200, 500, 1000].map((n) => (
               <option key={n} value={n}>

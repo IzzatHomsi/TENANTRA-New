@@ -21,7 +21,7 @@ const SUMMARY = [
 
 export default function ComplianceTrends() {
   return (
-    <div className="bg-facebook-gray p-8">
+    <div className="bg-neutral p-8">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Compliance Trends</h1>
         <p className="mt-2 text-sm text-gray-600">
@@ -32,7 +32,7 @@ export default function ComplianceTrends() {
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {SUMMARY.map(({ title, metric, hint }) => (
           <Card key={title}>
-            <div className="text-4xl font-bold text-facebook-blue">{metric}</div>
+            <div className="text-4xl font-bold text-primary">{metric}</div>
             <div className="mt-2 text-lg font-medium text-gray-900">{title}</div>
             <p className="mt-1 text-sm text-gray-600">{hint}</p>
           </Card>

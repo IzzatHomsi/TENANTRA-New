@@ -3,7 +3,7 @@ import Card from "../components/ui/Card.jsx";
 
 export default function ObservabilitySetup() {
   return (
-    <div className="bg-facebook-gray p-8">
+    <div className="bg-neutral p-8">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Observability Setup</h1>
       </header>

@@ -91,7 +91,7 @@ export default function AuditLogs() {
   const pageCount = useMemo(() => Math.max(1, Math.ceil(total / filters.pageSize)), [total, filters.pageSize]);
 
   return (
-    <div className="bg-facebook-gray p-8">
+    <div className="bg-neutral p-8">
       <header className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Audit Logs</h1>
@@ -107,27 +107,27 @@ export default function AuditLogs() {
             value={filters.userId}
             onChange={handleFilterChange}
             placeholder="User ID"
-            className="rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
           />
           <input
             type="date"
             name="start"
             value={filters.start}
             onChange={handleFilterChange}
-            className="rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
           />
           <input
             type="date"
             name="end"
             value={filters.end}
             onChange={handleFilterChange}
-            className="rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
           />
           <select
             name="result"
             value={filters.result}
             onChange={handleFilterChange}
-            className="rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
           >
             <option value="">Any result</option>
             <option value="success">Success</option>
@@ -138,7 +138,7 @@ export default function AuditLogs() {
             name="pageSize"
             value={filters.pageSize}
             onChange={handleFilterChange}
-            className="rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
           >
             {[25, 50, 100, 200, 500].map((n) => (
               <option key={n} value={n}>

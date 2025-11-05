@@ -1,11 +1,14 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, lazy, Suspense } from "react";
 import Tabs from "../components/admin/Tabs.jsx";
-import BrandingTab from "../components/admin/BrandingTab.jsx";
-import ModulesTab from "../components/admin/ModulesTab.jsx";
-import LogsTab from "../components/admin/LogsTab.jsx";
-import ObservabilityTab from "../components/admin/ObservabilityTab.jsx";
-import AuditsTab from "../components/admin/AuditsTab.jsx";
 import Button from "../components/ui/Button.jsx";
+import { useAdminSettingsQuery, useUpdateAdminSettingsMutation } from "../queries/adminSettings.js";
+import { useAuth } from "../context/AuthContext.jsx";
+
+const BrandingTab = lazy(() => import("../components/admin/BrandingTab.jsx"));
+const ModulesTab = lazy(() => import("../components/admin/ModulesTab.jsx"));
+const LogsTab = lazy(() => import("../components/admin/LogsTab.jsx"));
+const ObservabilityTab = lazy(() => import("../components/admin/ObservabilityTab.jsx"));
+const AuditsTab = lazy(() => import("../components/admin/AuditsTab.jsx"));
 
 const TABS = [
   { name: "branding", label: "Branding" },
@@ -16,8 +19,6 @@ const TABS = [
 ];
 
 export default function AdminSettings() {
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState("branding");
   const [lastSavedAt, setLastSavedAt] = useState("");
   const [saveStatus, setSaveStatus] = useState({ kind: "", message: "" });
@@ -32,33 +33,54 @@ export default function AdminSettings() {
     "grafana.datasource_uid": "prometheus",
     "worker.enabled": true,
   });
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const tid = typeof window !== "undefined" ? localStorage.getItem("tenant_id") : null;
+  const { token, isAuthenticated } = useAuth();
+  const tenantId = typeof window !== "undefined" ? localStorage.getItem("tenant_id") : null;
   const headers = useMemo(() => {
-    const base = token ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } : { "Content-Type": "application/json" };
-    return tid ? { ...base, "X-Tenant-Id": tid } : base;
-  }, [token, tid]);
+    const base = token ? { Authorization: `Bearer ${token}` } : {};
+    return tenantId ? { ...base, "X-Tenant-Id": tenantId } : base;
+  }, [token, tenantId]);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/admin/settings", { headers });
-        if (res.ok) {
-          const items = await res.json();
-          setForm((prev) => {
-            const next = { ...prev };
-            for (const it of items) next[it.key] = it.value;
-            return next;
-          });
-        }
-      } catch {}
-      setLoading(false);
-    })();
-  }, [headers]);
+  const handleBrandingValidation = useCallback((errs) => {
+    setBrandingErrors(errs || {});
+  }, []);
+
+  const handleSavedHealth = useCallback((meta) => {
+    if (!meta) return;
+    setLastHealthMeta(meta);
+    try {
+      window.dispatchEvent(new CustomEvent("tena:settings-observability", { detail: meta }));
+    } catch {}
+  }, []);
+
+  const {
+    data: settings = [],
+    isLoading: queryLoading,
+    isFetching: queryFetching,
+    error: queryError,
+  } = useAdminSettingsQuery();
+  const updateSettingsMutation = useUpdateAdminSettingsMutation();
+  const saving = updateSettingsMutation.isPending;
 
   const updateField = useCallback((key, val) => {
     setForm((prev) => ({ ...prev, [key]: val }));
   }, []);
+
+  useEffect(() => {
+    if (!settings?.length) return;
+    setForm((prev) => {
+      const next = { ...prev };
+      for (const item of settings) {
+        next[item.key] = item.value;
+      }
+      return next;
+    });
+  }, [settings]);
+
+  useEffect(() => {
+    if (!queryError) return;
+    const message = queryError instanceof Error ? queryError.message : "Unable to load settings";
+    setSaveStatus({ kind: "error", message });
+  }, [queryError]);
 
   useEffect(() => {
     try {
@@ -104,11 +126,9 @@ export default function AdminSettings() {
       } catch {}
       return;
     }
-    setSaving(true);
     setSaveStatus({ kind: "", message: "" });
     try {
-      const res = await fetch("/api/admin/settings", { method: "PUT", headers, body: JSON.stringify(form) });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      await updateSettingsMutation.mutateAsync(form);
       const savedAt = new Date().toISOString();
       setLastSavedAt(savedAt);
       const formatted = new Date(savedAt).toLocaleString();
@@ -141,8 +161,6 @@ export default function AdminSettings() {
           })
         );
       } catch {}
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -152,8 +170,14 @@ export default function AdminSettings() {
   const lastHealthSummary = lastHealthMeta
     ? `HTTP ${lastHealthMeta.status} • ${lastHealthMeta.durationMs ?? "—"} ms • ${formatRelativeTime(lastHealthMeta.at)}`
     : "No successful check yet";
+  const tabFallback = useMemo(
+    () => <div className="py-12 text-center text-secondary-text">Loading section…</div>,
+    []
+  );
 
-  if (loading) return <div className="p-10 text-center text-primary-text">Loading...</div>;
+  if (!isAuthenticated || queryLoading) {
+    return <div className="p-10 text-center text-primary-text">Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-surface px-4 py-8 sm:px-6 lg:px-8">
@@ -205,44 +229,36 @@ export default function AdminSettings() {
         <Tabs tabs={TABS} activeTab={tab} setActiveTab={setTab} />
 
         <div className="rounded-xl border border-border-color bg-surface p-6 shadow">
-          {tab === "branding" && (
-            <div id="admin-settings-tab-branding">
-              <BrandingTab
-                form={form}
-                updateField={updateField}
-                onValidationChange={(errs) => setBrandingErrors(errs || {})}
-              />
-            </div>
-          )}
-          {tab === "modules" && (
-            <div id="admin-settings-tab-modules">
-              <ModulesTab headers={headers} />
-            </div>
-          )}
-          {tab === "logs" && (
-            <div id="admin-settings-tab-logs">
-              <LogsTab headers={headers} />
-            </div>
-          )}
-          {tab === "observability" && (
-            <div id="admin-settings-tab-observability">
-              <ObservabilityTab
-                headers={headers}
-                onSavedHealth={(meta) => {
-                  if (!meta) return;
-                  setLastHealthMeta(meta);
-                  try {
-                    window.dispatchEvent(new CustomEvent("tena:settings-observability", { detail: meta }));
-                  } catch {}
-                }}
-              />
-            </div>
-          )}
-          {tab === "audits" && (
-            <div id="admin-settings-tab-audits">
-              <AuditsTab headers={headers} />
-            </div>
-          )}
+          <Suspense fallback={tabFallback}>
+            {tab === "branding" && (
+              <div id="admin-settings-tab-branding">
+                <BrandingTab form={form} updateField={updateField} onValidationChange={handleBrandingValidation} />
+              </div>
+            )}
+            {tab === "modules" && (
+              <div id="admin-settings-tab-modules">
+                <ModulesTab headers={headers} />
+              </div>
+            )}
+            {tab === "logs" && (
+              <div id="admin-settings-tab-logs">
+                <LogsTab headers={headers} />
+              </div>
+            )}
+            {tab === "observability" && (
+              <div id="admin-settings-tab-observability">
+                <ObservabilityTab
+                  headers={headers}
+                  onSavedHealth={handleSavedHealth}
+                />
+              </div>
+            )}
+            {tab === "audits" && (
+              <div id="admin-settings-tab-audits">
+                <AuditsTab headers={headers} />
+              </div>
+            )}
+          </Suspense>
         </div>
 
         <div className="flex flex-col gap-3 rounded-xl border border-border-color bg-surface p-6 shadow sm:flex-row sm:items-center sm:justify-between">

@@ -1,5 +1,9 @@
 FROM nginx:stable
 
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends nginx-module-brotli \
+ && rm -rf /var/lib/apt/lists/*
+
 # Copy our repo nginx main config and includes so the image is self-contained
 # Paths are relative to the build context (docker/)
 COPY nginx/nginx.conf /etc/nginx/nginx.conf

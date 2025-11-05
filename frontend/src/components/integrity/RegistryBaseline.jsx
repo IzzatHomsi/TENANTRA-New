@@ -59,35 +59,35 @@ export default function RegistryBaseline({ baseline, setBaseline, onSave }) {
                   <input
                     value={row.hive || ""}
                     onChange={(e) => handleChange(index, "hive", e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                   />
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
                   <input
                     value={row.key_path || ""}
                     onChange={(e) => handleChange(index, "key_path", e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                   />
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
                   <input
                     value={row.value_name || ""}
                     onChange={(e) => handleChange(index, "value_name", e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                   />
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
                   <input
                     value={row.expected_value || ""}
                     onChange={(e) => handleChange(index, "expected_value", e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                   />
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
                   <input
                     value={row.expected_type || ""}
                     onChange={(e) => handleChange(index, "expected_type", e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                   />
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
@@ -95,14 +95,14 @@ export default function RegistryBaseline({ baseline, setBaseline, onSave }) {
                     type="checkbox"
                     checked={!!row.is_critical}
                     onChange={(e) => handleChange(index, "is_critical", e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-facebook-blue focus:ring-facebook-blue"
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                   />
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
                   <input
                     value={row.notes || ""}
                     onChange={(e) => handleChange(index, "notes", e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                   />
                 </td>
                 <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">

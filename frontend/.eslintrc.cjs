@@ -20,5 +20,16 @@ module.exports = {
   },
   rules: {
     'react/prop-types': 'off',
+    'no-restricted-syntax': [
+      'error',
+      {
+        selector: "JSXAttribute[name.name='className'][value.type='Literal'][value.value=/bg-facebook-/]",
+        message: 'Use theme tokens (bg-surface/bg-neutral) instead of legacy bg-facebook-* classes.',
+      },
+      {
+        selector: "JSXAttribute[name.name='className'][value.type='Literal'][value.value=/text-facebook-/]",
+        message: 'Use theme tokens (text-primary/text-secondary) instead of text-facebook-* classes.',
+      },
+    ],
   },
 };

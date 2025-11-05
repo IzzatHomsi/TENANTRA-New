@@ -85,7 +85,7 @@ export default function Dashboard() {
     : "";
 
   return (
-    <div className="space-y-6 bg-facebook-gray p-6">
+    <div className="space-y-6 bg-neutral p-6">
       <header className="border-b border-gray-200 pb-4">
         <div className="text-xs uppercase tracking-wide text-gray-500">Overview</div>
         <h1 className="mt-1 text-2xl font-bold text-gray-900">Operations Dashboard</h1>
@@ -105,9 +105,9 @@ export default function Dashboard() {
       )}
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <Card className="bg-facebook-white rounded-lg shadow-lg">
+        <Card className="bg-surface rounded-lg shadow-lg">
           <div className="flex items-start gap-4">
-            <div className="rounded-full bg-blue-100 p-3 text-facebook-blue">
+            <div className="rounded-full bg-blue-100 p-3 text-primary">
               <Icon name="clock" />
             </div>
             <div>
@@ -117,7 +117,7 @@ export default function Dashboard() {
             </div>
           </div>
         </Card>
-        <Card className="bg-facebook-white rounded-lg shadow-lg">
+        <Card className="bg-surface rounded-lg shadow-lg">
           <div className="flex items-start gap-4">
             <div className="rounded-full bg-green-100 p-3 text-green-600">
               <Icon name="shield" />
@@ -129,7 +129,7 @@ export default function Dashboard() {
             </div>
           </div>
         </Card>
-        <Card className="bg-facebook-white rounded-lg shadow-lg">
+        <Card className="bg-surface rounded-lg shadow-lg">
           <div className="flex items-start gap-4">
             <div className="rounded-full bg-purple-100 p-3 text-purple-600">
               <Icon name="bolt" />

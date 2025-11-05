@@ -1,5 +1,5 @@
 # backend/app/observability/metrics.py
-from prometheus_client import Counter, Histogram, CollectorRegistry, generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import Counter, Histogram, Gauge, CollectorRegistry, generate_latest, CONTENT_TYPE_LATEST
 import time
 from fastapi import Request, Response
 from typing import Callable
@@ -59,6 +59,19 @@ WEB_VITAL_VALUE = Histogram(
     "web_vital_value",
     "Distribution of web vital values grouped by metric name.",
     ["name"],
+    registry=REGISTRY,
+)
+
+GRAFANA_HEALTH = Gauge(
+    "grafana_health_status",
+    "Grafana health status (1=healthy, 0=misconfigured or unreachable)",
+    registry=REGISTRY,
+)
+
+GRAFANA_MISCONFIG = Counter(
+    "grafana_missing_configuration_total",
+    "Number of times Grafana health checks found missing configuration.",
+    [],
     registry=REGISTRY,
 )
 
@@ -126,5 +139,19 @@ def record_web_vital(payload: dict) -> None:
         value = float(payload.get("value", 0))
         WEB_VITALS.labels(name=name, rating=rating).inc()
         WEB_VITAL_VALUE.labels(name=name).observe(value)
+    except Exception:
+        pass
+
+
+def record_grafana_health(ok: bool) -> None:
+    try:
+        GRAFANA_HEALTH.set(1 if ok else 0)
+    except Exception:
+        pass
+
+
+def record_grafana_misconfig() -> None:
+    try:
+        GRAFANA_MISCONFIG.inc()
     except Exception:
         pass

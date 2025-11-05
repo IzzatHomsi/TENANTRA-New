@@ -62,7 +62,7 @@ export default function Onboarding() {
   if (loading) return <div className="p-8 text-center">Loading...</div>;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-facebook-gray p-8">
+    <div className="flex min-h-screen items-center justify-center bg-neutral p-8">
       <Card className="w-full max-w-2xl">
         <header className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-gray-900">Tenantra Setup</h1>
@@ -79,7 +79,7 @@ export default function Onboarding() {
                   name="mode"
                   checked={mode === "single"}
                   onChange={() => setMode("single")}
-                  className="h-4 w-4 border-gray-300 text-facebook-blue focus:ring-facebook-blue"
+                  className="h-4 w-4 border-gray-300 text-primary focus:ring-primary"
                 />
                 <span className="ml-2 text-sm text-gray-700">Single tenant</span>
               </label>
@@ -89,7 +89,7 @@ export default function Onboarding() {
                   name="mode"
                   checked={mode === "multi"}
                   onChange={() => setMode("multi")}
-                  className="h-4 w-4 border-gray-300 text-facebook-blue focus:ring-facebook-blue"
+                  className="h-4 w-4 border-gray-300 text-primary focus:ring-primary"
                 />
                 <span className="ml-2 text-sm text-gray-700">Multi-tenant (MSSP)</span>
               </label>
@@ -106,7 +106,7 @@ export default function Onboarding() {
                     value={tenantName}
                     onChange={(e) => setTenantName(e.target.value)}
                     placeholder="Acme Corp"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                   />
                 </div>
                 <div>
@@ -115,7 +115,7 @@ export default function Onboarding() {
                     value={tenantSlug}
                     onChange={(e) => setTenantSlug(e.target.value)}
                     placeholder="acme"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                   />
                 </div>
               </div>

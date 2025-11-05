@@ -79,7 +79,7 @@ export default function Profile() {
   };
 
   return (
-    <div className="bg-facebook-gray p-8">
+    <div className="bg-neutral p-8">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
         <p className="mt-2 text-sm text-gray-600">Update your account details and rotate credentials.</p>
@@ -103,7 +103,7 @@ export default function Profile() {
               placeholder="you@example.com"
               onChange={(event) => setEmail(event.target.value)}
               required
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
             />
           </div>
 
@@ -114,7 +114,7 @@ export default function Profile() {
               value={password}
               placeholder="Leave empty to keep current password"
               onChange={(event) => setPassword(event.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
             />
           </div>
 

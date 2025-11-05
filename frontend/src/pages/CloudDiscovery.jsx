@@ -57,7 +57,7 @@ export default function CloudDiscovery() {
   };
 
   return (
-    <div className="bg-facebook-gray p-8">
+    <div className="bg-neutral p-8">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Cloud & Hybrid Discovery</h1>
         <p className="mt-2 text-sm text-gray-600">
@@ -71,7 +71,7 @@ export default function CloudDiscovery() {
             name="provider"
             value={filters.provider}
             onChange={handleFilterChange}
-            className="rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
           >
             <option value="">All providers</option>
             <option value="aws">AWS</option>
@@ -83,7 +83,7 @@ export default function CloudDiscovery() {
             value={filters.account}
             onChange={handleFilterChange}
             placeholder="Account ID"
-            className="w-48 rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="w-48 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
           />
           <Button onClick={loadData} disabled={loading}>
             {loading ? "Refreshing..." : "Apply"}

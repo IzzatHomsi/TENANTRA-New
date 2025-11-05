@@ -6,13 +6,15 @@ import { hydrate as hydrateQueryClient } from "@tanstack/react-query";
 import { createQueryClient } from "./lib/queryClient.js";
 import { registerWebVitals } from "./lib/webVitals.js";
 import { AppProviders } from "./AppProviders.jsx";
+import { registerSW } from "virtual:pwa-register";
+import { prefetchRoutes } from "./lib/prefetchRoutes.js";
 import "./index.css";
-import "./styles/app.css";
 import "./styles/theme.css";
 
 const queryClient = createQueryClient();
 
 if (typeof window !== "undefined") {
+  registerSW({ immediate: true });
   const state = window.__TANSTACK_DEHYDRATED_STATE__;
   if (state) {
     hydrateQueryClient(queryClient, state);
@@ -42,3 +44,7 @@ if (container?.hasChildNodes()) {
 }
 
 registerWebVitals();
+
+if (typeof window !== "undefined") {
+  prefetchRoutes();
+}

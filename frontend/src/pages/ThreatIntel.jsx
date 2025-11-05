@@ -69,7 +69,7 @@ export default function ThreatIntel() {
   ];
 
   return (
-    <div className="bg-facebook-gray p-8">
+    <div className="bg-neutral p-8">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Threat Intelligence</h1>
         <p className="mt-2 text-sm text-gray-600">
@@ -82,7 +82,7 @@ export default function ThreatIntel() {
           <select
             value={severity}
             onChange={(e) => setSeverity(e.target.value)}
-            className="rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
           >
             <option value="">All severities</option>
             <option value="critical">Critical</option>

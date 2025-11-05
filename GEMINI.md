@@ -1,4 +1,24 @@
-# GEMINI.md
+# Repository Guidelines
+
+## Project Structure & Module Organization
+Backend FastAPI code lives in `backend/app` (routes, services, models) with Alembic revisions in `backend/alembic/versions`. Tests go in `backend/tests`, mirroring package paths. The Vite/React client resides in `frontend/src` (`pages/`, `components/`, `auth/`); static assets stay in `frontend/public`. Docker Compose manifests live in `docker/`, while operational runbooks and feature-flag notes sit in `docs/`. Automation and one-off helpers reside in `scripts/`, `tools/`, and the root `Makefile`.
+
+## Build, Test, and Development Commands
+Bring up the stack with `make up` (optional `DEV=1` for dev overrides) and stop it via `make down`. Apply migrations through `make migrate`, then seed defaults using `make seed`. For API iteration run `cd backend && uvicorn app.main:create_app --factory --reload`. Frontend development uses `cd frontend && npm install && npm run dev -- --host`. Generate artefacts with `make openapi` and run cross-cutting checks via `make validate`.
+
+## Coding Style & Naming Conventions
+Python targets 3.11; Ruff (`ruff check backend/app`) and mypy enforce linting and typing, and CI caps lines at 100 characters with space indentation. Prefer Pydantic models for IO contracts and timestamp-prefixed Alembic filenames. Frontend code is ES modules on React 18; keep components PascalCase, hooks camelCase, and environment constants SCREAMING_SNAKE_CASE. ESLint lives in `frontend/.eslintrc.cjs`; run `npx eslint src` before a PR. Tailwind utility classes stay in JSX, with shared tokens in `frontend/src/styles`.
+
+## Testing Guidelines
+Run backend tests with `make test` or `cd backend && pytest -q`; update fixtures in `backend/tests/conftest.py` when models change and cover tenant/RBAC paths. Frontend smoke and E2E suites live in `frontend/tests`; execute them via `npm run test:e2e` and retain updated traces when behaviour shifts. When APIs evolve, regenerate `openapi.json` and refresh Postman collections under `postman/`.
+
+## Commit & Pull Request Guidelines
+Commits follow the Phase/Batch prefixes in history (e.g., `P3_B5.6: Lock login flow`) plus an imperative summary; rebase to keep history clean. A PR description should state intent, surface risk, attach UI screenshots, and list verification commands (`make test`, `npm run test:e2e`). Link tracker issues, call out migrations, and ensure required workflows (backend-ci, frontend-ci, compose-yaml-lint, secret-scan) are green before requesting review.
+
+## Security & Configuration Tips
+Never commit real secrets; use `.env.local` for development and Docker secrets or CI variables for shared environments. Validate new endpoints against tenant isolation helpers such as `role_required` and the dynamic CORS middleware. Before shipping security-sensitive changes, run `make validate` or `python tools/validate_tenantra.py --output-dir reports`.
+
+
 
 ## Project Overview
 

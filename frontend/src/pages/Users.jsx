@@ -184,7 +184,7 @@ export default function Users() {
 
   if (!isAdmin) {
     return (
-      <div className="bg-facebook-gray flex h-full items-center justify-center">
+      <div className="bg-neutral flex h-full items-center justify-center">
         <div className="text-center">
           <h1 className="text-3xl font-bold">Access Denied</h1>
           <p className="mt-4 text-lg">You do not have permission to view this page.</p>
@@ -194,7 +194,7 @@ export default function Users() {
   }
 
   return (
-    <div className="bg-facebook-gray p-8">
+    <div className="bg-neutral p-8">
       <header className="mb-8 flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
         <Button onClick={() => {

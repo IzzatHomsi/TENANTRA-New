@@ -101,7 +101,7 @@ export default function CreateSchedule({ isAdmin }) {
               <select
                 value={tenantId}
                 onChange={(e) => setTenantId(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
               >
                 <option value="">Current tenant</option>
                 {tenants.map((t) => (
@@ -116,7 +116,7 @@ export default function CreateSchedule({ isAdmin }) {
               <select
                 value={agentId}
                 onChange={(e) => setAgentId(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
               >
                 <option value="">Unassigned</option>
                 {agents.map((a) => (
@@ -134,7 +134,7 @@ export default function CreateSchedule({ isAdmin }) {
             value={cron}
             onChange={(e) => setCron(e.target.value)}
             placeholder="*/30 * * * *"
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
           />
         </div>
         <Button onClick={createSchedule}>Save Schedule</Button>

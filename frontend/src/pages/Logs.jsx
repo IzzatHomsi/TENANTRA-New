@@ -69,7 +69,7 @@ export default function Logs() {
   ];
 
   return (
-    <div className="bg-facebook-gray p-8">
+    <div className="bg-neutral p-8">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Logs</h1>
       </header>
@@ -80,7 +80,7 @@ export default function Logs() {
             type="text"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="w-full rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
             placeholder="Filter logs..."
           />
         </div>

@@ -142,7 +142,7 @@ export default function ProcessMonitoring() {
   };
 
   return (
-    <div className="bg-facebook-gray p-8">
+    <div className="bg-neutral p-8">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Process Monitoring & Drift</h1>
         <p className="mt-2 text-sm text-gray-600">
@@ -155,7 +155,7 @@ export default function ProcessMonitoring() {
           <select
             value={scope}
             onChange={(e) => dispatch({ type: "SET_FIELD", field: "scope", value: e.target.value })}
-            className="rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
           >
             <option value="agent">Agent baseline</option>
             <option value="tenant">Tenant default baseline</option>
@@ -166,7 +166,7 @@ export default function ProcessMonitoring() {
               value={agentId}
               onChange={(e) => dispatch({ type: "SET_FIELD", field: "agentId", value: e.target.value })}
               placeholder="Agent ID (e.g. 42)"
-              className="w-40 rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+              className="w-40 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
             />
           )}
           <Button onClick={loadData} disabled={loading || (scope === "agent" && !agentId.trim())}>

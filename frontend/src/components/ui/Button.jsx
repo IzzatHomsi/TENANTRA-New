@@ -6,7 +6,7 @@ const variants = {
   primary: "btn-primary",
   ghost: "btn-ghost",
   outline: "btn-outline",
-  danger: "bg-red-600 text-white hover:brightness-110",
+  danger: "btn-danger",
 };
 
 const sizes = {

@@ -51,7 +51,7 @@ export default function ComplianceMatrix() {
   }, [matrix.rules, search]);
 
   return (
-    <div className="bg-facebook-gray p-8">
+    <div className="bg-neutral p-8">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Compliance Matrix</h1>
         <p className="mt-2 text-sm text-gray-600">
@@ -65,7 +65,7 @@ export default function ComplianceMatrix() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search controls..."
-            className="w-full max-w-md rounded-md border-gray-300 shadow-sm focus:border-facebook-blue focus:ring-facebook-blue sm:text-sm"
+            className="w-full max-w-md rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
           />
           <Button onClick={loadMatrix} disabled={loading}>
             {loading ? "Refreshing..." : "Reload"}
