@@ -12,7 +12,7 @@ env:
 
 jobs:
   deploy:
-    runs-on: [ self-hosted, Windows ]
+    runs-on: [ self-hosted, windows, TENAT, HO-DOCKER-22 ]
     steps:
       - name: Checkout
         uses: actions/checkout@v4

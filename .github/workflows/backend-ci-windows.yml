@@ -6,7 +6,7 @@ on:
 jobs:
   backend:
     name: Lint, test & security (Windows)
-    runs-on: [self-hosted, windows, TENAT, staging]
+    runs-on: [ self-hosted, windows, TENAT, HO-DOCKER-22 ]
     defaults:
       run:
         shell: pwsh
