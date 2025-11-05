@@ -8,7 +8,7 @@ env:
 
 jobs:
   probes:
-    runs-on: [ self-hosted, windows, TENAT, HO-DOCKER-22 ]
+    runs-on: [ self-hosted, windows, x64, TENAT, HO-DOCKER-22, NEW ]
     steps:
       - name: Probe /health
         shell: pwsh

@@ -5,7 +5,7 @@ on:
 
 jobs:
   e2e:
-    runs-on: [ self-hosted, windows, TENAT, HO-DOCKER-22 ]
+    runs-on: [ self-hosted, windows, x64, TENAT, HO-DOCKER-22, NEW ]
     defaults:
       run:
         shell: pwsh
