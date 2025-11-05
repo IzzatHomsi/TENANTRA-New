@@ -1,60 +1,126 @@
+# Tenantra - The Unified IT Discovery & Compliance Platform
 
-# Tenant-aware CORS
+![Build Status](https://img.shields.io/github/actions/workflow/status/IzzatHomsi/TENANTRA-New/backend-ci.yml?branch=main&style=for-the-badge)
+![Code Coverage](https://img.shields.io/codecov/c/github/IzzatHomsi/TENANTRA-New?style=for-the-badge)
+![License](https://img.shields.io/github/license/IzzatHomsi/TENANTRA-New?style=for-the-badge)
 
-This patch enables CORS to be controlled centrally from the database. Admins can register allowed origins per tenant.
-- Safe default: no origin is allowed unless added to env or DB.
-- Preflight (OPTIONS) handled by middleware; successful origins receive proper CORS headers.
+Tenantra is a multi-tenant, cloud-ready IT discovery, security, and compliance automation platform. It continuously scans, inventories, and secures complex IT environments—covering infrastructure, endpoints, networks, identities, configurations, and compliance posture—under a single intelligent dashboard.
 
-## Admin API
-- `GET /admin/cors` — list all (optional `?tenant_id=`)
-- `POST /admin/cors` — `{ "tenant_id": 1, "origin": "https://app.example.com", "is_global": false }`
-- `PATCH /admin/cors/{id}` — toggle `enabled`, `is_global`, or change `origin`
-- `DELETE /admin/cors/{id}` — remove
+## Table of Contents
 
-## Behavior
-- If `CORS_ALLOWED_ORIGINS` env is set, those are always allowed.
-- DB entries allow additional origins; `enabled=false` disables without deleting.
-- `is_global=true` is informational here (future use for non-tenant-bound flows).
+- [Features](#features)
+- [Architecture](#architecture)
+- [Installation and Setup](#installation-and-setup)
+- [Running the Application](#running-the-application)
+- [Running Tests](#running-tests)
+- [CI/CD](#cicd)
+- [Contributing](#contributing)
+- [License](#license)
+- [Contact & Support](#contact--support)
 
-## Migration
-Run `alembic upgrade head` after applying files.
+## Features
 
-## Running locally
+- **Asset Discovery & Inventory:** Automated discovery of servers, endpoints, and network devices.
+- **Security & Compliance:** Continuous vulnerability and compliance scanning with built-in frameworks (CIS, ISO 27001, NIST 800-53).
+- **Alerting & Incident Management:** Configurable thresholds and rules with branded HTML notifications.
+- **Monitoring & Analytics:** Metrics exported to Prometheus and visualized in Grafana dashboards.
+- **User & Tenant Management:** Multi-tenant structure with isolated schemas and role-based access control.
+- **Data & Billing:** Per-tenant cost tracking and automated invoice templates.
+- **DevSecOps & Automation:** GitHub Actions CI/CD pipelines and Dockerized deployment.
 
+## Architecture
+
+Tenantra is built on a modern, containerized architecture:
+
+- **Backend:** Python/FastAPI with modular REST APIs.
+- **Frontend:** React/Vite with a Tailwind CSS theme.
+- **Database:** PostgreSQL with SQLAlchemy and Alembic for migrations.
+- **Orchestration:** Docker Compose for easy deployment and scaling.
+- **Observability:** Optional integrations with Prometheus, Grafana, Loki, and Vault.
+
+## Installation and Setup
+
+To set up the development environment, you will need:
+
+- Python 3.11+
+- Node.js 18+
+- Docker and Docker Compose
+
+**1. Clone the repository:**
 ```bash
-make up       # start the stack
-make migrate  # apply migrations
-make seed     # bootstrap default admin/roles
+git clone git@github.com:IzzatHomsi/TENANTRA-New.git
+cd TENANTRA-New
 ```
 
-Visit `http://localhost:5173` for the frontend and `http://localhost:5000/health` for the backend health check. Use `make down` to stop the services.
+**2. Backend Setup:**
+```bash
+cd backend
+pip install -r requirements.txt
+```
 
-## CI/CD quick reference
+**3. Frontend Setup:**
+```bash
+cd frontend
+npm install
+```
 
-- `backend-ci` runs linting, type checking, security scan and pytest against Postgres.
-- `frontend-ci` installs dependencies, runs ESLint and builds the Vite bundle.
-- `compose-yaml-lint` validates docker compose manifests and performs `yamllint`.
-- `secret-scan` uses gitleaks to guard against credential leaks.
-- `deploy-staging` (push to `main`) SSHes into HO-Docker-22, updates the repo, rebuilds containers, migrates + seeds, and runs health probes.
-- `post-deploy-probes` performs HTTPS smoke tests against `https://tenantra.homsi-co.com`.
+## Running the Application
 
-See `DEPLOY.md` for full instructions and required GitHub secrets.
+### With Docker (Recommended)
 
-## CI Status
-- API E2E (Newman): [![Newman E2E](https://github.com/tenantra/tenantra-platform/actions/workflows/newman-e2e.yml/badge.svg)](https://github.com/tenantra/tenantra-platform/actions/workflows/newman-e2e.yml)
-- Backend Deep Audit: [![Deep Audit](https://github.com/tenantra/tenantra-platform/actions/workflows/deep-audit.yml/badge.svg)](https://github.com/tenantra/tenantra-platform/actions/workflows/deep-audit.yml)
-- UI Smoke (Process Monitoring): [![UI Smoke](https://github.com/tenantra/tenantra-platform/actions/workflows/playwright-ui.yml/badge.svg)](https://github.com/tenantra/tenantra-platform/actions/workflows/playwright-ui.yml)
+The easiest way to run the full application stack is with Docker Compose:
 
-## OpenAPI snapshot (new)
-- Regenerate snapshot with: `make openapi` or `python backend/tools/generate_openapi.py --output openapi.json`
-- CI enforces freshness: backend CI generates `openapi.generated.json` and fails if it differs.
+```bash
+make up       # Start the application stack
+make migrate  # Apply database migrations
+make seed     # Seed the database with initial data
+```
 
-## Feature flags
-- Panorama drift stub (Phase 3 prototype): set `TENANTRA_ENABLE_PANORAMA_STUB=true` to enable stubbed success; otherwise runs as `skipped`.
- - AWS IAM live check (Phase 2 prototype): set `TENANTRA_ENABLE_AWS_LIVE=true` and provide AWS creds + `boto3` to attempt live IAM evaluation (falls back to `skipped` if unavailable).
+The frontend will be available at `http://localhost:5173` and the backend at `http://localhost:5000`.
 
-See `docs/FEATURE_FLAGS_SMTP.md` for full details and MailHog dev overlay.
+### Local Development
 
-## Dev Stacks
-- Combined dev stacks and scripts are documented in `docs/DEV_STACKS.md`.
-# TENANTRA-New
+**Backend:**
+```bash
+python backend/dev_server.py
+```
+
+**Frontend:**
+```bash
+npm run dev
+```
+
+## Running Tests
+
+**Backend:**
+```bash
+pytest backend/
+```
+
+**Frontend:**
+```bash
+npm test
+```
+
+## CI/CD
+
+This project uses GitHub Actions for CI/CD. The main workflows are:
+
+- `backend-ci.yml`: Runs linting, type checking, security scans, and tests for the backend.
+- `frontend-ci.yml`: Installs dependencies, runs ESLint, and builds the frontend.
+- `e2e-staging.yml`: Runs end-to-end tests against a staging environment.
+
+For more details, see the workflow files in `.github/workflows`.
+
+## Contributing
+
+We welcome contributions! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) file for detailed guidelines on how to contribute to the project, including our code of conduct, pull request process, and coding standards.
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+## Contact & Support
+
+- **Issues:** If you find a bug or have a feature request, please [open an issue](https://github.com/IzzatHomsi/TENANTRA-New/issues).
+- **Contact:** For other inquiries, you can reach out to the project maintainers.

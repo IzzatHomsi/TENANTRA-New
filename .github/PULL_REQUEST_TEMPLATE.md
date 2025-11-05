@@ -1,18 +1,38 @@
-<!-- PR template for Tenantra Platform -->
-# Summary
+## Description
 
-Describe the change and why it was made.
+Please include a summary of the change and which issue is fixed. Please also include relevant motivation and context. List any dependencies that are required for this change.
 
-# Checklist
+Fixes # (issue)
 
-Use this checklist to help reviewers verify important repo conventions. The full reviewer checklist is in `.github/PR_REVIEW_CHECKLIST.md`.
+## Type of change
 
-- [ ] Alembic/migrations checked (see `tools/verify_alembic_single_head.py`)
-- [ ] Seeds added/updated and idempotent (`backend/scripts/db_seed.py` pattern)
-- [ ] Tenant-awareness verified (use `tenant_id` query or `X-Tenant-Slug` header)
-- [ ] Tests added/updated (unit/integration + e2e if needed)
-- [ ] No secrets committed; env vars documented in `DEPLOY.md`
+Please delete options that are not relevant.
 
-## Notes for reviewers
+- [ ] Bug fix (non-breaking change which fixes an issue)
+- [ ] New feature (non-breaking change which adds functionality)
+- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
+- [ ] This change requires a documentation update
 
-Link to extended Copilot guidance: `.github/copilot-instructions.md`.
+## How Has This Been Tested?
+
+Please describe the tests that you ran to verify your changes. Provide instructions so we can reproduce. Please also list any relevant details for your test configuration
+
+- [ ] Test A
+- [ ] Test B
+
+**Test Configuration**:
+* Firmware version:
+* Hardware:
+* Toolchain:
+* SDK:
+
+## Checklist:
+
+- [ ] My code follows the style guidelines of this project
+- [ ] I have performed a self-review of my own code
+- [ ] I have commented my code, particularly in hard-to-understand areas
+- [ ] I have made corresponding changes to the documentation
+- [ ] My changes generate no new warnings
+- [ ] I have added tests that prove my fix is effective or that my feature works
+- [ ] New and existing unit tests pass locally with my changes
+- [ ] Any dependent changes have been merged and published in downstream modules
