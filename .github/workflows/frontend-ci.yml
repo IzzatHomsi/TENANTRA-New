@@ -43,6 +43,11 @@ jobs:
         working-directory: frontend
         run: npx eslint src --ext .js,.jsx,.ts,.tsx --max-warnings=0
 
-      - name: Build
+      - name: Build & bundle budgets
         working-directory: frontend
-        run: npm run build
+        run: npm run build:ci
+
+      - name: Lighthouse performance budget
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: frontend
+        run: npm run test:lighthouse

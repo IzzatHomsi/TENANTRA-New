@@ -1,15 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { getApiBase } from "../utils/apiBase";
 import Card from "../components/ui/Card.jsx";
 import Button from "../components/ui/Button.jsx";
 import Table from "../components/ui/Table.jsx";
-
-const API_BASE = getApiBase();
-
-const authHeaders = (token) => ({
-  "Content-Type": "application/json",
-  Authorization: `Bearer ${token}`,
-});
+import { fetchNotificationHistory } from "../api/notificationHistory.ts";
 
 export default function NotificationHistory() {
   const [history, setHistory] = useState([]);
@@ -27,18 +20,7 @@ export default function NotificationHistory() {
     setLoading(true);
     setError("");
     try {
-      const qs = new URLSearchParams();
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value) {
-          qs.set(key, value);
-        }
-      });
-
-      const res = await fetch(`${API_BASE}/notification-history?${qs.toString()}`, { headers: authHeaders(token) });
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-      const data = await res.json();
+      const data = await fetchNotificationHistory(token, filters);
       setHistory(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.message || "Failed to load notification history");
@@ -53,7 +35,10 @@ export default function NotificationHistory() {
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilters((prev) => ({ ...prev, [name]: value }));
+    setFilters((prev) => ({
+      ...prev,
+      [name]: name === "limit" ? Number(value) : value,
+    }));
   };
 
   const columns = [

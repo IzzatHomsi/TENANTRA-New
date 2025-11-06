@@ -64,6 +64,7 @@ export default defineConfig(() => {
   }
 
   return {
+    base: '/app/',
     plugins,
     server: {
       port: 5173,

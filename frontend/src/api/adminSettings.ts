@@ -17,45 +17,49 @@ const settingListSchema = z.array(appSettingSchema);
 export type AppSetting = z.infer<typeof appSettingSchema>;
 
 export async function fetchGlobalSettings(token: string | null, tenantId?: string | null) {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...bearerHeader(token),
+  };
+  if (tenantId) headers["X-Tenant-Id"] = tenantId;
   return apiFetch("/admin/settings", settingListSchema, {
-    headers: {
-      "Content-Type": "application/json",
-      ...bearerHeader(token),
-      ...(tenantId ? { "X-Tenant-Id": tenantId } : {}),
-    },
+    headers,
   });
 }
 
 export async function updateGlobalSettings(token: string | null, payload: Record<string, unknown>, tenantId?: string | null) {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...bearerHeader(token),
+  };
+  if (tenantId) headers["X-Tenant-Id"] = tenantId;
   return apiFetch("/admin/settings", settingListSchema, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      ...bearerHeader(token),
-      ...(tenantId ? { "X-Tenant-Id": tenantId } : {}),
-    },
+    headers,
     body: JSON.stringify(payload),
   });
 }
 
 export async function fetchTenantSettings(token: string | null, tenantId?: string | null) {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...bearerHeader(token),
+  };
+  if (tenantId) headers["X-Tenant-Id"] = tenantId;
   return apiFetch("/admin/settings/tenant", settingListSchema, {
-    headers: {
-      "Content-Type": "application/json",
-      ...bearerHeader(token),
-      ...(tenantId ? { "X-Tenant-Id": tenantId } : {}),
-    },
+    headers,
   });
 }
 
 export async function updateTenantSettings(token: string | null, payload: Record<string, unknown>, tenantId?: string | null) {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...bearerHeader(token),
+  };
+  if (tenantId) headers["X-Tenant-Id"] = tenantId;
   return apiFetch("/admin/settings/tenant", settingListSchema, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      ...bearerHeader(token),
-      ...(tenantId ? { "X-Tenant-Id": tenantId } : {}),
-    },
+    headers,
     body: JSON.stringify(payload),
   });
 }

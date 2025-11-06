@@ -177,3 +177,6 @@ vite.js
 # Docker generated data
 docker/grafana-data/
 .venv-yamllint/
+
+.gemini/
+gha-creds-*.json

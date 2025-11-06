@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState, memo } from "react";
 import CollapsibleSection from "./CollapsibleSection.jsx";
 import Button from "../ui/Button.jsx";
+import { fetchAuditLogs } from "../../api/auditLogs.ts";
 
 function AuditsTab({ headers }) {
   const [items, setItems] = useState([]);
@@ -27,19 +28,14 @@ function AuditsTab({ headers }) {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(`/api/audit-logs?${params.toString()}`, { headers });
-      if (!response.ok) {
-        const detail = await response.json().catch(() => ({}));
-        if (response.status >= 500) {
-          setError("Audit service unavailable; check backend logs or run make validate.");
-        } else {
-          setError(detail.detail || `Unable to fetch audit logs (HTTP ${response.status}).`);
-        }
-        setItems([]);
-        setTotal(0);
-        return;
-      }
-      const payload = await response.json();
+      const payload = await fetchAuditLogs(headers, {
+        start_date: dateFrom || undefined,
+        end_date: dateTo || undefined,
+        result: result || undefined,
+        q: q || undefined,
+        page,
+        page_size: pageSize,
+      });
       setItems(payload.items || []);
       setTotal(payload.total || 0);
     } catch (err) {

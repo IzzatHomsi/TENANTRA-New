@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { apiFetch } from "../lib/apiClient";
+import { apiFetch, bearerHeader } from "../lib/apiClient";
 
 const moduleSchema = z.object({
   id: z.union([z.string(), z.number()]).transform((value) => String(value)),
@@ -15,14 +15,16 @@ const moduleSchema = z.object({
 export const moduleListSchema = z.array(moduleSchema);
 
 export async function fetchModules(token: string | null) {
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const headers: Record<string, string> = {
+    ...bearerHeader(token),
+  };
   return apiFetch("/modules/", moduleListSchema, { headers });
 }
 
 export async function updateModule(id: string, payload: unknown, token: string | null) {
-  const headers = {
-    Authorization: token ? `Bearer ${token}` : undefined,
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    ...bearerHeader(token),
   };
   const schema = moduleSchema;
   return apiFetch(`/modules/${id}`, schema, {

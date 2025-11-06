@@ -45,5 +45,16 @@ test.describe('Admin Settings smoke', () => {
 
     await select.selectOption('light');
     await expect.poll(async () => page.evaluate(() => document.documentElement.classList.contains('dark'))).toBeFalsy();
+
+    const swActive = await page.evaluate(async () => {
+      if (!('serviceWorker' in navigator)) return false;
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        return Boolean(registration && registration.active);
+      } catch {
+        return false;
+      }
+    });
+    await expect(swActive).toBeTruthy();
   });
 });

@@ -1,5 +1,6 @@
 import { getApiBase } from "./utils/apiBase";
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, AxiosHeaders } from "axios";
+import type { AxiosRequestHeaders } from "axios";
 
 const API_BASE = getApiBase();
 
@@ -28,9 +29,17 @@ export function setToken(t: string | null) {
   } catch {}
 }
 
-api.interceptors.request.use(cfg => {
+api.interceptors.request.use((cfg) => {
   const t = getToken();
-  if (t) cfg.headers = { ...cfg.headers, Authorization: `Bearer ${t}` };
+  if (!t) return cfg;
+
+  if (cfg.headers instanceof AxiosHeaders) {
+    cfg.headers.set("Authorization", `Bearer ${t}`);
+  } else if (cfg.headers) {
+    (cfg.headers as AxiosRequestHeaders)["Authorization"] = `Bearer ${t}`;
+  } else {
+    cfg.headers = new AxiosHeaders({ Authorization: `Bearer ${t}` });
+  }
   return cfg;
 });
 

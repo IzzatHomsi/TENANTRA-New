@@ -1,13 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { getApiBase } from "../utils/apiBase";
 import Card from "../components/ui/Card.jsx";
-
-const API_BASE = getApiBase();
-
-const authHeaders = (token) => ({
-  "Content-Type": "application/json",
-  Authorization: `Bearer ${token}`,
-});
+import { fetchAlerts } from "../api/alerts.ts";
 
 export default function Alerts() {
   const [alerts, setAlerts] = useState([]);
@@ -24,11 +17,7 @@ export default function Alerts() {
       setLoading(true);
       setError("");
       try {
-        const res = await fetch(`${API_BASE}/alerts`, { headers: authHeaders(token) });
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-        const data = await res.json();
+        const data = await fetchAlerts(token);
         setAlerts(Array.isArray(data) ? data : data.items || []);
       } catch (e) {
         setError(e.message || "Failed to load alerts.");

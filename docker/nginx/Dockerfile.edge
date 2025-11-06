@@ -1,8 +1,93 @@
+# Stage 1: Build Brotli module
+FROM debian:stable-slim AS brotli_builder
+
+# Define the Nginx version to match the base nginx:stable image.
+# You can override this during build if needed, e.g., docker build --build-arg NGINX_VERSION=1.26.1 .
+ARG NGINX_VERSION=1.28.0
+ENV NGINX_VERSION=${NGINX_VERSION}
+
+# Install build dependencies required to compile Nginx and Brotli.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        wget \
+        git \
+        cmake \
+        libpcre2-dev \
+        zlib1g-dev \
+        libssl-dev \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download the Nginx source code matching the specified version.
+RUN wget http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz \
+    && tar -zxvf nginx-${NGINX_VERSION}.tar.gz \
+    && rm nginx-${NGINX_VERSION}.tar.gz
+
+# Clone the ngx_brotli module from Google's repository.
+RUN git clone https://github.com/google/ngx_brotli.git /usr/local/src/ngx_brotli \
+    && cd /usr/local/src/ngx_brotli \
+    && git submodule update --init --recursive
+
+# Build and install brotli
+WORKDIR /usr/local/src/ngx_brotli/deps/brotli
+RUN mkdir out && cd out && cmake -DCMAKE_INSTALL_PREFIX=/usr/local .. && make && make install
+
+# Configure Nginx with the Brotli module as a dynamic module.
+# The configure arguments are typically found by running 'nginx -V' on the base image.
+# '--add-dynamic-module' is crucial for compiling Brotli as a loadable module.
+WORKDIR /nginx-${NGINX_VERSION}
+RUN ./configure \
+    --prefix=/etc/nginx \
+    --sbin-path=/usr/sbin/nginx \
+    --modules-path=/usr/lib/nginx/modules \
+    --conf-path=/etc/nginx/nginx.conf \
+    --error-log-path=/var/log/nginx/error.log \
+    --http-log-path=/var/log/nginx/access.log \
+    --pid-path=/var/run/nginx.pid \
+    --lock-path=/var/run/nginx.lock \
+    --http-client-body-temp-path=/var/cache/nginx/client_temp \
+    --http-proxy-temp-path=/var/cache/nginx/proxy_temp \
+    --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
+    --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
+    --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
+    --with-compat \
+    --with-pcre-jit \
+    --with-http_ssl_module \
+    --with-http_stub_status_module \
+    --with-http_realip_module \
+    --with-http_auth_request_module \
+    --with-http_v2_module \
+    --with-http_dav_module \
+    --with-http_slice_module \
+    --with-threads \
+    --with-http_addition_module \
+    --with-http_flv_module \
+    --with-http_gunzip_module \
+    --with-http_gzip_static_module \
+    --with-http_mp4_module \
+    --with-http_random_index_module \
+    --with-http_secure_link_module \
+    --with-http_sub_module \
+    --with-mail \
+    --with-mail_ssl_module \
+    --with-stream \
+    --with-stream_ssl_module \
+    --with-stream_realip_module \
+    --with-stream_ssl_preread_module \
+    --add-dynamic-module=/usr/local/src/ngx_brotli \
+    --with-cc-opt='-g -O2 -fstack-protector-strong -Wformat -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -fPIC' \
+    --with-ld-opt='-Wl,-z,relro -Wl,-z,now -Wl,--as-needed -pie'
+
+# Compile only the dynamic modules.
+RUN make modules
+
+# Stage 2: Create the final Nginx image
 FROM nginx:stable
 
-RUN apt-get update \
- && apt-get install -y --no-install-recommends nginx-module-brotli \
- && rm -rf /var/lib/apt/lists/*
+# Copy the compiled Brotli dynamic modules from the builder stage.
+COPY --from=brotli_builder /nginx-${NGINX_VERSION}/objs/ngx_http_brotli_filter_module.so /usr/lib/nginx/modules/
+COPY --from=brotli_builder /nginx-${NGINX_VERSION}/objs/ngx_http_brotli_static_module.so /usr/lib/nginx/modules/
 
 # Copy our repo nginx main config and includes so the image is self-contained
 # Paths are relative to the build context (docker/)

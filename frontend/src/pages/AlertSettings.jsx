@@ -1,14 +1,10 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { getApiBase } from "../utils/apiBase";
 import Card from "../components/ui/Card.jsx";
 import Button from "../components/ui/Button.jsx";
-
-const API_BASE = getApiBase();
-
-const authHeaders = (token) => ({
-  "Content-Type": "application/json",
-  Authorization: `Bearer ${token}`,
-});
+import {
+  fetchNotificationPreferences,
+  updateNotificationPreferences,
+} from "../api/notificationPrefs.ts";
 
 const EVENT_LABELS = {
   scan_failed: "Scan Failed",
@@ -37,18 +33,14 @@ export default function AlertSettings() {
       setLoading(true);
       setError("");
       try {
-        const res = await fetch(`${API_BASE}/notification-prefs`, { headers: authHeaders(token) });
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-        const data = await res.json();
+        const data = await fetchNotificationPreferences(token);
         if (data) {
           setChannels(data.channels || { email: true, webhook: false });
           setEvents(data.events || { scan_failed: true, compliance_violation: true, agent_offline: true, threshold_breach: false });
           setDigest(data.digest || "immediate");
         }
       } catch (e) {
-        setError(e.message || "Failed to load preferences");
+        setError(e instanceof Error ? e.message : "Failed to load preferences");
       } finally {
         setLoading(false);
       }
@@ -61,16 +53,9 @@ export default function AlertSettings() {
     setSaving(true);
     setError("");
     try {
-      const res = await fetch(`${API_BASE}/notification-prefs`, {
-        method: "PUT",
-        headers: authHeaders(token),
-        body: JSON.stringify({ channels, events, digest }),
-      });
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
+      await updateNotificationPreferences(token, { channels, events, digest });
     } catch (e) {
-      setError(e.message || "Failed to save preferences");
+      setError(e instanceof Error ? e.message : "Failed to save preferences");
     } finally {
       setSaving(false);
     }

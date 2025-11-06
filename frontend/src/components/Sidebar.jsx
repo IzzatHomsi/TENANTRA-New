@@ -103,7 +103,7 @@ export default function Sidebar({ open = true, onClose, features: featureOverrid
       <aside
         className={`fixed inset-y-0 left-0 z-40 w-64 transform border-r border-border-color bg-surface p-5 shadow-soft transition-transform duration-200 ease-in-out md:static md:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        }`
+        }`}
         aria-label="Sidebar navigation"
       >
         <div className="flex items-center justify-between">

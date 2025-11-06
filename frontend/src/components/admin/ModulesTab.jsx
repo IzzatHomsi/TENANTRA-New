@@ -1,5 +1,6 @@
 import React, { useEffect, useState, memo, useMemo, useCallback } from "react";
 import Button from "../ui/Button.jsx";
+import { fetchAdminModules, updateAdminModules } from "../../api/adminModules.ts";
 
 function ModulesTab({ headers }) {
   const [list, setList] = useState([]);
@@ -15,11 +16,7 @@ function ModulesTab({ headers }) {
       setLoading(true);
       setLoadError("");
       try {
-        const r = await fetch("/api/admin/modules", { headers });
-        if (!r.ok) {
-          throw new Error(`Failed to load modules (HTTP ${r.status})`);
-        }
-        const data = await r.json();
+        const data = await fetchAdminModules(headers);
         if (!ignore) {
           setList(Array.isArray(data) ? data : []);
         }
@@ -49,14 +46,7 @@ function ModulesTab({ headers }) {
     try {
       const enable = list.filter((m) => m.enabled).map((m) => m.id);
       const disable = list.filter((m) => !m.enabled).map((m) => m.id);
-      const res = await fetch("/api/admin/modules/bulk", {
-        method: "PUT",
-        headers,
-        body: JSON.stringify({ enable, disable }),
-      });
-      if (!res.ok) {
-        throw new Error(`Save failed (HTTP ${res.status})`);
-      }
+      await updateAdminModules(headers, { enable, disable });
       setActionNotice("Changes saved successfully.");
     } catch (error) {
       setActionNotice(error instanceof Error ? error.message : "Unable to save module toggles.");

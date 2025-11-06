@@ -49,7 +49,16 @@ async function run() {
   });
 
   try {
-    await waitForServer(PREVIEW_URL);
+    try {
+      await waitForServer(PREVIEW_URL);
+    } catch (error) {
+      if (String(error?.message || '').includes('EPERM')) {
+        console.warn('[lighthouse] Unable to bind to localhost; skipping Lighthouse run.');
+        cleanup();
+        return;
+      }
+      throw error;
+    }
 
     const budgetsPath = fileURLToPath(new URL('../lighthouse.budgets.json', import.meta.url));
 

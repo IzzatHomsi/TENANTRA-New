@@ -1,14 +1,7 @@
 import React, { useState } from "react";
-import { getApiBase } from "../../utils/apiBase";
 import Button from "../ui/Button.jsx";
 import Card from "../ui/Card.jsx";
-
-const API_BASE = getApiBase();
-
-const authHeaders = (token) => ({
-  "Content-Type": "application/json",
-  Authorization: `Bearer ${token}`,
-});
+import { runDiscoveryScan } from "../../api/discovery.ts";
 
 export default function RunScan() {
   const [cidr, setCidr] = useState("");
@@ -39,15 +32,7 @@ export default function RunScan() {
         setBusy(false);
         return;
       }
-      const res = await fetch(`${API_BASE}/admin/network/port-scan`, {
-        method: "POST",
-        headers: authHeaders(token),
-        body: JSON.stringify({ targets: targetList }),
-      });
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-      const data = await res.json();
+      const data = await runDiscoveryScan(token, { targets: targetList });
       setResult(data);
     } catch (e) {
       setError(e?.message || "Discovery failed");

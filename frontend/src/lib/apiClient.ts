@@ -9,13 +9,14 @@ export async function apiFetch<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const base = getApiBase();
+  const headers = new Headers(options.headers as HeadersInit | undefined);
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
   const res = await fetch(`${base}${path}`, {
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
     ...options,
+    credentials: options.credentials ?? "include",
+    headers,
   });
   if (!res.ok) {
     let message = `HTTP ${res.status}`;
@@ -37,10 +38,11 @@ export async function apiFetch<T>(
   return schema.parse(data);
 }
 
-export function bearerHeader(token: string | null | undefined) {
-  return token
-    ? {
-        Authorization: `Bearer ${token}`,
-      }
-    : {};
+export function bearerHeader(token: string | null | undefined): Record<string, string> {
+  if (!token) {
+    return {};
+  }
+  return {
+    Authorization: `Bearer ${token}`,
+  };
 }

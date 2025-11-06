@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { apiFetch } from "../lib/apiClient";
+import { apiFetch, bearerHeader } from "../lib/apiClient";
 import { useUIStore, TenantInfo } from "../store/uiStore";
 
 const tenantSchema = z.object({
@@ -10,9 +10,11 @@ const tenantSchema = z.object({
 const tenantListSchema = z.array(tenantSchema);
 
 export async function fetchTenants(token: string | null): Promise<TenantInfo[]> {
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const headers: Record<string, string> = {
+    ...bearerHeader(token),
+  };
   const tenants = await apiFetch("/admin/tenants", tenantListSchema, { headers });
-  const normalized = tenants.map((tenant) => ({ id: tenant.id, name: tenant.name ?? "" }));
+  const normalized: TenantInfo[] = tenants.map((tenant) => ({ id: String(tenant.id), name: tenant.name ?? "" }));
   useUIStore.getState().setTenants(normalized);
   return normalized;
 }

@@ -1,14 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { getApiBase } from "../utils/apiBase";
 import Card from "../components/ui/Card.jsx";
 import Table from "../components/ui/Table.jsx";
-
-const API_BASE = getApiBase();
-
-const authHeaders = (token) => ({
-  "Content-Type": "application/json",
-  Authorization: `Bearer ${token}`,
-});
+import { fetchNotifications } from "../api/notifications.ts";
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
@@ -24,11 +17,7 @@ export default function Notifications() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${API_BASE}/notifications`, { headers: authHeaders(token) });
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-      const data = await res.json();
+      const data = await fetchNotifications(token);
       setNotifications(Array.isArray(data) ? data : []);
     } catch (e) {
       setError(e.message || "Failed to load notifications.");
