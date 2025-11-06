@@ -20,13 +20,66 @@ Tenantra is a multi-tenant, cloud-ready IT discovery, security, and compliance a
 
 ## Features
 
-- **Asset Discovery & Inventory:** Automated discovery of servers, endpoints, and network devices.
-- **Security & Compliance:** Continuous vulnerability and compliance scanning with built-in frameworks (CIS, ISO 27001, NIST 800-53).
-- **Alerting & Incident Management:** Configurable thresholds and rules with branded HTML notifications.
-- **Monitoring & Analytics:** Metrics exported to Prometheus and visualized in Grafana dashboards.
-- **User & Tenant Management:** Multi-tenant structure with isolated schemas and role-based access control.
-- **Data & Billing:** Per-tenant cost tracking and automated invoice templates.
-- **DevSecOps & Automation:** GitHub Actions CI/CD pipelines and Dockerized deployment.
+<details>
+<summary>Core Features</summary>
+
+### 1. Asset Discovery & Inventory
+- Automated discovery of servers, endpoints, and network devices
+- OS, role, and application fingerprinting
+- Cloud/hybrid connectors (AWS EC2, Azure VMs, GCP instances)
+- Agent-based and agentless modes
+
+### 2. Security & Compliance
+- Continuous vulnerability and compliance scanning
+- Built-in frameworks: CIS Benchmarks, ISO 27001, NIST 800-53
+- Real-time compliance scoring
+- Data encryption and key rotation dashboards
+
+### 3. Alerting & Incident Management
+- Configurable thresholds and rules
+- Branded HTML notifications (email/SMS/API)
+- Alert history, acknowledgment, and export
+- Integration hooks for SIEM and ticketing tools
+
+### 4. Monitoring & Analytics
+- Metrics exported to Prometheus
+- Visualization in Grafana dashboards
+- Compliance trends and SLA metrics over time
+
+### 5. User & Tenant Management
+- Multi-tenant structure with isolated schemas
+- Role-based dashboard views and permissions
+- Admin tools for tenant creation, feature enable/disable, and billing visibility
+
+### 6. Data & Billing
+- Per-tenant cost tracking (scan count, storage use, features)
+- Automated invoice templates (CSV, PDF)
+- MSP dashboards for usage analytics
+
+### 7. DevSecOps & Automation
+- GitHub Actions CI/CD pipelines
+- Dockerized deployment (tenantra_backend, tenantra_frontend, tenantra_db, tenantra_adminer)
+- Automated migration + seed scripts (run_migrate.sh, db_seed.py)
+- Validation suite & health checks via PowerShell and curl scripts
+
+### Differentiators
+- True multi-tenant isolation with per-client encryption and audit trail.
+- Modular scanning engine covering system, network, identity, and compliance layers.
+- Self-contained DevOps stack deployable on-prem or cloud in minutes.
+- Compliance-as-a-Service model enabling MSPs to resell scanning and reporting.
+- Unified UI/UX combining dashboards, alerting, billing, and remediation.
+
+### Built-in Intelligence
+- Machine-learning-ready telemetry pipelines.
+- Behavior analytics (UEBA) for anomaly detection.
+- Smart remediation recommendations linked to each compliance rule.
+
+### Deployment Options
+- On-Premises, Private Cloud, or Hybrid
+- Runs on Windows Server 2022, Linux (Ubuntu/Debian), or container platforms.
+- HTTPS enabled via self-signed or Let’s Encrypt certificates.
+- Integrates with FortiGate, TP-Link, and other firewalls for network discovery.
+</details>
 
 ## Architecture
 
