@@ -1,67 +1,119 @@
-name: Staging Deploy (HO-DOCKER-22)
+name: Deploy Staging (HO-DOCKER-22)
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
   workflow_dispatch: {}
+
+env:
+  STAGING_REPO_DIR: D:\\Docker\\tenantra-platform
+  STAGING_STACK_DIR: D:\\Docker\\tenantra-platform\\docker
+  STAGING_DOMAIN: Tenantra.homsi-co.com
 
 jobs:
   deploy:
-    name: Deploy to Staging Host
-    runs-on:
-      - self-hosted
-      - windows
-    timeout-minutes: 45
+    runs-on: [ self-hosted, windows, x64, TENAT, HO-DOCKER-22, NEW ]
     steps:
-      - name: Checkout (fetch-depth 0)
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Diagnose runtime
+      - name: Prepare staging .env
         shell: pwsh
         run: |
-          $PSVersionTable | Format-List *
-          git --version
-          docker version
-          docker compose version
+          $repoDir = "$env:STAGING_REPO_DIR"
+          if (!(Test-Path $repoDir)) { New-Item -ItemType Directory -Force -Path $repoDir | Out-Null }
+          $envPath = Join-Path $repoDir ".env.staging"
+          if (-not [string]::IsNullOrEmpty("${{ secrets.STAGING_ENV_FILE }}")) {
+            @"${{ secrets.STAGING_ENV_FILE }}"@ | Out-File -FilePath $envPath -Encoding UTF8
+          } elseif (Test-Path ".env.staging.example") {
+            Copy-Item ".env.staging.example" $envPath -Force
+          } else {
+            Write-Host "No STAGING_ENV_FILE secret set and no example; continuing"
+          }
 
-      - name: Sync repo on host and deploy via compose
+      - name: Create Grafana basic-auth file (optional)
         shell: pwsh
-        env:
-          GITHUB_SERVER_URL: ${{ github.server_url }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_RUN_ID: ${{ github.run_id }}
-          TENANTRA_ENV: staging
+        run: |
+          $repoDir = "$env:STAGING_REPO_DIR"
+          $htpasswdPath = Join-Path $repoDir "docker/nginx/includes/staging/htpasswd_grafana"
+          if (-not [string]::IsNullOrEmpty("${{ secrets.GRAFANA_BASIC_HTPASSWD }}")) {
+            New-Item -ItemType Directory -Force -Path (Split-Path $htpasswdPath) | Out-Null
+            @"${{ secrets.GRAFANA_BASIC_HTPASSWD }}"@ | Out-File -FilePath $htpasswdPath -Encoding ASCII
+            Write-Host "Wrote Grafana htpasswd file."
+          } else {
+            Write-Host "GRAFANA_BASIC_HTPASSWD not set; assuming file exists on host."
+          }
+
+      - name: Sync repository to staging directory
+        shell: pwsh
+        run: |
+          $source = "$pwd"
+          $dest = "$env:STAGING_REPO_DIR"
+          $excludes = @(
+            ".git", ".github\\workflows\\*", "node_modules", "venv", ".venv", ".pytest_cache", "__pycache__", "dist", "build"
+          )
+          # Build robocopy exclude arguments
+          $xd = @(); $xf = @()
+          foreach ($e in $excludes) {
+            if ($e.Contains(".")) { $xf += $e } else { $xd += $e }
+          }
+          $xdArgs = @(); if ($xd.Count -gt 0) { $xdArgs = @("/XD") + $xd }
+          $xfArgs = @(); if ($xf.Count -gt 0) { $xfArgs = @("/XF") + $xf }
+          robocopy $source $dest /E /NFL /NDL /NJH /NJS /NP /R:1 /W:2 @xdArgs @xfArgs | Out-Null
+
+      - name: Docker compose build + up (staging overlays)
+        shell: pwsh
+        working-directory: ${{ env.STAGING_STACK_DIR }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $repo = 'D:\\Docker\\tenantra-platform'
-          if (-not (Test-Path $repo)) { throw "Repo dir missing: $repo" }
-          Set-Location $repo
-          git remote set-url origin https://github.com/IzzatHomsi/tenantra-platform.git
-          git fetch origin --prune
-          git checkout -q main
-          git reset --hard origin/main
-          git config core.longpaths true
-          git config core.autocrlf false
-          git config pull.ff only
-          .\\ops\\pull_and_redeploy.ps1
+          $env:TENANTRA_ENV = "staging"
+          docker compose `
+            -f docker-compose.yml `
+            -f docker-compose.override.worker.yml `
+            -f docker-compose.override.observability.yml `
+            -f docker-compose.override.observability.staging.yml `
+            -f docker-compose.override.nginx.staging.yml `
+            up -d --build
 
-      - name: Post-deploy health (host-level)
+      - name: Run DB migrations
         shell: pwsh
-        continue-on-error: true
+        working-directory: ${{ env.STAGING_STACK_DIR }}
         run: |
-          $composeDir = 'D:\\Docker\\tenantra-platform\\docker'
-          Set-Location $composeDir
-          docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-          try { curl -fsS http://localhost/api/health } catch { Write-Host "api/health failed" }
-          try { curl -fsS http://localhost/health } catch { Write-Host "root /health failed" }
+          docker compose exec -T backend alembic upgrade head
 
-      - name: Upload deploy artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: staging-deploy-artifacts
-          path: |
-            D:\\Docker\\tenantra-platform\\artifacts\\**\\*
-            D:\\Docker\\tenantra-platform\\Staging_GitSync_FixLog.txt
-            D:\\Docker\\tenantra-platform\\Staging_Sync_Report.md
+      - name: Seed database (idempotent)
+        shell: pwsh
+        working-directory: ${{ env.STAGING_STACK_DIR }}
+        run: |
+          docker compose exec -T backend python scripts/db_seed.py
+
+      - name: Set global theme color to Facebook blue
+        shell: pwsh
+        working-directory: ${{ env.STAGING_STACK_DIR }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $domain = "${{ env.STAGING_DOMAIN }}"
+          $login = Invoke-RestMethod -Uri "https://$domain/auth/login" -Method Post -Body @{username='admin';password='Admin@1234'} -ContentType 'application/x-www-form-urlencoded' -UseBasicParsing
+          $token = $login.access_token
+          if (-not $token) { throw "Login failed; cannot set theme color" }
+          $headers = @{ Authorization = "Bearer $token" }
+          $payload = @{ 'theme.colors.primary' = '#1877F2' } | ConvertTo-Json
+          Invoke-RestMethod -Uri "https://$domain/admin/settings" -Method Put -Headers $headers -Body $payload -ContentType 'application/json' -UseBasicParsing | Out-Null
+
+      - name: Health check (backend)
+        shell: pwsh
+        run: |
+          $uri = "https://${{ env.STAGING_DOMAIN }}/health"
+          try {
+            $resp = Invoke-WebRequest -Uri $uri -UseBasicParsing -TimeoutSec 20
+            if ($resp.StatusCode -ne 200) { throw "Unexpected status: $($resp.StatusCode)" }
+          } catch {
+            Write-Error "Health check failed for $uri: $($_.Exception.Message)"
+            throw
+          }
+
+      - name: Show compose services
+        shell: pwsh
+        working-directory: ${{ env.STAGING_STACK_DIR }}
+        run: |
+          docker compose ps
