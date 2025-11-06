@@ -29,7 +29,8 @@ jobs:
         run: |
           set -euo pipefail
           docker compose version || true
-          files=$(find . -name 'docker-compose*.yml' -o -name 'docker-compose*.yaml' | sort)
+          files=$(find . -name 'docker-compose*.yml' -o -name \
+            'docker-compose*.yaml' | sort)
           if [ -z "$files" ]; then
             echo "No docker compose files detected."
             exit 0

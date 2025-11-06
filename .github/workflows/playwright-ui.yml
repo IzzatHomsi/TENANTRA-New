@@ -101,7 +101,8 @@ jobs:
       - name: Wait for backend health (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          for i in {1..30}; do
+          for i in {1..30};
+          do
             if curl -fsS http://localhost:5000/health >/dev/null; then
               echo OK
               exit 0
@@ -165,15 +166,17 @@ jobs:
           npm run build
           $log = "$env:TEMP\frontend.log"
           $pf = Start-Process npm -ArgumentList 'run','preview','--','--port',`
-            '5173','--strictPort' -PassThru -RedirectStandardOutput $log `
-            -RedirectStandardError $log -WindowStyle Hidden
+            '5173','--strictPort' -PassThru `
+            -RedirectStandardOutput $log -RedirectStandardError $log `
+            -WindowStyle Hidden
           echo $pf.Id > $env:TEMP\frontend.pid
         shell: pwsh
 
       - name: Wait for frontend (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          for i in {1..30}; do
+          for i in {1..30};
+          do
             if curl -fsS http://localhost:5173 >/dev/null; then
               echo OK
               exit 0
@@ -212,7 +215,8 @@ jobs:
           ADMIN_USER: admin
           ADMIN_PASS: Admin@1234
         run: >
-          npx playwright test tests/e2e/process_monitoring.spec.ts
+          npx playwright test
+          tests/e2e/process_monitoring.spec.ts
           --reporter=list
 
       - name: Dump logs (always) (Linux)
@@ -227,16 +231,20 @@ jobs:
         if: always() && matrix.os == 'windows-latest'
         run: |
           Write-Host '---- backend log ----'
-          Get-Content $env:TEMP\backend.log -Tail 200 || $true
+          Get-Content $env:TEMP\backend.log -Tail 200 || true
           Write-Host '---- frontend log ----'
-          Get-Content $env:TEMP\frontend.log -Tail 200 || $true
+          Get-Content $env:TEMP\frontend.log -Tail 200 || true
         shell: pwsh
 
       - name: Stop services (Linux)
         if: always() && matrix.os == 'ubuntu-latest'
         run: |
-          if [ -f /tmp/frontend.pid ]; then kill $(cat /tmp/frontend.pid) || true; fi
-          if [ -f /tmp/backend.pid ]; then kill $(cat /tmp/backend.pid) || true; fi
+          if [ -f /tmp/frontend.pid ]; then
+            kill $(cat /tmp/frontend.pid) || true
+          fi
+          if [ -f /tmp/backend.pid ]; then
+            kill $(cat /tmp/backend.pid) || true
+          fi
 
       - name: Stop services (Windows)
         if: always() && matrix.os == 'windows-latest'

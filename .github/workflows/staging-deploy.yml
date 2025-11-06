@@ -41,7 +41,8 @@ jobs:
           $repoDir = "$env:STAGING_REPO_DIR"
           $htpasswdPath = Join-Path $repoDir `
             "docker/nginx/includes/staging/htpasswd_grafana"
-          if (-not [string]::IsNullOrEmpty("${{ secrets.GRAFANA_BASIC_HTPASSWD }}")) {
+          if (-not [string]::IsNullOrEmpty( `
+            "${{ secrets.GRAFANA_BASIC_HTPASSWD }}")) {
             New-Item -ItemType Directory -Force `
               -Path (Split-Path $htpasswdPath) | Out-Null
             @"${{ secrets.GRAFANA_BASIC_HTPASSWD }}"@ | Out-File `

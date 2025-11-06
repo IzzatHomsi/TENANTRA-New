@@ -152,7 +152,8 @@ jobs:
           FRONTEND_SKIP_HTTP: "1"
           FRONTEND_PATH: ../frontend
         run: |
-          python ../tools/phase8_deep_audit.py | Tee-Object -FilePath $env:TEMP\phase8_deep_audit.txt
+          python ../tools/phase8_deep_audit.py | Tee-Object `
+            -FilePath $env:TEMP\phase8_deep_audit.txt
         shell: pwsh
 
       - name: Upload audit report (Linux)
@@ -183,7 +184,9 @@ jobs:
       - name: Stop backend (Linux)
         if: always() && matrix.os == 'ubuntu-latest'
         run: |
-          if [ -f /tmp/backend.pid ]; then kill $(cat /tmp/backend.pid) || true; fi
+          if [ -f /tmp/backend.pid ]; then
+            kill $(cat /tmp/backend.pid) || true
+          fi
 
       - name: Stop backend (Windows)
         if: always() && matrix.os == 'windows-latest'
