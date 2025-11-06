@@ -61,7 +61,7 @@ def get_audit_logs(
         query = query.filter(AuditLog.result == result)
     total = query.count()
     logs: List[AuditLog] = (
-        query.order_by(AuditLog.timestamp.desc())
+        query.order_by(AuditLog.created_at.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
         .all()
@@ -127,7 +127,7 @@ def export_audit_logs(
         raise HTTPException(status_code=400, detail="Invalid date format; expected YYYY-MM-DD")
     if result:
         query = query.filter(AuditLog.result == result)
-    query = query.order_by(AuditLog.timestamp.desc())
+    query = query.order_by(AuditLog.created_at.desc())
     rows = query.all()
     return StreamingResponse(
         _iter_csv(rows),

@@ -1,6 +1,6 @@
 from datetime import datetime
 import json
-from typing import Optional
+from typing import Any, Optional
 
 from sqlalchemy.orm import Session
 
@@ -16,6 +16,7 @@ def log_audit_event(
     result: str,
     ip: Optional[str] = None,
     timestamp: Optional[datetime] = None,
+    details: Optional[Any] = None,
 ) -> None:
     """Store an audit event to the database.
 
@@ -29,13 +30,22 @@ def log_audit_event(
             ip=ip,
         )
         if timestamp:
-            entry.timestamp = timestamp
+            entry.created_at = timestamp
+            entry.updated_at = timestamp
         details_payload = {
             "action": action,
             "result": result,
         }
         if ip:
             details_payload["ip"] = ip
+        if details is not None:
+            if isinstance(details, dict):
+                try:
+                    details_payload.update(details)
+                except Exception:
+                    details_payload["details"] = details
+            else:
+                details_payload["details"] = details
         entry.details = json.dumps(details_payload)
         db.add(entry)
         db.commit()

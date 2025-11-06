@@ -1,38 +1,35 @@
 from __future__ import annotations
 
+import logging
 import os
 from typing import Dict, Optional
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from sqlalchemy.orm import Session
 from urllib.parse import urlparse
 
 from app.core.auth import get_admin_user
-from app.database import SessionLocal
+from app.database import get_db
 from app.models.app_setting import AppSetting
 from app.models.user import User
+from app.utils.audit import log_audit_event
 
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+MAX_PROXY_BODY_BYTES = int(os.getenv("GRAFANA_PROXY_MAX_BODY", str(1 * 1024 * 1024)))  # 1 MiB default
+PROXY_TIMEOUT = httpx.Timeout(connect=5.0, read=20.0, write=20.0)
 
 
-def _get_grafana_base() -> Optional[str]:
-    # Read global (tenant_id is NULL) app setting grafana.url
-    try:
-        db = SessionLocal()
-        row = (
-            db.query(AppSetting)
-            .filter(AppSetting.tenant_id.is_(None), AppSetting.key == "grafana.url")
-            .first()
-        )
-        return (row.value if row else None) or None
-    except Exception:
-        return None
-    finally:
-        try:
-            db.close()
-        except Exception:
-            pass
+def _get_grafana_base(db: Session) -> Optional[str]:
+    row = (
+        db.query(AppSetting)
+        .filter(AppSetting.tenant_id.is_(None), AppSetting.key == "grafana.url")
+        .first()
+    )
+    return (row.value if row else None) or None
 
 
 def _basic_auth_headers() -> Dict[str, str]:
@@ -76,9 +73,17 @@ def _build_upstream(base: str, tail: str, query: str) -> str:
     return upstream
 
 
-async def _proxy(request: Request, tail: str) -> Response:
-    base = _get_grafana_base()
+async def _proxy(db: Session, request: Request, tail: str, user: User) -> Response:
+    base = _get_grafana_base(db)
     if not base:
+        log_audit_event(
+            db,
+            user_id=user.id,
+            action="grafana.proxy",
+            result="denied",
+            ip=request.client.host if request.client else None,
+            details={"reason": "grafana.url not configured"},
+        )
         return Response("grafana.url not configured", status_code=404)
 
     upstream = _build_upstream(base, tail, request.url.query or "")
@@ -97,33 +102,113 @@ async def _proxy(request: Request, tail: str) -> Response:
     }
     headers = {k: v for k, v in request.headers.items() if k.lower() not in hop_by_hop}
 
+    client_host = request.client.host if request.client else None
+    if client_host:
+        existing_forwarded = headers.get("X-Forwarded-For")
+        forwarded_chain = f"{existing_forwarded}, {client_host}" if existing_forwarded else client_host
+        headers["X-Forwarded-For"] = forwarded_chain
+    if user.tenant_id is not None:
+        headers.setdefault("X-Tenant-Id", str(user.tenant_id))
+    headers.setdefault("X-User-Id", str(user.id))
+    headers.setdefault("X-Requested-By", "tenantra-backend")
+
     # Add optional basic auth for upstream Grafana if configured
     headers.update(_basic_auth_headers())
 
-    timeout = httpx.Timeout(connect=10.0, read=60.0, write=60.0)
-    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
-        # Prepare request content/stream
-        body = await request.body()
-        resp = await client.request(request.method, upstream, content=body, headers=headers)
+    content_length_header = request.headers.get("content-length")
+    if content_length_header:
+        try:
+            if int(content_length_header) > MAX_PROXY_BODY_BYTES:
+                log_audit_event(
+                    db,
+                    user_id=user.id,
+                    action="grafana.proxy",
+                    result="denied",
+                    ip=client_host,
+                    details={
+                        "reason": "payload-too-large",
+                        "content_length": int(content_length_header),
+                        "limit": MAX_PROXY_BODY_BYTES,
+                        "path": f"/grafana/{tail}" if tail else "/grafana",
+                    },
+                )
+                raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="Request body exceeds proxy limit")
+        except ValueError:
+            pass
 
-    # Build streaming response with upstream headers and status
-    excluded_headers = {"content-encoding", "transfer-encoding", "connection"}
-    response_headers = [(k, v) for k, v in resp.headers.items() if k.lower() not in excluded_headers]
-    return Response(content=resp.content, status_code=resp.status_code, headers=dict(response_headers))
+    body = await request.body()
+    if len(body) > MAX_PROXY_BODY_BYTES:
+        log_audit_event(
+            db,
+            user_id=user.id,
+            action="grafana.proxy",
+            result="denied",
+            ip=client_host,
+            details={
+                "reason": "payload-too-large",
+                "content_length": len(body),
+                "limit": MAX_PROXY_BODY_BYTES,
+                "path": f"/grafana/{tail}" if tail else "/grafana",
+            },
+        )
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="Request body exceeds proxy limit")
+
+    response: Optional[httpx.Response] = None
+    status_code: Optional[int] = None
+    ok = False
+    error_detail: Optional[str] = None
+    try:
+        async with httpx.AsyncClient(timeout=PROXY_TIMEOUT, follow_redirects=False) as client:
+            response = await client.request(request.method, upstream, content=body, headers=headers)
+        status_code = response.status_code
+        ok = 200 <= status_code < 400
+        excluded_headers = {"content-encoding", "transfer-encoding", "connection"}
+        response_headers = {k: v for k, v in response.headers.items() if k.lower() not in excluded_headers}
+        return Response(content=response.content, status_code=status_code, headers=response_headers)
+    except httpx.TimeoutException:
+        status_code = status.HTTP_504_GATEWAY_TIMEOUT
+        error_detail = "Grafana upstream request timed out"
+        raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=error_detail)
+    except httpx.HTTPError as exc:
+        status_code = status.HTTP_502_BAD_GATEWAY
+        error_detail = str(exc)
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=error_detail)
+    finally:
+        try:
+            log_audit_event(
+                db,
+                user_id=user.id,
+                action="grafana.proxy",
+                result="success" if ok else "failed",
+                ip=client_host,
+                details={
+                    "method": request.method,
+                    "path": f"/grafana/{tail}" if tail else "/grafana",
+                    "upstream": upstream,
+                    "status": status_code,
+                    "tenant_id": user.tenant_id,
+                    "bytes": len(body),
+                    "error": error_detail,
+                },
+            )
+        except Exception:
+            logger.debug("Unable to write Grafana proxy audit log", exc_info=True)
 
 
 @router.api_route("/grafana", methods=["GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"])
 async def grafana_root(
     request: Request,
-    _current_user: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_admin_user),
 ) -> Response:
-    return await _proxy(request, tail="")
+    return await _proxy(db, request, tail="", user=current_user)
 
 
 @router.api_route("/grafana/{path:path}", methods=["GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"])
 async def grafana_any(
     path: str,
     request: Request,
-    _current_user: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_admin_user),
 ) -> Response:
-    return await _proxy(request, tail=path)
+    return await _proxy(db, request, tail=path, user=current_user)
