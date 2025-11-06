@@ -1,9 +1,10 @@
+---
 name: E2E Smoke (Staging)
 
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   playwright:
@@ -23,8 +24,8 @@ jobs:
           E2E_BASE_URL: https://Tenantra.homsi-co.com
           E2E_ADMIN_USER: ${{ secrets.E2E_ADMIN_USER }}
           E2E_ADMIN_PASS: ${{ secrets.E2E_ADMIN_PASS }}
-          E2E_STD_USER:   ${{ secrets.E2E_STD_USER }}
-          E2E_STD_PASS:   ${{ secrets.E2E_STD_PASS }}
+          E2E_STD_USER: ${{ secrets.E2E_STD_USER }}
+          E2E_STD_PASS: ${{ secrets.E2E_STD_PASS }}
         run: npx playwright test --project=chromium --reporter=list
       - name: Upload Playwright report
         if: always()
@@ -32,4 +33,3 @@ jobs:
         with:
           name: playwright-report
           path: playwright-report
-

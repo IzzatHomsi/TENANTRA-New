@@ -1,10 +1,13 @@
+---
 name: Lighthouse Reports
 
 on:
   workflow_dispatch:
     inputs:
       base_url:
-        description: "Base URL to test (e.g., http://localhost or https://Tenantra.homsi-co.com)"
+        description: >-
+          Base URL to test (e.g., http://localhost or
+          https://Tenantra.homsi-co.com)
         required: true
         default: "https://Tenantra.homsi-co.com"
 
@@ -31,4 +34,3 @@ jobs:
         with:
           name: lighthouse-reports
           path: reports/lighthouse/*.json
-

@@ -1,8 +1,9 @@
+---
 name: Deploy Staging (HO-DOCKER-22)
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch: {}
 
 env:
@@ -12,7 +13,7 @@ env:
 
 jobs:
   deploy:
-    runs-on: [ self-hosted, windows, x64, TENAT, HO-DOCKER-22, NEW ]
+    runs-on: [self-hosted, windows, x64, TENAT, HO-DOCKER-22, NEW]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,10 +22,13 @@ jobs:
         shell: pwsh
         run: |
           $repoDir = "$env:STAGING_REPO_DIR"
-          if (!(Test-Path $repoDir)) { New-Item -ItemType Directory -Force -Path $repoDir | Out-Null }
+          if (!(Test-Path $repoDir)) {
+            New-Item -ItemType Directory -Force -Path $repoDir | Out-Null
+          }
           $envPath = Join-Path $repoDir ".env.staging"
           if (-not [string]::IsNullOrEmpty("${{ secrets.STAGING_ENV_FILE }}")) {
-            @"${{ secrets.STAGING_ENV_FILE }}"@ | Out-File -FilePath $envPath -Encoding UTF8
+            @"${{ secrets.STAGING_ENV_FILE }}"@ | Out-File -FilePath $envPath `
+              -Encoding UTF8
           } elseif (Test-Path ".env.staging.example") {
             Copy-Item ".env.staging.example" $envPath -Force
           } else {
@@ -35,13 +39,17 @@ jobs:
         shell: pwsh
         run: |
           $repoDir = "$env:STAGING_REPO_DIR"
-          $htpasswdPath = Join-Path $repoDir "docker/nginx/includes/staging/htpasswd_grafana"
+          $htpasswdPath = Join-Path $repoDir `
+            "docker/nginx/includes/staging/htpasswd_grafana"
           if (-not [string]::IsNullOrEmpty("${{ secrets.GRAFANA_BASIC_HTPASSWD }}")) {
-            New-Item -ItemType Directory -Force -Path (Split-Path $htpasswdPath) | Out-Null
-            @"${{ secrets.GRAFANA_BASIC_HTPASSWD }}"@ | Out-File -FilePath $htpasswdPath -Encoding ASCII
+            New-Item -ItemType Directory -Force `
+              -Path (Split-Path $htpasswdPath) | Out-Null
+            @"${{ secrets.GRAFANA_BASIC_HTPASSWD }}"@ | Out-File `
+              -FilePath $htpasswdPath -Encoding ASCII
             Write-Host "Wrote Grafana htpasswd file."
           } else {
-            Write-Host "GRAFANA_BASIC_HTPASSWD not set; assuming file exists on host."
+            Write-Host "GRAFANA_BASIC_HTPASSWD not set; "
+            Write-Host "assuming file exists on host."
           }
 
       - name: Sync repository to staging directory
@@ -50,16 +58,29 @@ jobs:
           $source = "$pwd"
           $dest = "$env:STAGING_REPO_DIR"
           $excludes = @(
-            ".git", ".github\\workflows\\*", "node_modules", "venv", ".venv", ".pytest_cache", "__pycache__", "dist", "build"
+            ".git", ".github\\workflows\\*", "node_modules", "venv", ".venv",
+            ".pytest_cache", "__pycache__", "dist", "build"
           )
           # Build robocopy exclude arguments
-          $xd = @(); $xf = @()
+          $xd = @()
+          $xf = @()
           foreach ($e in $excludes) {
-            if ($e.Contains(".")) { $xf += $e } else { $xd += $e }
+            if ($e.Contains(".")) {
+              $xf += $e
+            } else {
+              $xd += $e
+            }
           }
-          $xdArgs = @(); if ($xd.Count -gt 0) { $xdArgs = @("/XD") + $xd }
-          $xfArgs = @(); if ($xf.Count -gt 0) { $xfArgs = @("/XF") + $xf }
-          robocopy $source $dest /E /NFL /NDL /NJH /NJS /NP /R:1 /W:2 @xdArgs @xfArgs | Out-Null
+          $xdArgs = @()
+          if ($xd.Count -gt 0) {
+            $xdArgs = @("/XD") + $xd
+          }
+          $xfArgs = @()
+          if ($xf.Count -gt 0) {
+            $xfArgs = @("/XF") + $xf
+          }
+          robocopy $source $dest /E /NFL /NDL /NJH /NJS /NP /R:1 /W:2 `
+            @xdArgs @xfArgs | Out-Null
 
       - name: Docker compose build + up (staging overlays)
         shell: pwsh
@@ -93,12 +114,18 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $domain = "${{ env.STAGING_DOMAIN }}"
-          $login = Invoke-RestMethod -Uri "https://$domain/auth/login" -Method Post -Body @{username='admin';password='Admin@1234'} -ContentType 'application/x-www-form-urlencoded' -UseBasicParsing
+          $login = Invoke-RestMethod -Uri "https://$domain/auth/login" `
+            -Method Post -Body @{username='admin';password='Admin@1234'} `
+            -ContentType 'application/x-www-form-urlencoded' -UseBasicParsing
           $token = $login.access_token
-          if (-not $token) { throw "Login failed; cannot set theme color" }
+          if (-not $token) {
+            throw "Login failed; cannot set theme color"
+          }
           $headers = @{ Authorization = "Bearer $token" }
           $payload = @{ 'theme.colors.primary' = '#1877F2' } | ConvertTo-Json
-          Invoke-RestMethod -Uri "https://$domain/admin/settings" -Method Put -Headers $headers -Body $payload -ContentType 'application/json' -UseBasicParsing | Out-Null
+          Invoke-RestMethod -Uri "https://$domain/admin/settings" -Method Put `
+            -Headers $headers -Body $payload -ContentType 'application/json' `
+            -UseBasicParsing | Out-Null
 
       - name: Health check (backend)
         shell: pwsh
@@ -106,7 +133,9 @@ jobs:
           $uri = "https://${{ env.STAGING_DOMAIN }}/health"
           try {
             $resp = Invoke-WebRequest -Uri $uri -UseBasicParsing -TimeoutSec 20
-            if ($resp.StatusCode -ne 200) { throw "Unexpected status: $($resp.StatusCode)" }
+            if ($resp.StatusCode -ne 200) {
+              throw "Unexpected status: $($resp.StatusCode)"
+            }
           } catch {
             Write-Error "Health check failed for $uri: $($_.Exception.Message)"
             throw

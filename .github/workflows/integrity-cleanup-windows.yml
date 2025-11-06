@@ -1,3 +1,4 @@
+---
 name: Integrity Cleanup (Windows)
 
 on:
@@ -5,7 +6,7 @@ on:
 
 jobs:
   cleanup:
-    runs-on: [ self-hosted, windows, x64, TENAT, HO-DOCKER-22, NEW ]
+    runs-on: [self-hosted, windows, x64, TENAT, HO-DOCKER-22, NEW]
     defaults:
       run:
         shell: pwsh
@@ -13,7 +14,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Cleanup temp artifacts
         run: |
-          Get-ChildItem -Path backend\reports -Filter *.xml -Recurse -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
-          Get-ChildItem -Path frontend\dist -Recurse -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          Get-ChildItem -Path backend\reports -Filter *.xml -Recurse `
+            -ErrorAction SilentlyContinue | Remove-Item -Force `
+            -ErrorAction SilentlyContinue
+          Get-ChildItem -Path frontend\dist -Recurse `
+            -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force `
+            -ErrorAction SilentlyContinue
           Write-Host "Cleanup completed."
-

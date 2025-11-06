@@ -1,3 +1,4 @@
+---
 name: Backend CI
 
 on:
@@ -7,7 +8,7 @@ on:
       - 'docker/**'
       - '.github/workflows/backend-ci.yml'
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
       - 'backend/**'
       - 'docker/**'
@@ -21,10 +22,11 @@ jobs:
       - name: Verify CI_DB_PASSWORD secret exists
         run: |
           if [ -z "${{ secrets.CI_DB_PASSWORD }}" ]; then
-            echo 'ERROR: secrets.CI_DB_PASSWORD is not set. Add it in repository Settings → Secrets → Actions.'
+            echo "ERROR: secrets.CI_DB_PASSWORD is not set."
+            echo "Add it in repository Settings → Secrets → Actions."
             exit 1
           fi
-          echo 'secrets.CI_DB_PASSWORD is set.'
+          echo "secrets.CI_DB_PASSWORD is set."
 
   backend:
     needs: preflight
@@ -49,8 +51,10 @@ jobs:
           --health-retries 5
     env:
       CI_DB_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
-      DATABASE_URL: postgresql://tenantra:${{ secrets.CI_DB_PASSWORD }}@localhost:5432/tenantra
-      DB_URL: postgresql://tenantra:${{ secrets.CI_DB_PASSWORD }}@localhost:5432/tenantra
+      DATABASE_URL: >-
+        postgresql://tenantra:${{ secrets.CI_DB_PASSWORD }}@localhost:5432/tenantra
+      DB_URL: >-
+        postgresql://tenantra:${{ secrets.CI_DB_PASSWORD }}@localhost:5432/tenantra
       POSTGRES_USER: tenantra
       POSTGRES_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
       POSTGRES_DB: tenantra
@@ -83,13 +87,24 @@ jobs:
               -e POSTGRES_USER=tenantra `
               -e POSTGRES_PASSWORD=$env:CI_DB_PASSWORD `
               -e POSTGRES_DB=tenantra postgres:14 | Out-Null
-            $ok=$false; foreach ($i in 1..30) {
-              try { $r = Test-NetConnection -ComputerName localhost -Port 5432 -WarningAction SilentlyContinue; if ($r.TcpTestSucceeded) { $ok=$true; break } } catch {}
+            $ok=false
+            foreach ($i in 1..30) {
+              try {
+                $r = Test-NetConnection -ComputerName localhost -Port 5432 `
+                  -WarningAction SilentlyContinue
+                if ($r.TcpTestSucceeded) {
+                  $ok=true
+                  break
+                }
+              } catch {}
               Start-Sleep -Seconds 2
             }
-            if (-not $ok) { Write-Error "Postgres did not become ready" }
+            if (-not $ok) {
+              Write-Error "Postgres did not become ready"
+            }
           } else {
-            Write-Host "Docker not available on runner; assuming a local Postgres is present on 127.0.0.1:5432."
+            Write-Host "Docker not available on runner; "
+            Write-Host "assuming a local Postgres is present on 127.0.0.1:5432."
           }
         shell: pwsh
 
@@ -143,7 +158,8 @@ jobs:
         run: |
           python backend/tools/generate_openapi.py --output openapi.generated.json
           if ! diff -u openapi.json openapi.generated.json; then
-            echo "OpenAPI snapshot is outdated. Regenerate via: python backend/tools/generate_openapi.py --output openapi.json" >&2
+            echo "OpenAPI snapshot is outdated. Regenerate via: "
+            echo "python backend/tools/generate_openapi.py --output openapi.json" >&2
             exit 1
           fi
           rm -f openapi.generated.json
@@ -153,12 +169,18 @@ jobs:
         working-directory: .
         run: |
           python backend\tools\generate_openapi.py --output openapi.generated.json
-          $diff = git diff --no-index --text openapi.json openapi.generated.json; if ($LASTEXITCODE -ne 0) { echo $diff; Write-Error "OpenAPI snapshot is outdated" }
+          $diff = git diff --no-index --text openapi.json openapi.generated.json
+          if ($LASTEXITCODE -ne 0) {
+            echo $diff
+            Write-Error "OpenAPI snapshot is outdated"
+          }
           Remove-Item -Force openapi.generated.json
         shell: pwsh
 
       - name: Cleanup Postgres (Windows)
         if: always() && matrix.os == 'windows-latest'
         run: |
-          if (Get-Command docker -ErrorAction SilentlyContinue) { docker rm -f ci-postgres 2>$null | Out-Null }
+          if (Get-Command docker -ErrorAction SilentlyContinue) {
+            docker rm -f ci-postgres 2>$null | Out-Null
+          }
         shell: pwsh

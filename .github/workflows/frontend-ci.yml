@@ -1,3 +1,4 @@
+---
 name: Frontend CI
 
 on:
@@ -6,7 +7,7 @@ on:
       - 'frontend/**'
       - '.github/workflows/frontend-ci.yml'
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend-ci.yml'
@@ -34,7 +35,9 @@ jobs:
 
       - name: Install lint tooling
         working-directory: frontend
-        run: npm install --no-save eslint@9 @eslint/js eslint-plugin-react eslint-plugin-react-hooks eslint-plugin-import
+        run: >
+          npm install --no-save eslint@9 @eslint/js eslint-plugin-react
+          eslint-plugin-react-hooks eslint-plugin-import
 
       - name: ESLint
         working-directory: frontend

@@ -1,3 +1,4 @@
+---
 name: Integrity Cleanup (Nightly)
 
 on:
@@ -54,4 +55,3 @@ jobs:
       - name: Run cleanup script with defaults
         working-directory: backend
         run: python scripts/cleanup_integrity.py
-
