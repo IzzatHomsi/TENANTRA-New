@@ -28,10 +28,14 @@ jobs:
 
   backend:
     needs: preflight
-    name: Lint, test & security
-    runs-on: ubuntu-latest
+    name: Lint, test & security on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     services:
       postgres:
+        if: matrix.os == 'ubuntu-latest'
         image: postgres:14
         ports: ["5432:5432"]
         env:
@@ -68,12 +72,33 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install ruff mypy bandit pytest
+          pip install ruff mypy bandit pytest alembic
+
+      - name: Start Postgres (Docker) if available
+        if: matrix.os == 'windows-latest'
+        run: |
+          if (Get-Command docker -ErrorAction SilentlyContinue) {
+            docker rm -f ci-postgres 2>$null | Out-Null
+            docker run -d --name ci-postgres -p 5432:5432 `
+              -e POSTGRES_USER=tenantra `
+              -e POSTGRES_PASSWORD=$env:CI_DB_PASSWORD `
+              -e POSTGRES_DB=tenantra postgres:14 | Out-Null
+            $ok=$false; foreach ($i in 1..30) {
+              try { $r = Test-NetConnection -ComputerName localhost -Port 5432 -WarningAction SilentlyContinue; if ($r.TcpTestSucceeded) { $ok=$true; break } } catch {}
+              Start-Sleep -Seconds 2
+            }
+            if (-not $ok) { Write-Error "Postgres did not become ready" }
+          } else {
+            Write-Host "Docker not available on runner; assuming a local Postgres is present on 127.0.0.1:5432."
+          }
+        shell: pwsh
 
       - name: Verify migration tracking matches git
+        if: matrix.os == 'ubuntu-latest'
         run: python backend/scripts/verify_migration_tracking.py
 
       - name: Check for untracked migration files
+        if: matrix.os == 'ubuntu-latest'
         working-directory: backend
         run: python scripts/check_untracked_migrations.py
 
@@ -82,6 +107,7 @@ jobs:
         run: alembic upgrade head
 
       - name: Verify migrations applied (debug)
+        if: matrix.os == 'ubuntu-latest'
         working-directory: backend
         run: |
           alembic current || true
@@ -111,7 +137,8 @@ jobs:
         working-directory: backend
         run: pytest -q
 
-      - name: Generate OpenAPI (temp) and verify snapshot freshness
+      - name: Generate OpenAPI and verify snapshot freshness (Linux)
+        if: matrix.os == 'ubuntu-latest'
         working-directory: .
         run: |
           python backend/tools/generate_openapi.py --output openapi.generated.json
@@ -120,3 +147,18 @@ jobs:
             exit 1
           fi
           rm -f openapi.generated.json
+
+      - name: Generate OpenAPI and verify snapshot freshness (Windows)
+        if: matrix.os == 'windows-latest'
+        working-directory: .
+        run: |
+          python backend\tools\generate_openapi.py --output openapi.generated.json
+          $diff = git diff --no-index --text openapi.json openapi.generated.json; if ($LASTEXITCODE -ne 0) { echo $diff; Write-Error "OpenAPI snapshot is outdated" }
+          Remove-Item -Force openapi.generated.json
+        shell: pwsh
+
+      - name: Cleanup Postgres (Windows)
+        if: always() && matrix.os == 'windows-latest'
+        run: |
+          if (Get-Command docker -ErrorAction SilentlyContinue) { docker rm -f ci-postgres 2>$null | Out-Null }
+        shell: pwsh
