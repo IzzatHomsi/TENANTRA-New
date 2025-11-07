@@ -50,6 +50,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     return _resolve_user_from_token(token, db)
 
 _DEF_ADMIN_ROLES = {"admin", "administrator", "super_admin", "system_admin"}
+_SETTINGS_READ_ROLES = _DEF_ADMIN_ROLES | {"auditor", "audit", "read_only_admin", "msp_admin"}
 
 def get_admin_user(
     db: Session = Depends(get_db),
@@ -63,4 +64,19 @@ def get_admin_user(
     role = (getattr(user, "role", "") or "").strip().lower()
     if role not in _DEF_ADMIN_ROLES:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
+    return user
+
+
+def get_settings_user(
+    db: Session = Depends(get_db),
+    authorization: str = Header(..., alias="Authorization"),
+) -> User:
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() != "bearer" or not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+
+    user = _resolve_user_from_token(token, db)
+    role = (getattr(user, "role", "") or "").strip().lower()
+    if role not in _SETTINGS_READ_ROLES:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Settings permission required")
     return user

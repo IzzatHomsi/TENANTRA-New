@@ -11,9 +11,9 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import get_admin_user
 from app.database import get_db
-from app.models.app_setting import AppSetting
 from app.models.user import User
 from app.observability.metrics import record_grafana_health, record_grafana_misconfig
+from app.services.grafana import get_base_url, get_credentials
 
 router = APIRouter(prefix="/admin/observability", tags=["Admin Observability"])
 logger = logging.getLogger(__name__)
@@ -32,12 +32,7 @@ def _span(name: str):
     return nullcontext()
 
 
-_HTTP_TIMEOUT = httpx.Timeout(connect=5.0, read=10.0, write=10.0)
-
-
-def _get_setting(db: Session, key: str) -> Optional[str]:
-    row = db.query(AppSetting).filter(AppSetting.tenant_id.is_(None), AppSetting.key == key).first()
-    return (row.value if row else None) or None
+_HTTP_TIMEOUT = httpx.Timeout(connect=5.0, read=10.0, write=10.0, pool=5.0)
 
 
 HEALTH_MIN_INTERVAL = int(os.getenv("GRAFANA_HEALTH_MIN_INTERVAL", "30"))
@@ -97,7 +92,7 @@ _GRAFANA_HEALTH_STATE = _HealthState()
 
 @router.get("/grafana/health", response_model=dict)
 async def grafana_health(db: Session = Depends(get_db), _: User = Depends(get_admin_user)) -> dict:
-    base = _get_setting(db, 'grafana.url')
+    base = get_base_url(db)
     if not base:
         record_grafana_health(False)
         record_grafana_misconfig()
@@ -129,7 +124,7 @@ async def grafana_health(db: Session = Depends(get_db), _: User = Depends(get_ad
             return cached
     url = f"{base.rstrip('/')}/api/health"
     start = time.perf_counter()
-    headers = _auth_headers()
+    headers = _auth_headers(db)
     _GRAFANA_HEALTH_STATE.mark_attempt()
     with _span("grafana.health") as span:
         if span is not None:
@@ -179,12 +174,18 @@ async def grafana_health(db: Session = Depends(get_db), _: User = Depends(get_ad
             raise HTTPException(status_code=502, detail=str(exc))
 
 
-def _auth_headers() -> dict:
+def _auth_headers(db: Session) -> dict:
     """Build Basic Auth header for upstream Grafana.
 
     Supports either direct env vars (GRAFANA_USER/GRAFANA_PASS) or
     file-based secrets via GRAFANA_USER_FILE/GRAFANA_PASS_FILE.
     """
+    cred = get_credentials(db)
+    if cred:
+        user, pw = cred
+        from base64 import b64encode
+
+        return {'Authorization': 'Basic ' + b64encode(f"{user}:{pw}".encode()).decode()}
     user = os.getenv('GRAFANA_USER')
     pw = os.getenv('GRAFANA_PASS')
     user_file = os.getenv('GRAFANA_USER_FILE')
@@ -210,19 +211,19 @@ def _auth_headers() -> dict:
     return {}
 
 
-async def _grafana_get(base: str, path: str, *, params: Optional[Dict[str, Any]] = None) -> httpx.Response:
+async def _grafana_get(db: Session, base: str, path: str, *, params: Optional[Dict[str, Any]] = None) -> httpx.Response:
     url = f"{base.rstrip('/')}/{path.lstrip('/')}"
     async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT, follow_redirects=False) as client:
-        return await client.get(url, headers=_auth_headers(), params=params)
+        return await client.get(url, headers=_auth_headers(db), params=params)
 
 
 @router.get("/grafana/datasources", response_model=dict)
 async def grafana_datasources(db: Session = Depends(get_db), _: User = Depends(get_admin_user)) -> dict:
-    base = _get_setting(db, 'grafana.url')
+    base = get_base_url(db)
     if not base:
         raise HTTPException(status_code=404, detail="grafana.url not configured")
     try:
-        response = await _grafana_get(base, "api/datasources")
+        response = await _grafana_get(db, base, "api/datasources")
         url = str(response.request.url)
         items = response.json() if response.is_success else None
         return {"url": url, "status": response.status_code, "ok": response.is_success, "items": items}
@@ -232,11 +233,11 @@ async def grafana_datasources(db: Session = Depends(get_db), _: User = Depends(g
 
 @router.get("/grafana/dashboard/{uid}", response_model=dict)
 async def grafana_dashboard(uid: str, db: Session = Depends(get_db), _: User = Depends(get_admin_user)) -> dict:
-    base = _get_setting(db, 'grafana.url')
+    base = get_base_url(db)
     if not base:
         raise HTTPException(status_code=404, detail="grafana.url not configured")
     try:
-        response = await _grafana_get(base, f"api/dashboards/uid/{uid}")
+        response = await _grafana_get(db, base, f"api/dashboards/uid/{uid}")
         url = str(response.request.url)
         return {"url": url, "status": response.status_code, "ok": response.is_success}
     except httpx.HTTPError as e:
@@ -245,11 +246,11 @@ async def grafana_dashboard(uid: str, db: Session = Depends(get_db), _: User = D
 
 @router.get("/grafana/datasource/{uid}", response_model=dict)
 async def grafana_datasource_uid(uid: str, db: Session = Depends(get_db), _: User = Depends(get_admin_user)) -> dict:
-    base = _get_setting(db, 'grafana.url')
+    base = get_base_url(db)
     if not base:
         raise HTTPException(status_code=404, detail="grafana.url not configured")
     try:
-        response = await _grafana_get(base, f"api/datasources/uid/{uid}")
+        response = await _grafana_get(db, base, f"api/datasources/uid/{uid}")
         url = str(response.request.url)
         body = response.json() if response.is_success else None
         return {"url": url, "status": response.status_code, "ok": response.is_success, "body": body}
@@ -259,11 +260,11 @@ async def grafana_datasource_uid(uid: str, db: Session = Depends(get_db), _: Use
 
 @router.get("/grafana/dashboard/slug/{slug}", response_model=dict)
 async def grafana_dashboard_slug(slug: str, db: Session = Depends(get_db), _: User = Depends(get_admin_user)) -> dict:
-    base = _get_setting(db, 'grafana.url')
+    base = get_base_url(db)
     if not base:
         raise HTTPException(status_code=404, detail="grafana.url not configured")
     try:
-        response = await _grafana_get(base, "api/search", params={"type": "dash-db", "query": slug})
+        response = await _grafana_get(db, base, "api/search", params={"type": "dash-db", "query": slug})
         url = str(response.request.url)
         items = response.json() if response.is_success else None
         # Attempt to find exact slug match

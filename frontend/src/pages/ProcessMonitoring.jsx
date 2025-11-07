@@ -132,8 +132,8 @@ export default function ProcessMonitoring() {
         headers: authHeaders(token),
         body: JSON.stringify({ agent_id: agentScope ? Number(agentScope) : null, processes: entries }),
       });
-      dispatch({ type: "SET_MESSAGE", message: "Baseline updated successfully." });
       await loadData();
+      dispatch({ type: "SET_MESSAGE", message: "Baseline updated successfully." });
     } catch (err) {
       dispatch({ type: "SET_ERROR", error: err.message || "Failed to save baseline" });
     } finally {
@@ -151,23 +151,31 @@ export default function ProcessMonitoring() {
       </header>
 
       <Card className="mb-8">
-        <div className="flex items-center space-x-4">
-          <select
-            value={scope}
-            onChange={(e) => dispatch({ type: "SET_FIELD", field: "scope", value: e.target.value })}
-            className="rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-          >
-            <option value="agent">Agent baseline</option>
-            <option value="tenant">Tenant default baseline</option>
-          </select>
+        <div className="flex flex-wrap items-end gap-4">
+          <label className="flex flex-col text-sm font-medium text-gray-700" htmlFor="processScope">
+            Scope
+            <select
+              id="processScope"
+              value={scope}
+              onChange={(e) => dispatch({ type: "SET_FIELD", field: "scope", value: e.target.value })}
+              className="mt-1 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+            >
+              <option value="agent">Agent baseline</option>
+              <option value="tenant">Tenant default baseline</option>
+            </select>
+          </label>
           {scope === "agent" && (
-            <input
-              type="number"
-              value={agentId}
-              onChange={(e) => dispatch({ type: "SET_FIELD", field: "agentId", value: e.target.value })}
-              placeholder="Agent ID (e.g. 42)"
-              className="w-40 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-            />
+            <label className="flex flex-col text-sm font-medium text-gray-700" htmlFor="processAgentId">
+              Agent ID
+              <input
+                id="processAgentId"
+                type="number"
+                value={agentId}
+                onChange={(e) => dispatch({ type: "SET_FIELD", field: "agentId", value: e.target.value })}
+                placeholder="Agent ID (e.g. 42)"
+                className="mt-1 w-40 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+              />
+            </label>
           )}
           <Button onClick={loadData} disabled={loading || (scope === "agent" && !agentId.trim())}>
             {loading ? "Loading..." : `Refresh ${scope === "agent" ? "Agent" : "Tenant"}`}

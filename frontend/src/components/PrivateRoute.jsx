@@ -16,7 +16,7 @@ export default function PrivateRoute({ requireAdmin = false }) {
   }
 
   if (requireAdmin && !isAdminRole(role)) {
-    return <Navigate to="/app/dashboard" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <Outlet />;

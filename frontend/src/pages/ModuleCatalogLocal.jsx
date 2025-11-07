@@ -238,7 +238,7 @@ export default function ModuleCatalogLocal() {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search modules..."
+          placeholder="Search modules"
           className="w-full max-w-xs rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
         />
         <select

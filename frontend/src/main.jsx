@@ -27,10 +27,15 @@ if (typeof window !== "undefined") {
 }
 
 const container = document.getElementById("root");
+const rawBase = import.meta.env.BASE_URL || "/";
+const normalizedBase = rawBase.endsWith("/")
+  ? rawBase.slice(0, -1) || "/"
+  : rawBase;
+
 const app = (
   <React.StrictMode>
     <AppProviders queryClient={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter basename={normalizedBase === "/" ? undefined : normalizedBase}>
         <App />
       </BrowserRouter>
     </AppProviders>

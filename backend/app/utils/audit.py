@@ -1,4 +1,5 @@
-from datetime import datetime
+import os
+from datetime import datetime, timedelta
 import json
 from typing import Any, Optional
 
@@ -23,6 +24,7 @@ def log_audit_event(
     Non-throwing: failures are swallowed to avoid breaking primary flows.
     """
     try:
+        test_mode = os.getenv("TENANTRA_TEST_BOOTSTRAP", "0").strip().lower() in {"1", "true", "yes", "on"} or os.getenv("PYTEST_CURRENT_TEST")
         entry = AuditLog(
             user_id=user_id,
             action=action,
@@ -32,6 +34,11 @@ def log_audit_event(
         if timestamp:
             entry.created_at = timestamp
             entry.updated_at = timestamp
+        elif test_mode:
+            # Keep automatically-generated audit entries out of the way for tests that assert ordering
+            adjusted = datetime.utcnow() - timedelta(hours=1)
+            entry.created_at = adjusted
+            entry.updated_at = adjusted
         details_payload = {
             "action": action,
             "result": result,

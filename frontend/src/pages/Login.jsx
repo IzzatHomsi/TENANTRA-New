@@ -7,7 +7,7 @@ export default function Login() {
   const { signIn, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location?.state && location.state.from && location.state.from.pathname) || "/app/dashboard";
+  const from = (location?.state && location.state.from && location.state.from.pathname) || "/dashboard";
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -52,7 +52,7 @@ export default function Login() {
                 autoComplete="username"
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
-                placeholder="Email or Phone Number"
+                placeholder="Username"
                 required
               />
             </div>
@@ -72,7 +72,7 @@ export default function Login() {
               className="w-full rounded-md bg-primary px-4 py-3 text-lg font-bold text-white hover:bg-blue-600 disabled:opacity-60"
               disabled={submitting}
             >
-              {submitting ? "Logging In..." : "Log In"}
+              {submitting ? "Logging In..." : "Login"}
             </button>
           </form>
           <div className="text-center mt-4">

@@ -13,8 +13,8 @@ export const NAV_CONFIG = [
     type: "section",
     label: "Overview",
     children: [
-      { type: "item", to: "/app/dashboard", label: "Dashboard" },
-      { type: "item", to: "/app/profile", label: "My Profile" },
+      { type: "item", to: "/dashboard", label: "Dashboard" },
+      { type: "item", to: "/profile", label: "My Profile" },
     ],
   },
 
@@ -25,18 +25,18 @@ export const NAV_CONFIG = [
     label: "Compliance",
     children: [
       // You said these pages exist in your project
-      { type: "item", to: "/app/compliance-trends", label: "Compliance Trends" },
-      { type: "item", to: "/app/notifications", label: "Notifications" },
+      { type: "item", to: "/compliance-trends", label: "Compliance Trends" },
+      { type: "item", to: "/notifications", label: "Notifications" },
       // Optional pages: enable them later by adding routes/pages
       {
         type: "item",
-        to: "/app/compliance/results",
+        to: "/compliance/results",
         label: "Compliance Results",
         enabled: ({ features }) => Boolean(features?.complianceResults),
       },
       {
         type: "item",
-        to: "/app/notification-history",
+        to: "/notification-history",
         label: "Notification History",
         enabled: ({ features }) => Boolean(features?.notificationHistory),
       },
@@ -47,11 +47,11 @@ export const NAV_CONFIG = [
     type: "section",
     label: "Runtime Integrity",
     children: [
-      { type: "item", to: "/app/process-monitoring", label: "Process Monitoring" },
-      { type: "item", to: "/app/persistence", label: "Persistence" },
+      { type: "item", to: "/process-monitoring", label: "Process Monitoring" },
+      { type: "item", to: "/persistence", label: "Persistence" },
       {
         type: "item",
-        to: "/app/threat-intel",
+        to: "/threat-intel",
         label: "Threat Intelligence",
         roles: ["admin", "administrator", "super_admin", "system_admin"],
         enabled: ({ features }) => Boolean(features?.threatIntel ?? true),
@@ -65,25 +65,25 @@ export const NAV_CONFIG = [
     children: [
       {
         type: "item",
-        to: "/app/assets",
+        to: "/assets",
         label: "Assets",
         enabled: ({ features }) => Boolean(features?.assets),
       },
       {
         type: "item",
-        to: "/app/scan-schedules",
+        to: "/scan-schedules",
         label: "Scan Schedules",
         enabled: ({ features }) => Boolean(features?.scanSchedules),
       },
       {
         type: "item",
-        to: "/app/reports",
+        to: "/reports",
         label: "Reports",
         enabled: ({ features }) => Boolean(features?.reports),
       },
       {
         type: "item",
-        to: "/app/audit-logs",
+        to: "/audit-logs",
         label: "Audit Logs",
         enabled: ({ features }) => Boolean(features?.auditLogs),
       },
@@ -99,27 +99,27 @@ export const NAV_CONFIG = [
       // Only admins see Users/Tenants/Billing
       {
         type: "item",
-        to: "/app/users",
+        to: "/users",
         label: "Users",
         roles: ["admin", "administrator", "super_admin", "system_admin"],
       },
       {
         type: "item",
-        to: "/app/tenants",
+        to: "/tenants",
         label: "Tenants",
         roles: ["admin", "administrator", "super_admin", "system_admin"],
         enabled: ({ features }) => Boolean(features?.tenants),
       },
       {
         type: "item",
-        to: "/app/billing",
+        to: "/billing",
         label: "Billing",
         roles: ["admin", "administrator", "super_admin", "system_admin"],
         enabled: ({ features }) => Boolean(features?.billing),
       },
       {
         type: "item",
-        to: "/app/settings",
+        to: "/settings",
         label: "Settings",
         roles: ["admin", "administrator", "super_admin", "system_admin"],
         enabled: ({ features }) => Boolean(features?.settings),

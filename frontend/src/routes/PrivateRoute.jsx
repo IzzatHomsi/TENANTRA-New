@@ -16,7 +16,7 @@ export function PrivateRoute({ children, requireAdmin = false }) {
   }
   if (requireAdmin && !isAdminRole(role)) {
     // Not an admin → bounce to dashboard
-    return <Navigate to="/app/dashboard" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
   return children;
 }

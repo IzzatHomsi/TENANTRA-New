@@ -1,20 +1,14 @@
 import { test, expect } from '@playwright/test';
-
-const BASE = process.env.FRONTEND_BASE || 'http://localhost:5173';
-const ADMIN_USER = process.env.ADMIN_USER || 'admin';
-const ADMIN_PASS = process.env.ADMIN_PASS || 'Admin@1234';
+import { APP_BASE, loginAsAdmin } from './testEnv';
 
 async function login(page) {
-  await page.goto(`${BASE}/login`);
-  await page.getByPlaceholder('Username').fill(ADMIN_USER);
-  await page.getByPlaceholder('Password').fill(ADMIN_PASS);
-  await page.getByRole('button', { name: 'Login' }).click();
-  await page.waitForURL('**/app/**');
+  await loginAsAdmin(page);
 }
 
 test.describe('Notifications surfaces', () => {
   test('notifications list renders remote data', async ({ page }) => {
     await login(page);
+    await page.goto(`${APP_BASE}/dashboard`);
 
     await page.route('**/api/notifications', async (route) => {
       await route.fulfill({
@@ -26,7 +20,7 @@ test.describe('Notifications surfaces', () => {
       });
     });
 
-    await page.goto(`${BASE}/app/notifications`);
+    await page.goto(`${APP_BASE}/notifications`);
     await expect(page.getByRole('heading', { name: 'Notifications' })).toBeVisible();
     await expect(page.getByText('Agent Offline')).toBeVisible();
     await expect(page.getByText('weekly baseline')).toBeVisible();
@@ -40,16 +34,13 @@ test.describe('Notifications surfaces', () => {
       captured.push(route.request().url());
       await route.fulfill({
         contentType: 'application/json',
-        body: JSON.stringify({
-          items: [
-            { sent_at: '2024-01-01T09:00:00Z', channel: 'email', recipient: 'ops@example.com', subject: 'Weekly digest', status: 'sent' },
-          ],
-          total: 1,
-        }),
+        body: JSON.stringify([
+          { sent_at: '2024-01-01T09:00:00Z', channel: 'email', recipient: 'ops@example.com', subject: 'Weekly digest', status: 'sent' },
+        ]),
       });
     });
 
-    await page.goto(`${BASE}/app/notification-history`);
+    await page.goto(`${APP_BASE}/notification-history`);
     await expect(page.getByRole('heading', { name: 'Notification History' })).toBeVisible();
 
     await page.getByPlaceholder('Channel (email, sms, webhook)').fill('email');
@@ -59,15 +50,14 @@ test.describe('Notifications surfaces', () => {
 
     await expect.poll(() => captured.length).toBeGreaterThan(0);
     const lastUrl = captured[captured.length - 1];
-    expect(lastUrl).toContain('channel=email');
-    expect(lastUrl).toContain('recipient=ops@example.com');
-    expect(lastUrl).toContain('limit=100');
+    const decodedUrl = decodeURIComponent(lastUrl);
+    expect(decodedUrl).toContain('channel=email');
+    expect(decodedUrl).toContain('recipient=ops@example.com');
+    expect(decodedUrl).toContain('limit=100');
     await expect(page.getByText('Weekly digest')).toBeVisible();
   });
 
   test('alert settings persist channel toggles', async ({ page }) => {
-    await login(page);
-
     await page.route('**/api/notification-prefs', async (route) => {
       if (route.request().method() === 'GET') {
         await route.fulfill({
@@ -89,7 +79,9 @@ test.describe('Notifications surfaces', () => {
       }
     });
 
-    await page.goto(`${BASE}/app/alert-settings`);
+    await login(page);
+
+    await page.goto(`${APP_BASE}/alert-settings`);
     await expect(page.getByRole('heading', { name: 'Alert Settings' })).toBeVisible();
 
     await page.getByLabel('Webhook').check();

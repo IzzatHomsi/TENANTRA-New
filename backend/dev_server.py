@@ -28,7 +28,9 @@ def main() -> None:
     )
     # Deterministic JWT secret in dev to keep tokens valid across processes
     os.environ.setdefault("JWT_SECRET", "dev-local-fixed-secret-change-in-prod")
-    uvicorn.run("app.main:app", host="127.0.0.1", port=5000, log_level="warning")
+    host = os.getenv("DEV_SERVER_HOST", "127.0.0.1")
+    port = int(os.getenv("DEV_SERVER_PORT", os.getenv("APP_PORT", "5000")))
+    uvicorn.run("app.main:app", host=host, port=port, log_level="warning")
 
 
 if __name__ == "__main__":

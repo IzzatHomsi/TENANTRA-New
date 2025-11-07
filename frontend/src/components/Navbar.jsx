@@ -22,29 +22,29 @@ export default function Navbar() {
         </p>
         <ul className="mt-8 space-y-3 text-sm">
           <li>
-            <Link to="/app/dashboard" className="block rounded-md px-3 py-2 transition hover:bg-neutral">
+            <Link to="/dashboard" className="block rounded-md px-3 py-2 transition hover:bg-neutral">
               Dashboard
             </Link>
           </li>
           {isAdmin && (
             <li>
-              <Link to="/app/users" className="block rounded-md px-3 py-2 transition hover:bg-neutral">
+              <Link to="/users" className="block rounded-md px-3 py-2 transition hover:bg-neutral">
                 User Management
               </Link>
             </li>
           )}
           <li>
-            <Link to="/app/compliance-trends" className="block rounded-md px-3 py-2 transition hover:bg-neutral">
+            <Link to="/compliance-trends" className="block rounded-md px-3 py-2 transition hover:bg-neutral">
               Compliance Trends
             </Link>
           </li>
           <li>
-            <Link to="/app/profile" className="block rounded-md px-3 py-2 transition hover:bg-neutral">
+            <Link to="/profile" className="block rounded-md px-3 py-2 transition hover:bg-neutral">
               Profile
             </Link>
           </li>
           <li>
-            <Link to="/app/notifications" className="block rounded-md px-3 py-2 transition hover:bg-neutral">
+            <Link to="/notifications" className="block rounded-md px-3 py-2 transition hover:bg-neutral">
               Notifications
             </Link>
           </li>

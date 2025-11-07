@@ -3,6 +3,8 @@ import react from "@vitejs/plugin-react";
 import { visualizer } from "rollup-plugin-visualizer";
 import { VitePWA } from "vite-plugin-pwa";
 
+const API_PROXY_TARGET = process.env.VITE_API_PROXY_TARGET || "http://localhost:5000";
+
 // Dev proxy: FE calls /api/* (and some legacy /auth, /users, /export) → backend:5000
 export default defineConfig(() => {
   const plugins = [
@@ -67,12 +69,23 @@ export default defineConfig(() => {
     base: '/app/',
     plugins,
     server: {
+      host: "127.0.0.1",
       port: 5173,
       proxy: {
-        "/api": { target: "http://localhost:5000", changeOrigin: true, secure: false },
-        "/auth": { target: "http://localhost:5000", changeOrigin: true, secure: false },
-        "/users": { target: "http://localhost:5000", changeOrigin: true, secure: false },
-        "/export": { target: "http://localhost:5000", changeOrigin: true, secure: false },
+        "/api": { target: API_PROXY_TARGET, changeOrigin: true, secure: false },
+        "/auth": { target: API_PROXY_TARGET, changeOrigin: true, secure: false },
+        "/users": { target: API_PROXY_TARGET, changeOrigin: true, secure: false },
+        "/export": { target: API_PROXY_TARGET, changeOrigin: true, secure: false },
+      },
+    },
+    preview: {
+      host: "127.0.0.1",
+      port: 4173,
+      proxy: {
+        "/api": { target: API_PROXY_TARGET, changeOrigin: true, secure: false },
+        "/auth": { target: API_PROXY_TARGET, changeOrigin: true, secure: false },
+        "/users": { target: API_PROXY_TARGET, changeOrigin: true, secure: false },
+        "/export": { target: API_PROXY_TARGET, changeOrigin: true, secure: false },
       },
     },
   };

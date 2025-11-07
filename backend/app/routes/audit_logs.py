@@ -1,7 +1,11 @@
 """Audit log API endpoints."""
 
+import os
+import time
+import threading
+from collections import deque
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Deque, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
@@ -11,8 +15,31 @@ from app.core.auth import get_admin_user
 from app.database import get_db
 from app.models.audit_log import AuditLog
 from app.models.user import User
+from app.utils.audit import log_audit_event
 
 router = APIRouter(prefix="/audit-logs", tags=["Audit Logs"])
+
+_EXPORT_MAX = int(os.getenv("AUDIT_EXPORT_MAX_PER_MINUTE", "6"))
+_EXPORT_WINDOW = int(os.getenv("AUDIT_EXPORT_WINDOW_SECONDS", "60"))
+_EXPORT_LOCK = threading.Lock()
+_EXPORT_BUCKETS: Dict[int, Deque[float]] = {}
+
+
+def _enforce_export_rate_limit(user: User) -> None:
+    if _EXPORT_MAX <= 0:
+        return
+    now = time.monotonic()
+    key = int(getattr(user, "id", 0) or 0)
+    with _EXPORT_LOCK:
+        bucket = _EXPORT_BUCKETS.setdefault(key, deque())
+        while bucket and now - bucket[0] > _EXPORT_WINDOW:
+            bucket.popleft()
+        if len(bucket) >= _EXPORT_MAX:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many audit exports requested. Try again shortly.",
+            )
+        bucket.append(now)
 
 
 def _serialize_audit_log(log: AuditLog) -> Dict[str, Any]:
@@ -109,9 +136,10 @@ def export_audit_logs(
     end_date: Optional[str] = Query(None),
     result: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    _: User = Depends(get_admin_user),
+    current_user: User = Depends(get_admin_user),
 ):
     """Stream CSV export of audit logs with filters."""
+    _enforce_export_rate_limit(current_user)
     query = db.query(AuditLog)
     if user_id is not None:
         query = query.filter(AuditLog.user_id == user_id)
@@ -129,6 +157,25 @@ def export_audit_logs(
         query = query.filter(AuditLog.result == result)
     query = query.order_by(AuditLog.created_at.desc())
     rows = query.all()
+    try:
+        log_audit_event(
+            db,
+            user_id=current_user.id,
+            action="audit_logs.export",
+            result="success",
+            ip=None,
+            details={
+                "filters": {
+                    "user_id": user_id,
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "result": result,
+                },
+                "row_count": len(rows),
+            },
+        )
+    except Exception:
+        pass
     return StreamingResponse(
         _iter_csv(rows),
         media_type="text/csv",

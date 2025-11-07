@@ -17,7 +17,10 @@ function postWebVital(payload) {
       keepalive: true,
       credentials: "include",
     }).catch(() => {});
-  } catch {}
+  } catch (error) {
+    // Swallow client-only telemetry issues; metrics are informational
+    console.warn("[web-vitals] telemetry post failed", error);
+  }
 }
 
 function defaultLogger(metric) {

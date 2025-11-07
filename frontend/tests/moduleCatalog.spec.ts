@@ -190,7 +190,7 @@ test("module catalog flows", async ({ page }) => {
   await page.getByRole("button", { name: "Execute now" }).click();
   await expect(page.getByText(/Run recorded/)).toBeVisible();
 
-  await page.fill("input[placeholder='*/15 * * * *']", "*/30 * * * *");
+  await page.getByLabel("Cron Expression").fill("*/30 * * * *");
   await page.getByRole("button", { name: "Create schedule" }).click();
   await expect(page.getByText("Schedule created.")).toBeVisible();
   await expect(page.getByText("*/30 * * * *")).toBeVisible();

@@ -10,40 +10,47 @@ import { useUIStore } from "../store/uiStore";
 import { fetchFeatureFlags } from "../api/features";
 import { fetchTenants } from "../api/tenants";
 
-const APP_ROOT = "/app";
+const APP_ROOT = (import.meta.env.BASE_URL?.replace(/\/$/, "") || "");
+const toRoute = (path) => (path.startsWith("/") ? path : `/${path}`);
+const normalizePathname = (pathname = "/") => {
+  if (!APP_ROOT) return pathname || "/";
+  if (!pathname.startsWith(APP_ROOT)) return pathname || "/";
+  const next = pathname.slice(APP_ROOT.length) || "/";
+  return next.startsWith("/") ? next : `/${next}`;
+};
 
 const NAV_TEMPLATE = [
   {
     label: "Observability",
     items: [
-      { to: `${APP_ROOT}/dashboard`, label: "Dashboard", exact: true },
-      { to: `${APP_ROOT}/metrics`, label: "Metrics" },
-      { to: `${APP_ROOT}/discovery`, label: "Discovery" },
-      { to: `${APP_ROOT}/profile`, label: "My Profile" },
-      { to: `${APP_ROOT}/notifications`, label: "Notifications" },
-      { to: `${APP_ROOT}/notification-history`, label: "Notification History", featureKey: "notificationHistory" },
-      { to: `${APP_ROOT}/alert-settings`, label: "Alert Settings", adminOnly: true, featureKey: "alertSettings" },
-      { to: `${APP_ROOT}/audit-logs`, label: "Audit Logs", adminOnly: true, featureKey: "auditLogs" },
-      { to: `${APP_ROOT}/feature-flags`, label: "Feature Flags", adminOnly: true, featureKey: "featureFlags" },
+      { to: toRoute("/dashboard"), label: "Dashboard", exact: true },
+      { to: toRoute("/metrics"), label: "Metrics" },
+      { to: toRoute("/discovery"), label: "Discovery" },
+      { to: toRoute("/profile"), label: "My Profile" },
+      { to: toRoute("/notifications"), label: "Notifications" },
+      { to: toRoute("/notification-history"), label: "Notification History", featureKey: "notificationHistory" },
+      { to: toRoute("/alert-settings"), label: "Alert Settings", adminOnly: true, featureKey: "alertSettings" },
+      { to: toRoute("/audit-logs"), label: "Audit Logs", adminOnly: true, featureKey: "auditLogs" },
+      { to: toRoute("/feature-flags"), label: "Feature Flags", adminOnly: true, featureKey: "featureFlags" },
     ],
   },
   {
     label: "Compliance",
     items: [
-      { to: `${APP_ROOT}/compliance-trends`, label: "Compliance Trends" },
-      { to: `${APP_ROOT}/compliance-matrix`, label: "Compliance Matrix" },
-      { to: `${APP_ROOT}/retention`, label: "Retention Exports" },
-      { to: `${APP_ROOT}/scans`, label: "Scan Orchestration" },
-      { to: `${APP_ROOT}/modules`, label: "Module Catalog" },
+      { to: toRoute("/compliance-trends"), label: "Compliance Trends" },
+      { to: toRoute("/compliance-matrix"), label: "Compliance Matrix" },
+      { to: toRoute("/retention"), label: "Retention Exports" },
+      { to: toRoute("/scans"), label: "Scan Orchestration" },
+      { to: toRoute("/modules"), label: "Module Catalog" },
     ],
   },
   {
     label: "Runtime Fabric",
     items: [
-      { to: `${APP_ROOT}/process-monitoring`, label: "Process Monitoring" },
-      { to: `${APP_ROOT}/persistence`, label: "Persistence" },
-      { to: `${APP_ROOT}/cloud`, label: "Cloud Discovery" },
-      { to: `${APP_ROOT}/threat-intel`, label: "Threat Intelligence", adminOnly: true, featureKey: "threatIntel" },
+      { to: toRoute("/process-monitoring"), label: "Process Monitoring" },
+      { to: toRoute("/persistence"), label: "Persistence" },
+      { to: toRoute("/cloud"), label: "Cloud Discovery" },
+      { to: toRoute("/threat-intel"), label: "Threat Intelligence", adminOnly: true, featureKey: "threatIntel" },
     ],
   },
   // Administration links moved under gear menu
@@ -140,7 +147,7 @@ export default function Shell() {
         const items = await res.json();
         const map = Object.fromEntries(items.map((x) => [x.key, x.value]));
         if (!map['onboarding.done']) {
-          navigate(`${APP_ROOT}/onboarding`, { replace: true });
+          navigate("/onboarding", { replace: true });
         }
         onboardingChecked.current = true;
       } catch {}
@@ -290,7 +297,7 @@ export default function Shell() {
         const tag = (e.target && e.target.tagName) || '';
         if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey && !/INPUT|TEXTAREA|SELECT/.test(tag)) {
           e.preventDefault();
-          navigate(`${APP_ROOT}/search`);
+          navigate("/search");
         }
       } catch {}
     }
@@ -355,7 +362,7 @@ export default function Shell() {
   );
 
   const currentRouteLabel = useMemo(() => {
-    const path = location.pathname.replace(/\/$/, "");
+    const path = normalizePathname(location.pathname).replace(/\/$/, "") || "/";
     const exact = flattenedNav.find((item) => item.to === path);
     if (exact) {
       return exact.label;
@@ -366,11 +373,11 @@ export default function Shell() {
       return partial.label;
     }
 
-    if (path === APP_ROOT || path === `${APP_ROOT}/`) {
+    if (path === "/") {
       return "Dashboard";
     }
 
-    const segments = path.replace(`${APP_ROOT}/`, "").split("/").filter(Boolean);
+    const segments = path.replace(/^\//, "").split("/").filter(Boolean);
     if (!segments.length) {
       return "Dashboard";
     }
@@ -480,8 +487,9 @@ export default function Shell() {
             {settingsOpen && (
               <div className="absolute right-0 top-10 z-20 w-64 rounded-md border border-border-color bg-surface p-3 text-primary-text shadow-lg transition-colors dark:bg-surface dark:border-border-color">
                 <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-secondary-text">System</div>
-                <label className="mb-1 block text-sm text-secondary-text">Theme</label>
+                <label className="mb-1 block text-sm text-secondary-text" htmlFor="themeSelect">Theme</label>
                 <select
+                  id="themeSelect"
                   value={theme}
                   onChange={(e) => { setTheme(e.target.value); setToast("Theme updated"); }}
                   className="w-full rounded-md border border-border-color bg-surface px-2 py-1 text-sm text-primary-text transition-colors dark:bg-surface dark:border-border-color"
@@ -497,16 +505,16 @@ export default function Shell() {
                 )}
                 <div className="mt-3 h-px bg-border-color dark:bg-border-color" />
                 <div className="mt-3 text-sm text-primary-text">
-                  <NavLink to={`${APP_ROOT}/profile`} className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>My Profile</NavLink>
+                  <NavLink to="/profile" className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>My Profile</NavLink>
                   {isAdmin && (
                     <>
-                      <NavLink to={`${APP_ROOT}/alert-settings`} className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>Alert Settings</NavLink>
-                      <NavLink to={`${APP_ROOT}/admin-settings`} className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>Admin Settings</NavLink>
-                      <NavLink to={`${APP_ROOT}/feature-flags`} className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>Feature Flags</NavLink>
-                      <NavLink to={`${APP_ROOT}/audit-logs`} className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>Audit Logs</NavLink>
-                      <NavLink to={`${APP_ROOT}/observability-setup`} className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>Observability Setup</NavLink>
-                      <NavLink to={`${APP_ROOT}/faq`} className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>Help & FAQ</NavLink>
-                      <NavLink to={`${APP_ROOT}/users`} className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>User Directory</NavLink>
+                      <NavLink to="/alert-settings" className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>Alert Settings</NavLink>
+                      <NavLink to="/admin-settings" className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>Admin Settings</NavLink>
+                      <NavLink to="/feature-flags" className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>Feature Flags</NavLink>
+                      <NavLink to="/audit-logs" className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>Audit Logs</NavLink>
+                      <NavLink to="/observability-setup" className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>Observability Setup</NavLink>
+                      <NavLink to="/faq" className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>Help & FAQ</NavLink>
+                      <NavLink to="/users" className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>User Directory</NavLink>
                     </>
                   )}
                 </div>

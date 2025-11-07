@@ -4,8 +4,12 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 import hashlib
 import json
+import copy
+import threading
+from contextlib import nullcontext
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from urllib.parse import urlparse, urlunparse
 
@@ -21,13 +25,66 @@ from pydantic import (
     validator,
 )
 
-from app.core.auth import get_admin_user
+from app.core.auth import get_admin_user, get_settings_user
 from app.database import get_db
 from app.models.app_setting import AppSetting
 from app.models.user import User
 from app.utils.audit import log_audit_event
+from app.services.feature_flags import (
+    ensure_settings_read_access,
+    ensure_settings_write_access,
+)
+from app.core.crypto import encrypt_data
+from app.core.secrets import get_enc_key
 
 router = APIRouter(prefix="/admin/settings", tags=["Admin Settings"])
+
+
+try:
+    from opentelemetry import trace as otel_trace
+
+    _TRACER = otel_trace.get_tracer(__name__)
+except Exception:  # pragma: no cover - optional dependency
+    _TRACER = None
+
+
+def _span(name: str):
+    if _TRACER:
+        return _TRACER.start_as_current_span(name)
+    return nullcontext()
+
+
+_SETTINGS_CACHE: Dict[str, Tuple[List[dict], str]] = {}
+_SETTINGS_CACHE_LOCK = threading.Lock()
+
+
+def _cache_key(tenant_id: Optional[int]) -> str:
+    return "global" if tenant_id is None else f"tenant:{tenant_id}"
+
+
+def _get_cached_settings(tenant_id: Optional[int]) -> Optional[Tuple[List[dict], str]]:
+    key = _cache_key(tenant_id)
+    with _SETTINGS_CACHE_LOCK:
+        entry = _SETTINGS_CACHE.get(key)
+    if not entry:
+        return None
+    payload, etag = entry
+    return copy.deepcopy(payload), etag
+
+
+def _set_cached_settings(tenant_id: Optional[int], payload: List[dict], etag: str) -> None:
+    key = _cache_key(tenant_id)
+    with _SETTINGS_CACHE_LOCK:
+        _SETTINGS_CACHE[key] = (copy.deepcopy(payload), etag)
+
+
+def _invalidate_cache(*tenant_ids: Optional[int]) -> None:
+    with _SETTINGS_CACHE_LOCK:
+        if not tenant_ids:
+            _SETTINGS_CACHE.clear()
+            return
+        for tenant_id in tenant_ids:
+            _SETTINGS_CACHE.pop(_cache_key(tenant_id), None)
 
 
 _UNSET = object()
@@ -56,8 +113,9 @@ def _apply_conditional_headers(
     response: Response,
     items: List[dict],
     tenant_key: Optional[str] = None,
+    etag: Optional[str] = None,
 ) -> Optional[Response]:
-    etag = _compute_etag(items, tenant_key)
+    etag = etag or _compute_etag(items, tenant_key)
     if request.headers.get("if-none-match") == etag:
         return Response(
             status_code=status.HTTP_304_NOT_MODIFIED,
@@ -102,7 +160,7 @@ class _DHCPScope(BaseModel):
     class Config:
         extra = "forbid"
 
-    @root_validator
+    @root_validator(skip_on_failure=True)
     def validate_capacity(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         total = values.get("total_leases") or 0
         active = values.get("active_leases") or 0
@@ -140,30 +198,15 @@ class _DHCPSource(BaseModel):
         return value.lower()
 
 
-class _FeatureFlagMap(BaseModel):
-    __root__: Dict[str, bool]
-
-    @validator("__root__")
-    def ensure_boolean_map(cls, value: Dict[str, Any]) -> Dict[str, bool]:
-        if not isinstance(value, dict):
-            raise ValueError("features must be a JSON object of feature->enabled flags")
-        normalized: Dict[str, bool] = {}
-        for key, raw in value.items():
-            if not isinstance(key, str) or not key.strip():
-                raise ValueError("Feature keys must be non-empty strings")
-            normalized[key.strip()] = bool(raw)
-        return normalized
-
-
 class _AppSettingsPayload(BaseModel):
     grafana_url: Optional[str] = Field(None, alias="grafana.url")
-    grafana_dashboard_uid: Optional[constr(strip_whitespace=True, min_length=2, max_length=120, regex=r"^[A-Za-z0-9_\-]+$")] = Field(
+    grafana_dashboard_uid: Optional[constr(strip_whitespace=True, min_length=2, max_length=120, pattern=r"^[A-Za-z0-9_\-]+$")] = Field(
         None, alias="grafana.dashboard_uid"
     )
-    grafana_datasource_uid: Optional[constr(strip_whitespace=True, min_length=2, max_length=120, regex=r"^[A-Za-z0-9_\-]+$")] = Field(
+    grafana_datasource_uid: Optional[constr(strip_whitespace=True, min_length=2, max_length=120, pattern=r"^[A-Za-z0-9_\-]+$")] = Field(
         None, alias="grafana.datasource_uid"
     )
-    theme_color_primary: Optional[constr(strip_whitespace=True, regex=r"^#[0-9A-Fa-f]{6}$")] = Field(
+    theme_color_primary: Optional[constr(strip_whitespace=True, pattern=r"^#[0-9A-Fa-f]{6}$")] = Field(
         None, alias="theme.colors.primary"
     )
     email_redirect_enabled: Optional[bool] = Field(None, alias="email.redirect.enabled")
@@ -171,10 +214,16 @@ class _AppSettingsPayload(BaseModel):
     networking_plan_targets: Optional[List[_PortTarget]] = Field(None, alias="networking.plan.targets")
     networking_dhcp_scopes: Optional[List[_DHCPScope]] = Field(None, alias="networking.dhcp.scopes")
     networking_dhcp_source: Optional[_DHCPSource] = Field(None, alias="networking.dhcp.source")
-    feature_flags: Optional[_FeatureFlagMap] = Field(None, alias="features")
+    feature_flags: Optional[Dict[str, bool]] = Field(None, alias="features")
     worker_enabled: Optional[bool] = Field(None, alias="worker.enabled")
     tenant_mode: Optional[constr(strip_whitespace=True, to_lower=True)] = Field(None, alias="tenant.mode")
     onboarding_done: Optional[bool] = Field(None, alias="onboarding.done")
+    grafana_proxy_max_body_bytes: Optional[int] = Field(None, alias="grafana.proxy.max_body_bytes")
+    grafana_proxy_max_requests_per_minute: Optional[int] = Field(None, alias="grafana.proxy.max_requests_per_minute")
+    grafana_basic_username: Optional[constr(strip_whitespace=True, min_length=1, max_length=120)] = Field(
+        None, alias="grafana.basic.username"
+    )
+    grafana_basic_password: Optional[str] = Field(None, alias="grafana.basic.password")
 
     class Config:
         allow_population_by_field_name = True
@@ -233,8 +282,8 @@ class _AppSettingsPayload(BaseModel):
         if enabled and not value:
             raise ValueError("Provide a redirect address when email redirect is enabled")
         if not enabled:
-        return None
-    return value
+            return None
+        return value
 
     @validator("tenant_mode", pre=True)
     def _normalize_tenant_mode(cls, value: Optional[str]) -> Optional[str]:
@@ -245,6 +294,44 @@ class _AppSettingsPayload(BaseModel):
             raise ValueError("tenant.mode must be 'single' or 'multi'")
         return value
 
+    @validator("grafana_proxy_max_body_bytes", pre=True)
+    def _sanitize_proxy_limit(cls, value: Optional[object]) -> Optional[int]:
+        if value in (None, "", False):
+            return None
+        try:
+            limit = int(value)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            raise ValueError("grafana.proxy.max_body_bytes must be an integer")
+        if limit <= 0:
+            raise ValueError("grafana.proxy.max_body_bytes must be greater than zero")
+        return limit
+
+    @validator("grafana_proxy_max_requests_per_minute", pre=True)
+    def _sanitize_proxy_rate(cls, value: Optional[object]) -> Optional[int]:
+        if value in (None, "", False):
+            return None
+        try:
+            limit = int(value)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            raise ValueError("grafana.proxy.max_requests_per_minute must be an integer")
+        if limit < 0:
+            raise ValueError("grafana.proxy.max_requests_per_minute must be non-negative")
+        return limit
+
+    @validator("grafana_basic_username", pre=True)
+    def _strip_username(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        value = value.strip()
+        return value or None
+
+    @validator("grafana_basic_password", pre=True)
+    def _clean_password(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        value = value.strip()
+        return value or None
+
     @validator("networking_plan_targets", "networking_dhcp_scopes", pre=True)
     def _allow_empty_iterable(cls, value: Optional[Iterable[Any]]) -> Optional[Iterable[Any]]:
         if value is None:
@@ -252,6 +339,19 @@ class _AppSettingsPayload(BaseModel):
         if isinstance(value, list) and len(value) == 0:
             return []
         return value
+
+    @validator("feature_flags", pre=True)
+    def _normalize_features(cls, value: Optional[Dict[str, Any]]) -> Optional[Dict[str, bool]]:
+        if value in (None, "", False):
+            return None
+        if not isinstance(value, dict):
+            raise ValueError("features must be a JSON object of feature->enabled flags")
+        normalized: Dict[str, bool] = {}
+        for key, raw in value.items():
+            if not isinstance(key, str) or not key.strip():
+                raise ValueError("Feature keys must be non-empty strings")
+            normalized[key.strip()] = bool(raw)
+        return normalized or None
 
     def to_updates(self) -> Dict[str, Any]:
         raw = self.dict(by_alias=True, exclude_unset=True)
@@ -265,10 +365,13 @@ class _AppSettingsPayload(BaseModel):
                     for item in value
                 ]
             elif isinstance(value, BaseModel):
-                if hasattr(value, "__root__"):
-                    normalized[key] = getattr(value, "__root__")
+                normalized[key] = value.dict(exclude_none=True)
+            elif key == "grafana.basic.password":
+                if value is None:
+                    normalized[key] = None
                 else:
-                    normalized[key] = value.dict(exclude_none=True)
+                    ciphertext = encrypt_data(value, get_enc_key())
+                    normalized[key] = {"ciphertext": ciphertext, "set": True}
             else:
                 normalized[key] = value
         return normalized
@@ -293,6 +396,10 @@ _SETTING_REGISTRY: Dict[str, _SettingDefinition] = {
     "worker.enabled": _SettingDefinition(scope="global"),
     "tenant.mode": _SettingDefinition(scope="global"),
     "onboarding.done": _SettingDefinition(scope="global"),
+    "grafana.proxy.max_body_bytes": _SettingDefinition(scope="global"),
+    "grafana.proxy.max_requests_per_minute": _SettingDefinition(scope="global"),
+    "grafana.basic.username": _SettingDefinition(scope="global"),
+    "grafana.basic.password": _SettingDefinition(scope="global"),
 }
 
 
@@ -306,21 +413,45 @@ def _assert_scope_allowed(key: str, tenant_id: Optional[int]) -> None:
         raise HTTPException(status_code=403, detail=f"Setting '{key}' requires a tenant context")
 
 
-def _compute_full_payload(db: Session, tenant_id: Optional[int]) -> List[dict]:
+def _get_settings_payload(db: Session, tenant_id: Optional[int]) -> Tuple[List[dict], str]:
+    cached = _get_cached_settings(tenant_id)
+    if cached:
+        return cached
     query = db.query(AppSetting)
     if tenant_id is None:
         query = query.filter(AppSetting.tenant_id.is_(None))
     else:
         query = query.filter(AppSetting.tenant_id == tenant_id)
     rows = query.order_by(AppSetting.key.asc()).all()
-    serialized = []
+    serialized: List[dict] = []
     for row in rows:
         normalized_value = _normalize_value(row.key, row.value)
         serialized.append(_serialize(row, value=normalized_value))
-    return serialized
+    tenant_key = str(tenant_id) if tenant_id is not None else None
+    etag = _compute_etag(serialized, tenant_key)
+    _set_cached_settings(tenant_id, serialized, etag)
+    return serialized, etag
+
+
+def _serialize_validation_errors(errors: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    sanitized: List[Dict[str, Any]] = []
+    for entry in errors:
+        item = dict(entry)
+        ctx = item.get("ctx")
+        if isinstance(ctx, dict):
+            clean_ctx: Dict[str, Any] = {}
+            for key, raw in ctx.items():
+                clean_ctx[key] = str(raw) if isinstance(raw, Exception) else raw
+            item["ctx"] = clean_ctx
+        sanitized.append(item)
+    return sanitized
 
 
 def _normalize_value(key: str, value: Any) -> Any:
+    if key == "grafana.basic.password":
+        if isinstance(value, dict):
+            return {"set": bool(value.get("ciphertext"))}
+        return None
     if key not in _SETTING_REGISTRY:
         return value
     try:
@@ -374,49 +505,25 @@ def _apply_updates(
     return refreshed, changes
 
 
-def _is_settings_feature_enabled(db: Session, user: User) -> bool:
-    def _resolve_flag(scope_query: Iterable[AppSetting]) -> Optional[bool]:
-        resolved: Optional[bool] = None
-        for row in scope_query:
-            if row.key == "features" and isinstance(row.value, dict):
-                if "settings" in row.value:
-                    resolved = bool(row.value["settings"])
-            elif row.key == "features.settings":
-                resolved = bool(row.value)
-        return resolved
-
-    global_rows = (
-        db.query(AppSetting)
-        .filter(AppSetting.tenant_id.is_(None))
-        .filter(AppSetting.key.in_(["features", "features.settings"]))
-        .all()
-    )
-    flag = _resolve_flag(global_rows)
-    if user.tenant_id is not None:
-        tenant_rows = (
-            db.query(AppSetting)
-            .filter(AppSetting.tenant_id == user.tenant_id)
-            .filter(AppSetting.key.in_(["features", "features.settings"]))
-            .all()
-        )
-        tenant_flag = _resolve_flag(tenant_rows)
-        if tenant_flag is not None:
-            flag = tenant_flag
-    return True if flag is None else bool(flag)
-
-
 @router.get("", response_model=List[dict])
 def list_global_settings(
     request: Request,
     response: Response,
     db: Session = Depends(get_db),
-    _: User = Depends(get_admin_user),
+    current_user: User = Depends(get_settings_user),
 ) -> List[dict] | Response:
-    payload = _compute_full_payload(db, tenant_id=None)
-    conditional = _apply_conditional_headers(request, response, payload)
-    if conditional is not None:
-        return conditional  # type: ignore[return-value]
-    return payload
+    with _span("app_settings.list_global"):
+        try:
+            ensure_settings_read_access(db, current_user)
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc))
+        payload, etag = _get_settings_payload(db, tenant_id=None)
+        conditional = _apply_conditional_headers(request, response, payload, etag=etag)
+        if conditional is not None:
+            return conditional  # type: ignore[return-value]
+        response.headers["ETag"] = etag
+        response.headers.setdefault("Cache-Control", "no-cache")
+        return payload
 
 
 @router.put("", response_model=List[dict])
@@ -428,37 +535,40 @@ def upsert_global_settings(
 ) -> List[dict]:
     if not isinstance(payload, dict):
         raise HTTPException(status_code=400, detail="Expected JSON object of key->value pairs")
-    if not _is_settings_feature_enabled(db, current_user):
-        raise HTTPException(status_code=403, detail="Settings management is disabled for this tenant")
-    try:
-        validated = _AppSettingsPayload.parse_obj(payload)
-    except ValidationError as exc:
-        raise HTTPException(status_code=422, detail=exc.errors())
-    updates = validated.to_updates()
-    updated_rows, changes = _apply_updates(db, tenant_id=None, updates=updates)
-    full_payload = _compute_full_payload(db, tenant_id=None)
-    if full_payload:
-        response.headers["ETag"] = _compute_etag(full_payload)
-    response.headers.setdefault("Cache-Control", "no-cache")
-    if changes:
-        log_audit_event(
-            db,
-            user_id=current_user.id,
-            action="app_settings.update",
-            result="success",
-            ip=None,
-            details={
-                "scope": "global",
-                "changes": [
-                    {"key": key, "previous": old, "current": new}
-                    for key, old, new in changes
-                ],
-            },
-        )
-    # Return the entries affected so the UI can refresh quickly; the GET response still exposes the full list.
-    if updated_rows:
-        return [_serialize(r) for r in updated_rows]
-    return []
+    with _span("app_settings.upsert_global"):
+        try:
+            ensure_settings_write_access(db, current_user)
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc))
+        try:
+            validated = _AppSettingsPayload.parse_obj(payload)
+        except ValidationError as exc:
+            return JSONResponse(
+                status_code=422,
+                content=_serialize_validation_errors(exc.errors()),
+            )
+        updates = validated.to_updates()
+        updated_rows, changes = _apply_updates(db, tenant_id=None, updates=updates)
+        if changes:
+            log_audit_event(
+                db,
+                user_id=current_user.id,
+                action="app_settings.update",
+                result="success",
+                ip=None,
+                details={
+                    "scope": "global",
+                    "changes": [
+                        {"key": key, "previous": old, "current": new}
+                        for key, old, new in changes
+                    ],
+                },
+            )
+        _invalidate_cache()
+        payload_snapshot, etag = _get_settings_payload(db, tenant_id=None)
+        response.headers["ETag"] = etag
+        response.headers.setdefault("Cache-Control", "no-cache")
+        return payload_snapshot
 
 
 @router.get("/tenant", response_model=List[dict])
@@ -466,14 +576,21 @@ def list_tenant_settings(
     request: Request,
     response: Response,
     db: Session = Depends(get_db),
-    user: User = Depends(get_admin_user),
+    user: User = Depends(get_settings_user),
 ) -> List[dict] | Response:
-    payload = _compute_full_payload(db, tenant_id=user.tenant_id)
-    tenant_key = str(user.tenant_id) if user.tenant_id is not None else "global"
-    conditional = _apply_conditional_headers(request, response, payload, tenant_key=tenant_key)
-    if conditional is not None:
-        return conditional  # type: ignore[return-value]
-    return payload
+    with _span("app_settings.list_tenant"):
+        try:
+            ensure_settings_read_access(db, user)
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc))
+        payload, etag = _get_settings_payload(db, tenant_id=user.tenant_id)
+        tenant_key = str(user.tenant_id) if user.tenant_id is not None else None
+        conditional = _apply_conditional_headers(request, response, payload, tenant_key=tenant_key, etag=etag)
+        if conditional is not None:
+            return conditional  # type: ignore[return-value]
+        response.headers["ETag"] = etag
+        response.headers.setdefault("Cache-Control", "no-cache")
+        return payload
 
 
 @router.put("/tenant", response_model=List[dict])
@@ -485,35 +602,38 @@ def upsert_tenant_settings(
 ) -> List[dict]:
     if not isinstance(payload, dict):
         raise HTTPException(status_code=400, detail="Expected JSON object of key->value pairs")
-    if not _is_settings_feature_enabled(db, user):
-        raise HTTPException(status_code=403, detail="Settings management is disabled for this tenant")
-    try:
-        validated = _AppSettingsPayload.parse_obj(payload)
-    except ValidationError as exc:
-        raise HTTPException(status_code=422, detail=exc.errors())
-    updates = validated.to_updates()
-    updated_rows, changes = _apply_updates(db, tenant_id=user.tenant_id, updates=updates)
-    tenant_key = str(user.tenant_id) if user.tenant_id is not None else "global"
-    full_payload = _compute_full_payload(db, tenant_id=user.tenant_id)
-    if full_payload:
-        response.headers["ETag"] = _compute_etag(full_payload, tenant_key=tenant_key)
-    response.headers.setdefault("Cache-Control", "no-cache")
-    if changes:
-        log_audit_event(
-            db,
-            user_id=user.id,
-            action="app_settings.update",
-            result="success",
-            ip=None,
-            details={
-                "scope": "tenant",
-                "tenant_id": user.tenant_id,
-                "changes": [
-                    {"key": key, "previous": old, "current": new}
-                    for key, old, new in changes
-                ],
-            },
-        )
-    if updated_rows:
-        return [_serialize(r) for r in updated_rows]
-    return []
+    with _span("app_settings.upsert_tenant"):
+        try:
+            ensure_settings_write_access(db, user)
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc))
+        try:
+            validated = _AppSettingsPayload.parse_obj(payload)
+        except ValidationError as exc:
+            return JSONResponse(
+                status_code=422,
+                content=_serialize_validation_errors(exc.errors()),
+            )
+        updates = validated.to_updates()
+        updated_rows, changes = _apply_updates(db, tenant_id=user.tenant_id, updates=updates)
+        if changes:
+            log_audit_event(
+                db,
+                user_id=user.id,
+                action="app_settings.update",
+                result="success",
+                ip=None,
+                details={
+                    "scope": "tenant",
+                    "tenant_id": user.tenant_id,
+                    "changes": [
+                        {"key": key, "previous": old, "current": new}
+                        for key, old, new in changes
+                    ],
+                },
+            )
+        _invalidate_cache(user.tenant_id)
+        payload_snapshot, etag = _get_settings_payload(db, tenant_id=user.tenant_id)
+        response.headers["ETag"] = etag
+        response.headers.setdefault("Cache-Control", "no-cache")
+        return payload_snapshot

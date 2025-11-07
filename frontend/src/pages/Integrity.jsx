@@ -146,6 +146,33 @@ export default function Integrity() {
     }
   };
 
+  const handleSaveIgnores = async (target, scopeLevel = "tenant") => {
+    dispatch({ type: "SET_LOADING", loading: true });
+    dispatch({ type: "SET_ERROR", error: "" });
+    try {
+      if (scopeLevel === "agent" && !state.agentId) {
+        throw new Error("Agent ID required when saving agent ignores");
+      }
+      const baseKey = target === "registry" ? "integrity.registry.ignore_prefixes" : "integrity.service.ignore_names";
+      const key = scopeLevel === "agent" ? `${baseKey}.agent.${state.agentId}` : baseKey;
+      const rawValue = target === "registry" ? state.regIgnore : state.svcIgnore;
+      const normalized = rawValue
+        .split(/[\n,]/)
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+      await fetchData(`${API_BASE}/admin/settings/tenant`, {
+        method: "PUT",
+        body: JSON.stringify({ [key]: normalized }),
+      });
+      dispatch({ type: "SET_MSG", msg: "Saved." });
+    } catch (e) {
+      dispatch({ type: "SET_ERROR", error: e.message || "Save failed" });
+    } finally {
+      dispatch({ type: "SET_LOADING", loading: false });
+      setTimeout(() => dispatch({ type: "SET_MSG", msg: "" }), 2000);
+    }
+  };
+
   return (
     <div className="bg-neutral p-8">
       <header className="mb-8">
@@ -154,7 +181,127 @@ export default function Integrity() {
 
       <Card className="mb-8">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
-          {/* Filters */}
+          <label className="flex flex-col text-sm font-medium text-gray-700" htmlFor="integrityScope">
+            Scope
+            <select
+              id="integrityScope"
+              value={state.scope}
+              onChange={(e) => handleFieldChange("scope", e.target.value)}
+              className="mt-1 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+            >
+              <option value="tenant">Tenant</option>
+              <option value="agent">Agent</option>
+            </select>
+          </label>
+          <label className="flex flex-col text-sm font-medium text-gray-700" htmlFor="integrityAgentId">
+            Agent ID
+            <input
+              id="integrityAgentId"
+              type="number"
+              value={state.agentId}
+              onChange={(e) => handleFieldChange("agentId", e.target.value)}
+              placeholder="Agent ID"
+              className="mt-1 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+              disabled={state.scope !== "agent"}
+            />
+          </label>
+          <label className="flex flex-col text-sm font-medium text-gray-700" htmlFor="eventType">
+            Type
+            <input
+              id="eventType"
+              value={state.eventType}
+              onChange={(e) => handleFieldChange("eventType", e.target.value)}
+              placeholder="service_change"
+              className="mt-1 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+            />
+          </label>
+          <label className="flex flex-col text-sm font-medium text-gray-700" htmlFor="eventSeverity">
+            Severity
+            <select
+              id="eventSeverity"
+              value={state.eventSeverity}
+              onChange={(e) => handleFieldChange("eventSeverity", e.target.value)}
+              className="mt-1 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+            >
+              <option value="">Any</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
+          </label>
+        </div>
+        <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-4">
+          <label className="flex flex-col text-sm font-medium text-gray-700" htmlFor="diffLeft">
+            Left
+            <input
+              id="diffLeft"
+              type="datetime-local"
+              value={state.leftTs}
+              onChange={(e) => handleFieldChange("leftTs", e.target.value)}
+              className="mt-1 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+            />
+          </label>
+          <label className="flex flex-col text-sm font-medium text-gray-700" htmlFor="diffRight">
+            Right
+            <input
+              id="diffRight"
+              type="datetime-local"
+              value={state.rightTs}
+              onChange={(e) => handleFieldChange("rightTs", e.target.value)}
+              className="mt-1 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+            />
+          </label>
+        </div>
+        <div className="mt-6 flex flex-wrap gap-4">
+          <Button onClick={refresh} disabled={state.loading}>
+            {state.loading ? "Refreshing..." : "Refresh"}
+          </Button>
+          <Button onClick={handleLoadEvents} disabled={state.loading}>
+            Load
+          </Button>
+          <Button onClick={handleDiff} disabled={!state.agentId || !state.leftTs || !state.rightTs || state.loading}>
+            Diff
+          </Button>
+        </div>
+        <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div>
+            <label className="flex flex-col text-sm font-medium text-gray-700" htmlFor="registryIgnores">
+              Registry Ignores
+              <textarea
+                id="registryIgnores"
+                placeholder="SOFTWARE\\..."
+                value={state.regIgnore}
+                onChange={(e) => handleFieldChange("regIgnore", e.target.value)}
+                className="mt-1 min-h-[96px] rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+              />
+            </label>
+            <div className="mt-2">
+              <Button onClick={() => handleSaveIgnores("registry", "tenant")} disabled={state.loading}>
+                Save Ignores
+              </Button>
+            </div>
+          </div>
+          <div>
+            <label className="flex flex-col text-sm font-medium text-gray-700" htmlFor="svcIgAgent">
+              Service Ignores
+              <input
+                id="svcIgAgent"
+                placeholder="svc-example,svc-important"
+                value={state.svcIgnore}
+                onChange={(e) => handleFieldChange("svcIgnore", e.target.value)}
+                className="mt-1 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+              />
+            </label>
+            <div className="mt-2">
+              <Button
+                onClick={() => handleSaveIgnores("service", "agent")}
+                disabled={state.scope !== "agent" || !state.agentId || state.loading}
+              >
+                Save Agent Ignores
+              </Button>
+            </div>
+          </div>
         </div>
       </Card>
 

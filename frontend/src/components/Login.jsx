@@ -17,7 +17,7 @@ export default function Login() {
 
     try {
       await signIn({ username, password });
-      navigate("/app/dashboard", { replace: true });
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(err?.message || "Invalid username or password");
     } finally {
@@ -36,7 +36,7 @@ export default function Login() {
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="Enter your username"
+            placeholder="Username"
             className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none"
             required
           />
@@ -48,7 +48,7 @@ export default function Login() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your password"
+            placeholder="Password"
             className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none"
             required
           />

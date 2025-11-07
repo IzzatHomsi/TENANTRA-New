@@ -160,8 +160,9 @@ export default function ScheduleModule({ module, isAdmin, token }) {
           <h4 className="mb-4 text-lg font-medium">Create New Schedule</h4>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Cron Expression</label>
+              <label className="block text-sm font-medium text-gray-700" htmlFor="scheduleCron">Cron Expression</label>
               <input
+                id="scheduleCron"
                 value={scheduleForm.cron_expr}
                 onChange={(e) => setScheduleForm((prev) => ({ ...prev, cron_expr: e.target.value }))}
                 placeholder="*/30 * * * *"
@@ -169,8 +170,9 @@ export default function ScheduleModule({ module, isAdmin, token }) {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Agent ID (optional)</label>
+              <label className="block text-sm font-medium text-gray-700" htmlFor="scheduleAgent">Agent ID (optional)</label>
               <select
+                id="scheduleAgent"
                 value={scheduleForm.agent_id}
                 onChange={(e) => setScheduleForm((prev) => ({ ...prev, agent_id: e.target.value }))}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
@@ -185,8 +187,9 @@ export default function ScheduleModule({ module, isAdmin, token }) {
             </div>
             {isAdmin && (
               <div>
-                <label className="block text-sm font-medium text-gray-700">Tenant (admin)</label>
+                <label className="block text-sm font-medium text-gray-700" htmlFor="scheduleTenant">Tenant (admin)</label>
                 <select
+                  id="scheduleTenant"
                   value={tenantId}
                   onChange={(e) => setTenantId(e.target.value)}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"

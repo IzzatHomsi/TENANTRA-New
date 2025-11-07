@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { APP_BASE, loginAsAdmin, stubAdminSettingsApis } from './testEnv';
 
-const BASE = process.env.FRONTEND_BASE || 'http://localhost:5173';
-const ADMIN_USER = process.env.ADMIN_USER || 'admin';
-const ADMIN_PASS = process.env.ADMIN_PASS || 'Admin@1234';
+test.beforeEach(async ({ page }) => {
+  await stubAdminSettingsApis(page);
+});
 
 test.describe('Admin Settings smoke', () => {
   test('loads without extension banner and surfaces module load failures', async ({ page }) => {
@@ -14,13 +15,8 @@ test.describe('Admin Settings smoke', () => {
       });
     });
 
-    await page.goto(`${BASE}/login`);
-    await page.getByPlaceholder('Username').fill(ADMIN_USER);
-    await page.getByPlaceholder('Password').fill(ADMIN_PASS);
-    await page.getByRole('button', { name: 'Login' }).click();
-    await page.waitForURL('**/app/**');
-
-    await page.goto(`${BASE}/app/admin-settings`);
+    await loginAsAdmin(page);
+    await page.goto(`${APP_BASE}/admin-settings`);
 
     await expect(page.getByRole('heading', { name: 'Admin Settings' })).toBeVisible();
     await expect(page.locator('text="Browser extensions detected."')).toHaveCount(0);
@@ -30,11 +26,7 @@ test.describe('Admin Settings smoke', () => {
   });
 
   test('allows switching themes from the shell settings menu', async ({ page }) => {
-    await page.goto(`${BASE}/login`);
-    await page.getByPlaceholder('Username').fill(ADMIN_USER);
-    await page.getByPlaceholder('Password').fill(ADMIN_PASS);
-    await page.getByRole('button', { name: 'Login' }).click();
-    await page.waitForURL('**/app/**');
+    await loginAsAdmin(page);
 
     // Open shell settings menu (gear icon)
     await page.getByRole('button', { name: 'System settings' }).click();

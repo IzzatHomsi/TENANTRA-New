@@ -1,36 +1,39 @@
 import { test, expect } from '@playwright/test';
+import { APP_BASE, loginAsAdmin, stubIntegrityApis } from './testEnv';
 
-const BASE = process.env.FRONTEND_BASE || 'http://localhost:5173';
-const ADMIN_USER = process.env.ADMIN_USER || 'admin';
-const ADMIN_PASS = process.env.ADMIN_PASS || 'Admin@1234';
+test.beforeEach(async ({ page }) => {
+  await stubIntegrityApis(page);
+});
 
 test('Integrity page: save ignores and baselines, use filters and diff', async ({ page }) => {
-  await page.goto(`${BASE}/login`);
-  await page.getByPlaceholder('Username').fill(ADMIN_USER);
-  await page.getByPlaceholder('Password').fill(ADMIN_PASS);
-  await page.getByRole('button', { name: 'Login' }).click();
-  await page.waitForURL('**/app/**');
+  await loginAsAdmin(page);
 
-  await page.goto(`${BASE}/app/integrity`);
+  await page.goto(`${APP_BASE}/integrity`);
   await expect(page.getByText('Services')).toBeVisible();
 
   // Save registry ignores
-  const regIg = page.getByPlaceholder('SOFTWARE\\...');
+  const regIg = page.getByLabel('Registry Ignores');
   await regIg.fill('SOFTWARE\\Microsoft');
   await page.getByRole('button', { name: 'Save Ignores' }).click();
 
   // Add a service baseline row and save (tenant scope)
-  await page.getByRole('button', { name: 'Add' }).first().click(); // first baseline editor is services
-  const svcName = page.locator('table').nth(2).getByRole('textbox').first();
+  const serviceSection = page.getByTestId('service-baseline-section');
+  await expect(serviceSection).toBeVisible();
+  const addButton = serviceSection.getByRole('button', { name: 'Add' });
+  await expect(addButton).toBeVisible();
+  await addButton.click();
+  const svcName = serviceSection.getByTestId('service-baseline-table').getByRole('textbox').first();
   await svcName.fill('svc-test');
-  await page.getByRole('button', { name: 'Save' }).first().click();
+  await serviceSection.getByRole('button', { name: 'Save' }).click();
 
   // Filters for events
   await page.getByLabel('Type').fill('service_change');
   await page.getByLabel('Severity').selectOption('high');
   await page.getByRole('button', { name: 'Load' }).click();
 
-  // Diff controls (no agent/timestamps yet, ensure UI elements work)
+  // Diff controls (ensure agent context so button is enabled)
+  await page.getByLabel('Scope').selectOption('agent');
+  await page.getByLabel('Agent ID').fill('1');
   await page.getByLabel('Left').fill('2025-01-01T00:00');
   await page.getByLabel('Right').fill('2025-01-01T01:00');
   await page.getByRole('button', { name: 'Diff' }).click();
@@ -41,24 +44,24 @@ test('Integrity page: save ignores and baselines, use filters and diff', async (
 });
 
 test('Agent-level ignores and agent baseline save', async ({ page }) => {
-  await page.goto(`${BASE}/login`);
-  await page.getByPlaceholder('Username').fill(ADMIN_USER);
-  await page.getByPlaceholder('Password').fill(ADMIN_PASS);
-  await page.getByRole('button', { name: 'Login' }).click();
-  await page.waitForURL('**/app/**');
+  await loginAsAdmin(page);
 
-  await page.goto(`${BASE}/app/integrity`);
+  await page.goto(`${APP_BASE}/integrity`);
   await page.getByLabel('Scope').selectOption('agent');
   await page.getByLabel('Agent ID').fill('1');
 
   // Save agent-level service ignores
-  const agentIg = page.locator('#svcIgAgent');
+  const agentIg = page.getByLabel('Service Ignores');
   await agentIg.fill('svcX,svcY');
   await page.getByRole('button', { name: 'Save Agent Ignores' }).click();
 
   // Save an agent-scoped service baseline row
-  await page.getByRole('button', { name: 'Add' }).first().click();
-  const nameInput = page.locator('table').nth(2).getByRole('textbox').first();
+  const serviceSection = page.getByTestId('service-baseline-section');
+  await expect(serviceSection).toBeVisible();
+  const addButton = serviceSection.getByRole('button', { name: 'Add' });
+  await expect(addButton).toBeVisible();
+  await addButton.click();
+  const nameInput = serviceSection.getByTestId('service-baseline-table').getByRole('textbox').first();
   await nameInput.fill('svc-agent-1');
-  await page.getByRole('button', { name: 'Save' }).first().click();
+  await serviceSection.getByRole('button', { name: 'Save' }).click();
 });

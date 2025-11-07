@@ -1,50 +1,88 @@
-# Filename: backend/tests/test_user_profile.py
+from __future__ import annotations
 
-import requests
+import pytest
+from fastapi.testclient import TestClient
 
-BASE_URL = "http://localhost:5000"
+from app.main import app
+from app.database import SessionLocal
+from app.models.user import User
+from app.core.security import get_password_hash
 
-# Helper function to get a valid token
-def get_token():
-    """Authenticate as the default admin user and return a JWT token."""
-    response = requests.post(
-        f"{BASE_URL}/auth/login",
-        data={"username": "admin", "password": "Admin@1234"},
-        headers={"Content-Type": "application/x-www-form-urlencoded"}
+
+client = TestClient(app)
+DEFAULT_PASSWORD = "Admin@1234"
+
+
+def _login(password: str = DEFAULT_PASSWORD) -> str:
+    response = client.post(
+        "/auth/login",
+        data={"username": "admin", "password": password},
     )
-    return response.json()["access_token"]
+    assert response.status_code == 200, response.text
+    body = response.json()
+    return body["access_token"]
+
+
+@pytest.fixture(autouse=True)
+def _reset_admin_state():
+    db = SessionLocal()
+    admin = db.query(User).filter(User.username == "admin").first()
+    assert admin is not None, "Admin user must exist for profile tests"
+
+    original_email = admin.email
+    original_hash = admin.password_hash
+
+    admin.password_hash = get_password_hash(DEFAULT_PASSWORD)
+    admin.email = original_email or "admin@example.com"
+    db.commit()
+
+    try:
+        yield
+    finally:
+        admin = db.query(User).filter(User.username == "admin").first()
+        if admin:
+            admin.email = original_email
+            admin.password_hash = original_hash
+            db.commit()
+        db.close()
+
 
 def test_get_users_me():
-    token = get_token()
-    response = requests.get(
-        f"{BASE_URL}/users/me",
-        headers={"Authorization": f"Bearer {token}"}
+    token = _login()
+    response = client.get(
+        "/users/me",
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
-    assert "username" in response.json()
-    print("✅ GET /users/me passed.")
+    payload = response.json()
+    assert payload["username"] == "admin"
+    assert payload["role"] == "admin"
+
 
 def test_update_email_only():
-    token = get_token()
+    token = _login()
     new_email = "admin_updated@tenantra.local"
-    response = requests.put(
-        f"{BASE_URL}/users/me",
+    response = client.put(
+        "/users/me",
         json={"new_email": new_email},
-        headers={"Authorization": f"Bearer {token}"}
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
     assert response.json()["email"] == new_email
-    print("✅ PUT /users/me (email only) passed.")
+
 
 def test_change_password_success():
-    token = get_token()
-    response = requests.put(
-        f"{BASE_URL}/users/me",
+    token = _login()
+    new_password = "Admin@12345"
+    response = client.put(
+        "/users/me",
         json={
-            "new_password": "Admin@12345",
-            "current_password": "Admin@1234"
+            "current_password": DEFAULT_PASSWORD,
+            "new_password": new_password,
         },
-        headers={"Authorization": f"Bearer {token}"}
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
-    print("✅ PUT /users/me (change password) passed.")
+
+    new_token = _login(password=new_password)
+    assert new_token

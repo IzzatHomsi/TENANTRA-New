@@ -25,7 +25,7 @@ export default function Onboarding() {
           const map = Object.fromEntries(items.map((x) => [x.key, x.value]));
           if (map["tenant.mode"]) setMode(map["tenant.mode"]);
           if (map["onboarding.done"]) {
-            window.location.assign("/app/dashboard");
+            window.location.assign("/dashboard");
             return;
           }
         }
@@ -51,7 +51,7 @@ export default function Onboarding() {
       }
 
       setMsg("Onboarding complete. Redirecting...");
-      setTimeout(() => window.location.assign("/app/dashboard"), 700);
+      setTimeout(() => window.location.assign("/dashboard"), 700);
     } catch (e) {
       setMsg(String(e?.message || e || "Failed to save"));
     } finally {

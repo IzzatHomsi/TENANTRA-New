@@ -28,7 +28,7 @@ export default function ServiceBaseline({ baseline, setBaseline, onSave }) {
   };
 
   return (
-    <div>
+    <div data-testid="service-baseline-section">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium">Service Baseline</h3>
         <div className="flex space-x-4">
@@ -37,7 +37,7 @@ export default function ServiceBaseline({ baseline, setBaseline, onSave }) {
         </div>
       </div>
       <div className="mt-4 overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
+        <table data-testid="service-baseline-table" className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Name</th>

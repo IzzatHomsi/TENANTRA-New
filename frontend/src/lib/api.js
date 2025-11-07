@@ -9,7 +9,9 @@ function headers(extra = {}) {
   try {
     const tid = localStorage.getItem('tenant_id');
     if (tid) tenantHeaders['X-Tenant-Id'] = tid;
-  } catch {}
+  } catch (error) {
+    // Ignore storage errors (e.g., SSR or private-mode restrictions)
+  }
   return {
     Accept: "application/json",
     "Content-Type": "application/json",

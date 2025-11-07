@@ -57,7 +57,7 @@ export default function Landing() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/app/dashboard", { replace: true });
+      navigate("/dashboard", { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
@@ -95,7 +95,7 @@ export default function Landing() {
           <h1 className="text-3xl font-bold text-gray-900">Tenantra</h1>
           <nav className="flex items-center space-x-6">
             <Link to="/login" className="text-base font-medium text-gray-500 hover:text-gray-900">Login</Link>
-            <Link to="/app/faq" className="text-base font-medium text-gray-500 hover:text-gray-900">FAQ</Link>
+            <Link to="/faq" className="text-base font-medium text-gray-500 hover:text-gray-900">FAQ</Link>
             <Button as={Link} to="/login" className="ml-4">Get Started</Button>
           </nav>
         </div>
@@ -379,7 +379,7 @@ export default function Landing() {
             <div className="flex space-x-6">
               <Link to="/login" className="text-base font-medium text-gray-500 hover:text-gray-900">Login</Link>
               <a href="#subscribe" className="text-base font-medium text-gray-500 hover:text-gray-900">Subscribe</a>
-              <Link to="/app/dashboard" className="text-base font-medium text-gray-500 hover:text-gray-900">Product tour</Link>
+              <Link to="/dashboard" className="text-base font-medium text-gray-500 hover:text-gray-900">Product tour</Link>
             </div>
           </div>
         </div>

@@ -22,7 +22,8 @@ function ModulesTab({ headers }) {
         }
       } catch (error) {
         if (!ignore) {
-          setLoadError(error instanceof Error ? error.message : "Unable to load modules right now.");
+          console.error("Failed to load admin modules", error);
+          setLoadError("Unable to load modules right now.");
         }
       } finally {
         if (!ignore) {

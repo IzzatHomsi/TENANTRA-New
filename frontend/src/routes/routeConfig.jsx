@@ -34,7 +34,7 @@ const AdminSettings = lazy(() => import("../pages/AdminSettings.jsx"));
 
 export const routeConfig = [
   {
-    path: "/",
+    path: "/marketing",
     element: <Landing />,
   },
   {
@@ -42,7 +42,7 @@ export const routeConfig = [
     element: <Login />,
   },
   {
-    path: "/app",
+    path: "/",
     element: (
       <PrivateRoute>
         <ShellLayout />
@@ -136,6 +136,6 @@ export const routeConfig = [
   },
   {
     path: "*",
-    element: <Navigate to="/" replace />,
+    element: <Navigate to="/login" replace />,
   },
 ];

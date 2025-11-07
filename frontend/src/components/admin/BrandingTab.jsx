@@ -70,7 +70,7 @@ function BrandingTab({ form, updateField, onValidationChange }) {
         helper="Connect Tenantra to Grafana so metrics widgets load instantly."
         action={
           <a
-            href="/app/observability-setup"
+            href="/observability-setup"
             className="text-sm font-medium text-primary hover:underline"
           >
             Learn more

@@ -28,22 +28,39 @@ async function safeErrorMessage(res) {
 }
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(null);
-  const [user, setUser] = useState(null);
-  const [role, setRole] = useState(null);
+  const [token, setToken] = useState(() => {
+    try {
+      return localStorage.getItem("token");
+    } catch {
+      return null;
+    }
+  });
+  const [user, setUser] = useState(() => {
+    try {
+      const raw = localStorage.getItem("user");
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [role, setRole] = useState(() => {
+    try {
+      const stored = localStorage.getItem("role");
+      if (stored) {
+        return stored;
+      }
+      const raw = localStorage.getItem("user");
+      if (raw) {
+        return normalizeRole(deriveRoleFromUser(JSON.parse(raw)) ?? "standard_user");
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   const API_BASE = getApiBase();
-
-  // Restore from localStorage (optimistic)
-  useEffect(() => {
-    try {
-      const savedToken = localStorage.getItem("token");
-      if (savedToken) setToken(savedToken);
-    } finally {
-      // /auth/me will validate if token exists
-    }
-  }, []);
 
   // Bootstrap via /auth/me if we have a token
   useEffect(() => {
@@ -65,6 +82,12 @@ export function AuthProvider({ children }) {
 
         setUser(nextUser);
         setRole(derived);
+        try {
+          localStorage.setItem("user", JSON.stringify(nextUser));
+          localStorage.setItem("role", derived);
+        } catch {
+          /* ignore */
+        }
       } catch {
         localStorage.removeItem("token");
         setToken(null);
@@ -96,6 +119,12 @@ export function AuthProvider({ children }) {
       );
 
       localStorage.setItem("token", accessToken);
+      try {
+        localStorage.setItem("user", JSON.stringify(userObj || null));
+        localStorage.setItem("role", derived);
+      } catch {
+        /* ignore */
+      }
 
       setToken(accessToken);
       setUser(userObj);
@@ -108,6 +137,8 @@ export function AuthProvider({ children }) {
 
   const signOut = useCallback(() => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
     setToken(null);
     setUser(null);
     setRole(null);

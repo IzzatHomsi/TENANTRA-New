@@ -20,7 +20,9 @@ function parseJwtExp(token) {
     if (data && typeof data.exp === 'number') {
       return data.exp * 1000;
     }
-  } catch (_e) {}
+  } catch (_e) {
+    // Ignore malformed JWT payloads and fall back to null expiration
+  }
   return null;
 }
 export function saveAuth(token, user, expiresInSeconds) {
