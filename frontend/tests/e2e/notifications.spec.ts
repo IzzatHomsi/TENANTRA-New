@@ -7,10 +7,7 @@ async function login(page) {
 
 test.describe('Notifications surfaces', () => {
   test('notifications list renders remote data', async ({ page }) => {
-    await login(page);
-    await page.goto(`${APP_BASE}/dashboard`);
-
-    await page.route('**/api/notifications', async (route) => {
+    await page.route('**/api/notifications**', async (route) => {
       await route.fulfill({
         contentType: 'application/json',
         body: JSON.stringify([
@@ -19,6 +16,7 @@ test.describe('Notifications surfaces', () => {
         ]),
       });
     });
+    await login(page);
 
     await page.goto(`${APP_BASE}/notifications`);
     await expect(page.getByRole('heading', { name: 'Notifications' })).toBeVisible();
@@ -58,6 +56,8 @@ test.describe('Notifications surfaces', () => {
   });
 
   test('alert settings persist channel toggles', async ({ page }) => {
+    await login(page);
+
     await page.route('**/api/notification-prefs', async (route) => {
       if (route.request().method() === 'GET') {
         await route.fulfill({
@@ -78,8 +78,6 @@ test.describe('Notifications surfaces', () => {
         });
       }
     });
-
-    await login(page);
 
     await page.goto(`${APP_BASE}/alert-settings`);
     await expect(page.getByRole('heading', { name: 'Alert Settings' })).toBeVisible();

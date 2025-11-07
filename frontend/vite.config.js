@@ -6,6 +6,8 @@ import { VitePWA } from "vite-plugin-pwa";
 const API_PROXY_TARGET = process.env.VITE_API_PROXY_TARGET || "http://localhost:5000";
 
 // Dev proxy: FE calls /api/* (and some legacy /auth, /users, /export) → backend:5000
+const APP_BASE = "/app/";
+
 export default defineConfig(() => {
   const plugins = [
     react(),
@@ -19,17 +21,20 @@ export default defineConfig(() => {
         theme_color: "#1877F2",
         background_color: "#f0f2f5",
         display: "standalone",
-        start_url: "/",
+        start_url: APP_BASE,
+        scope: APP_BASE,
         icons: [
           {
-            src: "/frontend_public_favicon.ico",
+            src: `${APP_BASE}frontend_public_favicon.ico`,
             sizes: "48x48",
             type: "image/x-icon",
           },
         ],
       },
       workbox: {
-        navigateFallback: "/index.html",
+        // The built index.html lives at repository root and Nginx rewrites /app/* → /index.html,
+        // so keep the fallback aligned with the precached asset path.
+        navigateFallback: "index.html",
         globPatterns: ["**/*.{js,css,html,svg,png,ico,json,woff2}"] ,
         runtimeCaching: [
           {
@@ -38,15 +43,6 @@ export default defineConfig(() => {
             options: {
               cacheName: "google-fonts",
               expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
-            },
-          },
-          {
-            urlPattern: ({ url }) => url.pathname.startsWith("/api/"),
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "api-cache",
-              networkTimeoutSeconds: 5,
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 5 },
             },
           },
         ],
