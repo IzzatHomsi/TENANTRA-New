@@ -23,19 +23,34 @@ function postWebVital(payload) {
   }
 }
 
+function resolveNavigationType() {
+  try {
+    const navEntry = performance?.getEntriesByType?.("navigation")?.[0];
+    if (navEntry?.type) return String(navEntry.type);
+    const legacyType = performance?.navigation?.type;
+    if (typeof legacyType === "number") return `legacy-${legacyType}`;
+    if (typeof legacyType === "string" && legacyType.trim()) return legacyType;
+  } catch {
+    /* ignore */
+  }
+  return "unknown";
+}
+
 function defaultLogger(metric) {
   if (typeof window === "undefined") return;
   try {
+    const navigationType = resolveNavigationType();
     const payload = {
       name: metric.name,
       id: metric.id,
       value: Number(metric.value.toFixed(2)),
       rating: metric.rating,
-      navigationType: performance?.navigation?.type ?? "unknown",
+      navigationType,
       timestamp: Date.now(),
       tenant: (typeof window !== "undefined" && localStorage.getItem("tenant_id")) || undefined,
       userId: (typeof window !== "undefined" && localStorage.getItem("user_id")) || undefined,
       url: (typeof window !== "undefined" && window.location.href) || undefined,
+      extra: metric.attribution ? { attribution: metric.attribution } : undefined,
     };
     console.info("[web-vitals]", payload);
     postWebVital(payload);

@@ -15,34 +15,16 @@ on:
       - '.github/workflows/backend-ci.yml'
 
 jobs:
-  preflight:
-    name: Preflight checks
+  backend-linux:
+    name: Backend CI (Linux)
     runs-on: ubuntu-latest
-    steps:
-      - name: Verify CI_DB_PASSWORD secret exists
-        run: |
-          if [ -z "${{ secrets.CI_DB_PASSWORD }}" ]; then
-            echo "ERROR: secrets.CI_DB_PASSWORD is not set."
-            echo "Add it in repository Settings → Secrets → Actions."
-            exit 1
-          fi
-          echo "secrets.CI_DB_PASSWORD is set."
-
-  backend:
-    needs: preflight
-    name: Lint, test & security on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
     services:
       postgres:
-        if: matrix.os == 'ubuntu-latest'
         image: postgres:14
         ports: ["5432:5432"]
         env:
           POSTGRES_USER: tenantra
-          POSTGRES_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
+          POSTGRES_PASSWORD: ${{ secrets.CI_DB_PASSWORD != '' && secrets.CI_DB_PASSWORD || 'dev-password' }}
           POSTGRES_DB: tenantra
         options: >-
           --health-cmd "pg_isready -U tenantra"
@@ -50,13 +32,13 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-      CI_DB_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
+      CI_DB_PASSWORD: ${{ secrets.CI_DB_PASSWORD != '' && secrets.CI_DB_PASSWORD || 'dev-password' }}
       DATABASE_URL: >-
-        postgresql://tenantra:${{ secrets.CI_DB_PASSWORD }}@localhost:5432/tenantra
+        postgresql://tenantra:${{ secrets.CI_DB_PASSWORD != '' && secrets.CI_DB_PASSWORD || 'dev-password' }}@localhost:5432/tenantra
       DB_URL: >-
-        postgresql://tenantra:${{ secrets.CI_DB_PASSWORD }}@localhost:5432/tenantra
+        postgresql://tenantra:${{ secrets.CI_DB_PASSWORD != '' && secrets.CI_DB_PASSWORD || 'dev-password' }}@localhost:5432/tenantra
       POSTGRES_USER: tenantra
-      POSTGRES_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
+      POSTGRES_PASSWORD: ${{ secrets.CI_DB_PASSWORD != '' && secrets.CI_DB_PASSWORD || 'dev-password' }}
       POSTGRES_DB: tenantra
       POSTGRES_HOST: localhost
       POSTGRES_PORT: "5432"
@@ -78,42 +60,10 @@ jobs:
           pip install -r requirements.txt
           pip install ruff mypy bandit pytest alembic
 
-      - name: Start Postgres (Docker) if available
-        if: matrix.os == 'windows-latest'
-        run: |
-          if (Get-Command docker -ErrorAction SilentlyContinue) {
-            docker rm -f ci-postgres 2>$null | Out-Null
-            docker run -d --name ci-postgres -p 5432:5432 `
-              -e POSTGRES_USER=tenantra `
-              -e POSTGRES_PASSWORD=$env:CI_DB_PASSWORD `
-              -e POSTGRES_DB=tenantra postgres:14 | Out-Null
-            $ok=false
-            foreach ($i in 1..30) {
-              try {
-                $r = Test-NetConnection -ComputerName localhost -Port 5432 `
-                  -WarningAction SilentlyContinue
-                if ($r.TcpTestSucceeded) {
-                  $ok=true
-                  break
-                }
-              } catch {}
-              Start-Sleep -Seconds 2
-            }
-            if (-not $ok) {
-              Write-Error "Postgres did not become ready"
-            }
-          } else {
-            Write-Host "Docker not available on runner; "
-            Write-Host "assuming a local Postgres is present on 127.0.0.1:5432."
-          }
-        shell: pwsh
-
       - name: Verify migration tracking matches git
-        if: matrix.os == 'ubuntu-latest'
         run: python backend/scripts/verify_migration_tracking.py
 
       - name: Check for untracked migration files
-        if: matrix.os == 'ubuntu-latest'
         working-directory: backend
         run: python scripts/check_untracked_migrations.py
 
@@ -122,7 +72,6 @@ jobs:
         run: alembic upgrade head
 
       - name: Verify migrations applied (debug)
-        if: matrix.os == 'ubuntu-latest'
         working-directory: backend
         run: |
           alembic current || true
@@ -152,8 +101,7 @@ jobs:
         working-directory: backend
         run: pytest -q
 
-      - name: Generate OpenAPI and verify snapshot freshness (Linux)
-        if: matrix.os == 'ubuntu-latest'
+      - name: Generate OpenAPI and verify snapshot freshness
         working-directory: .
         run: |
           python backend/tools/generate_openapi.py --output openapi.generated.json
@@ -164,8 +112,94 @@ jobs:
           fi
           rm -f openapi.generated.json
 
-      - name: Generate OpenAPI and verify snapshot freshness (Windows)
-        if: matrix.os == 'windows-latest'
+  backend-windows:
+    name: Backend CI (Windows)
+    runs-on: windows-latest
+    env:
+      CI_DB_PASSWORD: ${{ secrets.CI_DB_PASSWORD != '' && secrets.CI_DB_PASSWORD || 'dev-password' }}
+      DATABASE_URL: >-
+        postgresql://tenantra:${{ secrets.CI_DB_PASSWORD != '' && secrets.CI_DB_PASSWORD || 'dev-password' }}@localhost:5432/tenantra
+      DB_URL: >-
+        postgresql://tenantra:${{ secrets.CI_DB_PASSWORD != '' && secrets.CI_DB_PASSWORD || 'dev-password' }}@localhost:5432/tenantra
+      POSTGRES_USER: tenantra
+      POSTGRES_PASSWORD: ${{ secrets.CI_DB_PASSWORD != '' && secrets.CI_DB_PASSWORD || 'dev-password' }}
+      POSTGRES_DB: tenantra
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      PYTHONPATH: ${{ github.workspace }}/backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff mypy bandit pytest alembic
+
+      - name: Start Postgres (Docker) if available
+        run: |
+          if (Get-Command docker -ErrorAction SilentlyContinue) {
+            docker rm -f ci-postgres 2>$null | Out-Null
+            docker run -d --name ci-postgres -p 5432:5432 `
+              -e POSTGRES_USER=tenantra `
+              -e POSTGRES_PASSWORD=$env:CI_DB_PASSWORD `
+              -e POSTGRES_DB=tenantra postgres:14 | Out-Null
+            $ok=$false
+            foreach ($i in 1..30) {
+              try {
+                $r = Test-NetConnection -ComputerName localhost -Port 5432 `
+                  -WarningAction SilentlyContinue
+                if ($r.TcpTestSucceeded) {
+                  $ok=$true
+                  break
+                }
+              } catch {}
+              Start-Sleep -Seconds 2
+            }
+            if (-not $ok) {
+              Write-Error "Postgres did not become ready"
+            }
+          } else {
+            Write-Host "Docker not available on runner; "
+            Write-Host "assuming a local Postgres is present on 127.0.0.1:5432."
+          }
+        shell: pwsh
+
+      - name: Run database migrations
+        working-directory: backend
+        run: alembic upgrade head
+
+      - name: Seed database
+        working-directory: backend
+        env:
+          SEED_ADMIN_PASSWORD: Admin@1234
+        run: python -m app.scripts.db_seed
+
+      - name: Ruff (lint)
+        working-directory: backend
+        run: ruff check .
+
+      - name: Mypy (type check)
+        working-directory: backend
+        run: mypy --config-file mypy.ini app
+
+      - name: Bandit (security scan)
+        working-directory: backend
+        run: bandit -r app -c bandit.yaml -q
+
+      - name: Pytest
+        working-directory: backend
+        run: pytest -q
+
+      - name: Generate OpenAPI and verify snapshot freshness
         working-directory: .
         run: |
           python backend\tools\generate_openapi.py --output openapi.generated.json
@@ -178,8 +212,8 @@ jobs:
           Remove-Item -Force openapi.generated.json
         shell: pwsh
 
-      - name: Cleanup Postgres (Windows)
-        if: always() && matrix.os == 'windows-latest'
+      - name: Cleanup Postgres
+        if: always()
         run: |
           if (Get-Command docker -ErrorAction SilentlyContinue) {
             docker rm -f ci-postgres 2>$null | Out-Null

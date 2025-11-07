@@ -58,10 +58,18 @@ async function waitForDashboard(page: Page): Promise<void> {
   }
 }
 
-export async function loginAsAdmin(page: Page): Promise<void> {
+type LoginOptions = {
+  disableSw?: boolean;
+};
+
+export async function loginAsAdmin(page: Page, options: LoginOptions = {}): Promise<void> {
   await ensureAuthRoutes(page);
 
-  await page.goto(`${APP_BASE}/login`, { waitUntil: 'networkidle' });
+  const { disableSw = true } = options;
+  const swMode = disableSw ? "off" : "on";
+  const loginUrl = `${APP_BASE}/login?sw=${swMode}`;
+
+  await page.goto(loginUrl, { waitUntil: 'networkidle' });
   await page.getByPlaceholder('Username').fill(ADMIN_USER);
   await page.getByPlaceholder('Password').fill(ADMIN_PASS);
 

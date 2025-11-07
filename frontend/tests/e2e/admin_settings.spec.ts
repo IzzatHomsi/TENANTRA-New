@@ -7,6 +7,8 @@ test.beforeEach(async ({ page }) => {
 
 test.describe('Admin Settings smoke', () => {
   test('loads without extension banner and surfaces module load failures', async ({ page }) => {
+    await loginAsAdmin(page, { disableSw: true });
+
     await page.route('**/api/admin/modules', async (route) => {
       await route.fulfill({
         status: 500,
@@ -15,7 +17,6 @@ test.describe('Admin Settings smoke', () => {
       });
     });
 
-    await loginAsAdmin(page);
     await page.goto(`${APP_BASE}/admin-settings`);
 
     await expect(page.getByRole('heading', { name: 'Admin Settings' })).toBeVisible();
@@ -26,7 +27,7 @@ test.describe('Admin Settings smoke', () => {
   });
 
   test('allows switching themes from the shell settings menu', async ({ page }) => {
-    await loginAsAdmin(page);
+    await loginAsAdmin(page, { disableSw: false });
 
     // Open shell settings menu (gear icon)
     await page.getByRole('button', { name: 'System settings' }).click();

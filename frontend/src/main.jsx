@@ -12,9 +12,47 @@ import "./index.css";
 import "./styles/theme.css";
 
 const queryClient = createQueryClient();
+const rawBase = import.meta.env.BASE_URL || "/";
+const normalizedBase = rawBase.endsWith("/")
+  ? rawBase.slice(0, -1) || "/"
+  : rawBase;
+
+let swOptOut = false;
+if (typeof window !== "undefined") {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const swParam = params.get("sw");
+    if (swParam === "off") {
+      window.sessionStorage.setItem("TENANTRA_DISABLE_SW", "true");
+    } else if (swParam === "on") {
+      window.sessionStorage.removeItem("TENANTRA_DISABLE_SW");
+    }
+    swOptOut = window.sessionStorage.getItem("TENANTRA_DISABLE_SW") === "true";
+  } catch {
+    swOptOut = false;
+  }
+}
+
+const shouldRegisterSW =
+  typeof window !== "undefined" &&
+  import.meta.env.VITE_DISABLE_SW !== "true" &&
+  !swOptOut;
 
 if (typeof window !== "undefined") {
-  registerSW({ immediate: true });
+  const scope = normalizedBase === "/" ? "/" : `${normalizedBase}/`;
+  if (shouldRegisterSW) {
+    registerSW({ immediate: true, scope });
+  }
+
+  if (scope !== "/" && "serviceWorker" in navigator) {
+    navigator.serviceWorker
+      .getRegistration("/")
+      .then((registration) => registration?.unregister())
+      .catch(() => {
+        /* ignore cleanup errors */
+      });
+  }
+
   const state = window.__TANSTACK_DEHYDRATED_STATE__;
   if (state) {
     hydrateQueryClient(queryClient, state);
@@ -27,10 +65,23 @@ if (typeof window !== "undefined") {
 }
 
 const container = document.getElementById("root");
-const rawBase = import.meta.env.BASE_URL || "/";
-const normalizedBase = rawBase.endsWith("/")
-  ? rawBase.slice(0, -1) || "/"
-  : rawBase;
+
+if (typeof window !== "undefined" && normalizedBase !== "/") {
+  const hasBasePrefix =
+    window.location.pathname === normalizedBase ||
+    window.location.pathname.startsWith(`${normalizedBase}/`);
+  if (!hasBasePrefix) {
+    const targetUrl = new URL(window.location.href);
+    const nextPath =
+      window.location.pathname === "/"
+        ? `${normalizedBase}/`
+        : `${normalizedBase}${window.location.pathname.startsWith("/") ? "" : "/"}${
+            window.location.pathname.startsWith("/") ? window.location.pathname.slice(1) : window.location.pathname
+          }`;
+    targetUrl.pathname = nextPath.replace(/\/{2,}/g, "/");
+    window.location.replace(targetUrl.toString());
+  }
+}
 
 const app = (
   <React.StrictMode>

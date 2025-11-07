@@ -9,7 +9,7 @@ test('Integrity page: save ignores and baselines, use filters and diff', async (
   await loginAsAdmin(page);
 
   await page.goto(`${APP_BASE}/integrity`);
-  await expect(page.getByText('Services')).toBeVisible();
+  await expect(page.getByTestId('integrity-services-heading')).toBeVisible();
 
   // Save registry ignores
   const regIg = page.getByLabel('Registry Ignores');

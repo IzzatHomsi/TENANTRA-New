@@ -310,27 +310,78 @@ export default function Integrity() {
 
       <div className="space-y-8">
         <Card>
+          <h2 className="mb-4 text-xl font-semibold text-gray-900" data-testid="integrity-services-heading">
+            Services
+          </h2>
           <Services services={state.services} baseline={state.svcBaseline} />
         </Card>
         <Card>
+          <h2 className="mb-4 text-xl font-semibold text-gray-900" data-testid="integrity-registry-heading">
+            Registry
+          </h2>
           <Registry registry={state.registry} baseline={state.regBaseline} />
         </Card>
         <Card>
+          <h2 className="mb-4 text-xl font-semibold text-gray-900" data-testid="integrity-tasks-heading">
+            Scheduled Tasks
+          </h2>
           <Tasks tasks={state.tasks} />
         </Card>
         <Card>
-          <ServiceBaseline baseline={state.svcBaseline} setBaseline={(value) => handleFieldChange("svcBaseline", value)} onSave={() => handleSave(`${API_BASE}/integrity/services/baseline`, { agent_id: state.scope === "agent" && state.agentId ? Number(state.agentId) : null, entries: state.svcBaseline })} />
+          <h2 className="mb-4 text-xl font-semibold text-gray-900" data-testid="integrity-service-baseline-heading">
+            Service Baseline
+          </h2>
+          <ServiceBaseline
+            baseline={state.svcBaseline}
+            setBaseline={(value) => handleFieldChange("svcBaseline", value)}
+            onSave={() =>
+              handleSave(`${API_BASE}/integrity/services/baseline`, {
+                agent_id: state.scope === "agent" && state.agentId ? Number(state.agentId) : null,
+                entries: state.svcBaseline,
+              })
+            }
+          />
         </Card>
         <Card>
-          <RegistryBaseline baseline={state.regBaseline} setBaseline={(value) => handleFieldChange("regBaseline", value)} onSave={() => handleSave(`${API_BASE}/integrity/registry/baseline`, { agent_id: state.scope === "agent" && state.agentId ? Number(state.agentId) : null, entries: state.regBaseline })} />
+          <h2 className="mb-4 text-xl font-semibold text-gray-900" data-testid="integrity-registry-baseline-heading">
+            Registry Baseline
+          </h2>
+          <RegistryBaseline
+            baseline={state.regBaseline}
+            setBaseline={(value) => handleFieldChange("regBaseline", value)}
+            onSave={() =>
+              handleSave(`${API_BASE}/integrity/registry/baseline`, {
+                agent_id: state.scope === "agent" && state.agentId ? Number(state.agentId) : null,
+                entries: state.regBaseline,
+              })
+            }
+          />
         </Card>
         <Card>
-          <TaskBaseline baseline={state.taskBaseline} setBaseline={(value) => handleFieldChange("taskBaseline", value)} onSave={() => handleSave(`${API_BASE}/integrity/tasks/baseline`, { agent_id: state.scope === "agent" && state.agentId ? Number(state.agentId) : null, entries: state.taskBaseline })} />
+          <h2 className="mb-4 text-xl font-semibold text-gray-900" data-testid="integrity-task-baseline-heading">
+            Task Baseline
+          </h2>
+          <TaskBaseline
+            baseline={state.taskBaseline}
+            setBaseline={(value) => handleFieldChange("taskBaseline", value)}
+            onSave={() =>
+              handleSave(`${API_BASE}/integrity/tasks/baseline`, {
+                agent_id: state.scope === "agent" && state.agentId ? Number(state.agentId) : null,
+                entries: state.taskBaseline,
+              })
+            }
+          />
         </Card>
         <Card>
+          <h2 className="mb-4 text-xl font-semibold text-gray-900" data-testid="integrity-events-heading">
+            Events
+          </h2>
           <Events events={state.events} />
         </Card>
         <Card>
+          <h2 className="mb-4 text-xl font-semibold text-gray-900" data-testid="integrity-diff-heading">
+            Diff
+          </h2>
           <Diff serviceDiff={state.svcDiff} registryDiff={state.regDiff} />
         </Card>
       </div>
