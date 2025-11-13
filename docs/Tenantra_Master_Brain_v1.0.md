@@ -680,7 +680,7 @@ This section details the endpoints for managing users, which are split into two 
         1.  Checks for conflicts: raises a 409 Conflict error if the `username` or `email` already exists.
         2.  **Tenant Scoping:** It calls `_resolve_tenant_scope()` to determine the correct `tenant_id` for the new user. A standard admin is forced to use their own `tenant_id`. A super admin can specify a `tenant_id` in the payload.
         3.  It validates that the resolved `tenant_id` exists in the database.
-        4.  It hashes the provided password using `get_password_hash()`.
+        4.  It hashes the provided password using `get_password_hash()`).
         5.  Creates a new `User` model instance, saves it to the database, and returns the new user's data.
 
 - **`PUT /users/{user_id}`**
@@ -1439,3 +1439,18 @@ During the documentation review, several potential security vulnerabilities were
 - **Broken Access Control in `/assets` endpoint:** This endpoint leaks data across tenants.
 - **Broken Access Control in `/compliance/export.*` endpoints:** These endpoints leak data across tenants.
 - **Hardcoded development encryption key:** A hardcoded development encryption key in `app/core/secrets.py` could be used in production if not overridden.
+
+## 10. Future Enhancements
+- **Advanced Analytics:** Integrate with more sophisticated analytics tools for deeper insights into security and compliance posture.
+- **Machine Learning:** Implement UEBA (User and Entity Behavior Analytics) for anomaly detection and predictive security.
+- **Automated Remediation:** Develop playbooks for automated resolution of identified security and compliance issues.
+- **Cloud-Native Integrations:** Expand integrations with cloud providers (AWS, Azure, GCP) for broader asset discovery and management.
+- **Enhanced Reporting:** Offer more customizable and detailed reporting options, including executive summaries and compliance-specific reports.
+- **Multi-Factor Authentication (MFA):** Implement MFA for enhanced user account security.
+- **Internationalization (i18n):** Support multiple languages for a global user base.
+
+## 11. Contributing
+We welcome contributions to Tenantra! Please see our `CONTRIBUTING.md` for guidelines on how to submit issues, features, and pull requests.
+
+## 12. License
+Tenantra is licensed under the [MIT License](LICENSE).
