@@ -17,7 +17,9 @@ from urllib.error import URLError, HTTPError
 B = os.getenv("BACKEND_URL", "http://localhost:5000").rstrip("/")
 F = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
 ADMIN_USER  = os.getenv("ADMIN_USER", "adm")
-ADMIN_PASS  = os.getenv("ADMIN_PASS", "Admin@1234")
+ADMIN_PASS  = os.getenv("ADMIN_PASS") or os.getenv("TENANTRA_TEST_ADMIN_PASSWORD")
+if not ADMIN_PASS:
+    raise RuntimeError("Set ADMIN_PASS or TENANTRA_TEST_ADMIN_PASSWORD before running phase8_deep_audit.py")
 TENANT_NAME = os.getenv("TENANT_NAME", "default")
 FRONTEND_PATH = os.getenv("FRONTEND_PATH", "frontend")
 SKIP_FE_HTTP = os.getenv("FRONTEND_SKIP_HTTP", "0").strip().lower() in {"1","true","yes","on"}

@@ -8,9 +8,11 @@ import os
 from sqlalchemy import inspect
 
 from app.core.security import get_password_hash, verify_password
+from app.core.admin_passwords import resolve_admin_password
 from app.database import engine, SessionLocal
 from app.models.base import Base
 from app.models.module import Module
+from app.models.notification_pref import NotificationPreference  # noqa: F401
 from app.models.role import Role
 from app.models.tenant import Tenant
 from app.models.user import User
@@ -55,7 +57,7 @@ def bootstrap_test_data() -> None:
                     db.commit()
 
                 admin_user = db.query(User).filter(User.username == "admin").first()
-                admin_password = os.getenv("TENANTRA_ADMIN_PASSWORD", "Admin@1234")
+                admin_password = resolve_admin_password()
                 if not admin_user:
                     admin_user = User(
                         username="admin",

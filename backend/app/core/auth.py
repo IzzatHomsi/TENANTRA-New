@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+from typing import Optional
+
 from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -9,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.core import security as security_utils
 from app.database import get_db
 from app.models.user import User
+from app.services import token_blocklist
 
 # ---------------------------------------------------------------------------
 # JWT configuration (delegated to security module)
@@ -30,6 +34,15 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 # Dependency helpers
 # ---------------------------------------------------------------------------
 
+def _payload_ts_to_datetime(value: Optional[float]) -> Optional[datetime]:
+    if value is None:
+        return None
+    try:
+        return datetime.utcfromtimestamp(float(value))
+    except Exception:
+        return None
+
+
 def _resolve_user_from_token(token: str, db: Session) -> User:
     payload = decode_access_token(token)
     if not payload:
@@ -44,6 +57,13 @@ def _resolve_user_from_token(token: str, db: Session) -> User:
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if token_blocklist.is_token_revoked(
+        db,
+        user_id=user.id,
+        jti=payload.get("jti"),
+        issued_at=_payload_ts_to_datetime(payload.get("iat")),
+    ):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been revoked")
     return user
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:

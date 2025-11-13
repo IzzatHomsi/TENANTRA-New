@@ -4,7 +4,7 @@ import Card from "../components/ui/Card.jsx";
 const FAQ_DATA = [
   {
     question: "Where do I start?",
-    answer: "Bring the stack up from `docker/` with `docker compose up -d`. Frontend runs on `http://localhost:8080`, backend on `http://localhost:5000`. Default admin is `admin`/`Admin@1234`.",
+    answer: "Bring the stack up from `docker/` with `docker compose up -d`. Frontend runs on `http://localhost:8080`, backend on `http://localhost:5000`. Configure the default admin credentials via `TENANTRA_ADMIN_PASSWORD` (see `.env.example`).",
   },
   {
     question: "Configuring Observability",

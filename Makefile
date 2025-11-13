@@ -1,11 +1,20 @@
 
 # Makefile for Tenantra Phase 0 & 1
 
+TENANTRA_ENV ?= development
+ENV_FILE := .env.$(TENANTRA_ENV)
+TEST_DB_URL := sqlite:///./test_api.db
+ifneq ($(wildcard $(ENV_FILE)),)
+COMPOSE_ENV_ARG := --env-file $(ENV_FILE)
+else
+COMPOSE_ENV_ARG :=
+endif
+
 # Default compose chain; use DEV=1 to include dev override
 ifdef DEV
-COMPOSE := docker compose -f docker/docker-compose.yml -f docker/docker-compose.override.dev.yml
+COMPOSE := docker compose $(COMPOSE_ENV_ARG) -f docker/docker-compose.yml -f docker/docker-compose.override.dev.yml
 else
-COMPOSE := docker compose -f docker/docker-compose.yml -f docker/docker-compose.override.yml
+COMPOSE := docker compose $(COMPOSE_ENV_ARG) -f docker/docker-compose.yml -f docker/docker-compose.override.yml
 endif
 
 # Build all services
@@ -22,7 +31,15 @@ down:
 
 # Run tests inside the backend container
 test:
-	$(COMPOSE) run --rm backend pytest
+	$(COMPOSE) run --rm \
+		-e TENANTRA_TEST_BOOTSTRAP=1 \
+		-e TENANTRA_TEST_ADMIN_PASSWORD=Admin@1234 \
+		-e TENANTRA_ADMIN_PASSWORD=Admin@1234 \
+		-e DEFAULT_ADMIN_PASSWORD=Admin@1234 \
+		-e DB_URL=$(TEST_DB_URL) \
+		-e DATABASE_URL=$(TEST_DB_URL) \
+		-e SQLALCHEMY_DATABASE_URI=$(TEST_DB_URL) \
+		backend pytest
 
 # Clean up
 clean:

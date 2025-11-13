@@ -3,13 +3,14 @@ from fastapi.testclient import TestClient
 from app.database import SessionLocal
 from app.main import app
 from app.models.module import Module
+from .helpers import ADMIN_USERNAME, ADMIN_PASSWORD
 
 
 client = TestClient(app)
 
 
 def _login_admin() -> str:
-    resp = client.post("/auth/login", data={"username": "admin", "password": "Admin@1234"})
+    resp = client.post("/auth/login", data={"username": ADMIN_USERNAME, "password": ADMIN_PASSWORD})
     assert resp.status_code == 200
     return resp.json()["access_token"]
 
@@ -97,4 +98,3 @@ def test_aws_iam_baseline_failure():
         assert any(f.get("issue") == "access_key_too_old" for f in body["details"].get("findings", []))
     finally:
         _delete_module(module_id)
-

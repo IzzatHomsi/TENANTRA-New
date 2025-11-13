@@ -138,8 +138,28 @@ function Alembic-Upgrade { $id=Get-ContainerId 'backend'; if(-not $id){Write-Hos
 function Db-Shell        { $id=Get-ContainerId 'db';      if(-not $id){Write-Host "[ERROR] DB not running."      -ForegroundColor Red;return}; docker exec -it $id psql -U postgres }
 function Wait-ForDb      { $id=Get-ContainerId 'db';      if(-not $id){Write-Host "[ERROR] DB not running."      -ForegroundColor Red;return}; docker exec -it $id sh -lc "until pg_isready -U postgres -h localhost; do echo waiting...; sleep 1; done" }
 function Seed-Db         { $id=Get-ContainerId 'backend'; if(-not $id){Write-Host "[ERROR] Backend not running." -ForegroundColor Red;return}; docker exec -it $id python -m app.seed }
-function Reset-Admin     { $id=Get-ContainerId 'backend'; if(-not $id){Write-Host "[ERROR] Backend not running." -ForegroundColor Red;return}; docker exec -it $id python -c "from app.core.security import set_admin_password; set_admin_password('Admin@1234'); print('Admin password reset to Admin@1234')" }
-function Test-Login      { curl -s -X POST http://localhost:5000/auth/login -H "Content-Type: application/json" -d '{"email":"admin@tenantra.io","password":"Admin@1234"}' | Write-Host }
+function Reset-Admin     {
+    param([string]$NewPassword)
+    $password = $NewPassword
+    if (-not $password) {
+        $password = Read-Host "Enter new admin password"
+    }
+    if (-not $password) {
+        Write-Host "[ERROR] Password is required." -ForegroundColor Red
+        return
+    }
+    $id = Get-ContainerId 'backend'
+    if(-not $id){Write-Host "[ERROR] Backend not running." -ForegroundColor Red;return}
+    $py = "import os; from app.core.security import set_admin_password; set_admin_password(os.environ['TENANTRA_ADMIN_PASSWORD'])"
+    docker exec -it -e TENANTRA_ADMIN_PASSWORD="$password" $id python -c $py
+    Write-Host "[OK] Admin password updated."
+}
+function Test-Login      {
+    $adminPassword = if ($env:TENANTRA_ADMIN_PASSWORD) { $env:TENANTRA_ADMIN_PASSWORD } elseif ($env:TENANTRA_TEST_ADMIN_PASSWORD) { $env:TENANTRA_TEST_ADMIN_PASSWORD } else { Read-Host "Enter admin password" }
+    if (-not $adminPassword) { Write-Host "[ERROR] Password required." -ForegroundColor Red; return }
+    $payload = @{ email = "admin@tenantra.io"; password = $adminPassword } | ConvertTo-Json
+    curl -s -X POST http://localhost:5000/auth/login -H "Content-Type: application/json" -d $payload | Write-Host
+}
 function Validate-Token  { $t=Read-Host "Paste JWT token"; if(-not $t){Write-Host "[ERROR] No token." -ForegroundColor Red;return}; curl -s -H "Authorization: Bearer $t" http://localhost:5000/auth/me | Write-Host }
 
 # --- Profiles ---
@@ -191,7 +211,7 @@ function Show-Menu {
     Write-Host "  5) Run DB Migrations (alembic upgrade head)"
     Write-Host "  6) Wait for DB (pg_isready loop)"
     Write-Host "  7) Seed Database"
-    Write-Host "  8) Reset Admin Password (Admin@1234)"
+    Write-Host "  8) Reset Admin Password"
     Write-Host "  9) Test Login API (POST /auth/login)"
     Write-Host " 10) Validate JWT Token (GET /auth/me)"
     Write-Host ""

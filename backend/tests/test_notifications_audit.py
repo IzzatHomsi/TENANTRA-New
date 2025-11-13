@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 from app.database import SessionLocal
 from app.main import app
 from app.models.audit_log import AuditLog
+from .helpers import ADMIN_USERNAME, ADMIN_PASSWORD
 
 client = TestClient(app)
 
@@ -10,7 +11,7 @@ client = TestClient(app)
 def _login_admin() -> str:
     response = client.post(
         "/auth/login",
-        data={"username": "admin", "password": "Admin@1234"},
+        data={"username": ADMIN_USERNAME, "password": ADMIN_PASSWORD},
     )
     assert response.status_code == 200
     token = response.json().get("access_token")
@@ -46,3 +47,18 @@ def test_notification_create_logs_audit_entry():
     assert audit_resp.status_code == 200
     body = audit_resp.json()
     assert any(item.get("action") == "notification.create" for item in body.get("items", []))
+
+
+def test_audit_log_export_handles_bad_ciphertext():
+    token = _login_admin()
+    headers = {"Authorization": f"Bearer {token}"}
+
+    db = SessionLocal()
+    try:
+        db.add(AuditLog(user_id=1, action="ciphertext-test", result="success", details_enc="not-base64-data"))
+        db.commit()
+    finally:
+        db.close()
+
+    resp = client.get("/audit-logs/export", headers=headers)
+    assert resp.status_code == 200

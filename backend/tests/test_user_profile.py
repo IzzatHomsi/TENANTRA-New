@@ -7,16 +7,17 @@ from app.main import app
 from app.database import SessionLocal
 from app.models.user import User
 from app.core.security import get_password_hash
+from .helpers import ADMIN_USERNAME, ADMIN_PASSWORD
 
 
 client = TestClient(app)
-DEFAULT_PASSWORD = "Admin@1234"
+DEFAULT_PASSWORD = ADMIN_PASSWORD
 
 
 def _login(password: str = DEFAULT_PASSWORD) -> str:
     response = client.post(
         "/auth/login",
-        data={"username": "admin", "password": password},
+        data={"username": ADMIN_USERNAME, "password": password},
     )
     assert response.status_code == 200, response.text
     body = response.json()
@@ -26,7 +27,7 @@ def _login(password: str = DEFAULT_PASSWORD) -> str:
 @pytest.fixture(autouse=True)
 def _reset_admin_state():
     db = SessionLocal()
-    admin = db.query(User).filter(User.username == "admin").first()
+    admin = db.query(User).filter(User.username == ADMIN_USERNAME).first()
     assert admin is not None, "Admin user must exist for profile tests"
 
     original_email = admin.email
@@ -39,7 +40,7 @@ def _reset_admin_state():
     try:
         yield
     finally:
-        admin = db.query(User).filter(User.username == "admin").first()
+        admin = db.query(User).filter(User.username == ADMIN_USERNAME).first()
         if admin:
             admin.email = original_email
             admin.password_hash = original_hash
@@ -55,7 +56,7 @@ def test_get_users_me():
     )
     assert response.status_code == 200
     payload = response.json()
-    assert payload["username"] == "admin"
+    assert payload["username"] == ADMIN_USERNAME
     assert payload["role"] == "admin"
 
 
@@ -73,7 +74,7 @@ def test_update_email_only():
 
 def test_change_password_success():
     token = _login()
-    new_password = "Admin@12345"
+    new_password = "SecurePass!234"
     response = client.put(
         "/users/me",
         json={

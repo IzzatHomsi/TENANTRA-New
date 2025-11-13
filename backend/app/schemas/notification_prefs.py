@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Optional, Dict
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class NotificationPrefsBase(BaseModel):
@@ -15,11 +15,9 @@ class NotificationPrefsRead(NotificationPrefsBase):
     tenant_id: int
     user_id: Optional[int] = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class NotificationPrefsUpsert(NotificationPrefsBase):
     # Optional user_id to set explicit user override; omit/null to upsert tenant default
     user_id: Optional[int] = None
-

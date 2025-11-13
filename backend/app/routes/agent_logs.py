@@ -9,6 +9,7 @@ from app.database import get_db
 from app.models.agent import Agent
 from app.models.agent_log import AgentLog
 from app.models.user import User
+from app.dependencies.agents import verify_agent_token
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/agents", tags=["Agent Logs"])
@@ -20,18 +21,6 @@ def _ensure_agent_for_tenant(agent_id: int, current_user: User, db: Session) -> 
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
     if agent.tenant_id and current_user.tenant_id not in {None, agent.tenant_id}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden: tenant mismatch")
-    return agent
-
-
-def _authenticate_agent(agent_id: int, token: str, db: Session) -> Agent:
-    agent = db.query(Agent).filter(Agent.id == agent_id).first()
-    if not agent:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
-    expected = (agent.token or "").strip()
-    if not expected or not token or token.strip() != expected:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid agent token")
-    if str(getattr(agent, "status", "active")).lower() not in {"active", "online"}:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Agent is not active")
     return agent
 
 
@@ -47,7 +36,7 @@ def create_agent_log(
     db: Session = Depends(get_db),
     agent_token: str = Header(..., alias="X-Agent-Token"),
 ):
-    agent = _authenticate_agent(agent_id, agent_token, db)
+    agent = verify_agent_token(agent_id, agent_token, db)
     log = AgentLog(
         agent_id=agent_id,
         severity=payload.severity,

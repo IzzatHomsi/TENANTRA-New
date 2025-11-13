@@ -19,7 +19,10 @@ const { chromium } = require('playwright');
 
 const BASE = process.env.UI_E2E_BASE || 'http://localhost';
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
-const ADMIN_PASS = process.env.ADMIN_PASS || 'Admin@1234';
+const ADMIN_PASS = process.env.ADMIN_PASS || process.env.TENANTRA_TEST_ADMIN_PASSWORD;
+if (!ADMIN_PASS) {
+  throw new Error('Set ADMIN_PASS or TENANTRA_TEST_ADMIN_PASSWORD before running ui_e2e_runner.js');
+}
 
 const DEVICES_ALL = [
   { name: 'desktop', viewport: { width: 1440, height: 900 }, userAgent: undefined },

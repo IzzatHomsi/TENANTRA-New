@@ -9,11 +9,12 @@ Tenantra Phases 0–8 Validator (backend + basic frontend reachability)
 
 Run:
   python tools/validate_tenantra_phases.py --backend http://localhost:5000 --frontend http://localhost:5173 \
-         --admin-user adm --admin-pass Admin@1234 --tenant default
+         --admin-user adm --admin-pass <password> --tenant default
 """
 
 import argparse
 import json
+import os
 import sys
 import time
 import urllib.request
@@ -53,7 +54,13 @@ def main():
     p.add_argument("--backend", required=False, default="http://localhost:5000")
     p.add_argument("--frontend", required=False, default="http://localhost:5173")
     p.add_argument("--admin-user", required=False, default="adm")
-    p.add_argument("--admin-pass", required=False, default="Admin@1234")
+    default_admin_pass = os.getenv("ADMIN_PASS")
+    p.add_argument(
+        "--admin-pass",
+        required=default_admin_pass is None,
+        default=default_admin_pass,
+        help="Admin password (or set ADMIN_PASS env var)",
+    )
     p.add_argument("--tenant", required=False, default="default")
     args = p.parse_args()
 

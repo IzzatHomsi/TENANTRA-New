@@ -1,13 +1,14 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from .helpers import ADMIN_USERNAME, ADMIN_PASSWORD
 
 
 client = TestClient(app)
 
 
 def _login_admin() -> str:
-    r = client.post("/auth/login", data={"username": "admin", "password": "Admin@1234"})
+    r = client.post("/auth/login", data={"username": ADMIN_USERNAME, "password": ADMIN_PASSWORD})
     assert r.status_code == 200
     return r.json()["access_token"]
 
@@ -30,4 +31,3 @@ def test_service_baseline_roundtrip():
     assert r.status_code == 200
     rows = r.json()
     assert any(e.get("name") == "svcA" for e in rows)
-

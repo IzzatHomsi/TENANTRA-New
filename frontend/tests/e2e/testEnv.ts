@@ -9,7 +9,11 @@ const normalized = rawBase.replace(/\/+$/, '');
 export const BASE = normalized;
 export const APP_BASE = `${normalized}/app`;
 export const ADMIN_USER = process.env.ADMIN_USER || 'admin';
-export const ADMIN_PASS = process.env.ADMIN_PASS || 'Admin@1234';
+const resolvedAdminPass = process.env.ADMIN_PASS || process.env.TENANTRA_TEST_ADMIN_PASSWORD;
+if (!resolvedAdminPass) {
+  throw new Error('Set ADMIN_PASS or TENANTRA_TEST_ADMIN_PASSWORD before running Playwright e2e tests.');
+}
+export const ADMIN_PASS = resolvedAdminPass;
 
 const rawApiBase =
   process.env.PLAYWRIGHT_API_BASE ||

@@ -82,6 +82,15 @@ try:
 except Exception:
     pass
 try:
+    from .password_reset_token import PasswordResetToken  # noqa: F401
+    from .revoked_token import RevokedToken  # noqa: F401
+except Exception:
+    pass
+try:
+    from .agent_enrollment_token import AgentEnrollmentToken  # noqa: F401
+except Exception:
+    pass
+try:
     from .scan_job import ScanJob, ScanResult  # noqa: F401
 except Exception:
     pass
@@ -116,5 +125,3 @@ __all__ = [
     "AuditLog",
     # The rest are imported dynamically above if present.
 ]
-
-

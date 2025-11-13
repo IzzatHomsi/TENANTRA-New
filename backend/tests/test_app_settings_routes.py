@@ -11,6 +11,7 @@ from app.models.audit_log import AuditLog
 from app.models.user import User
 from app.utils.audit import log_audit_event
 from app.core.auth import create_access_token
+from .helpers import ADMIN_USERNAME, ADMIN_PASSWORD
 
 
 client = TestClient(app)
@@ -19,7 +20,7 @@ client = TestClient(app)
 def _login_admin() -> dict[str, str]:
     response = client.post(
         "/auth/login",
-        data={"username": "admin", "password": "Admin@1234"},
+        data={"username": ADMIN_USERNAME, "password": ADMIN_PASSWORD},
     )
     assert response.status_code == 200
     token = response.json().get("access_token")

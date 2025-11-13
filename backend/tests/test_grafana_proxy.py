@@ -12,6 +12,7 @@ from app.models.audit_log import AuditLog
 from app.routes import grafana_proxy as grafana_proxy_module
 from app.core.crypto import encrypt_data
 from app.core.secrets import get_enc_key
+from .helpers import ADMIN_USERNAME, ADMIN_PASSWORD
 
 
 client = TestClient(app)
@@ -20,7 +21,7 @@ client = TestClient(app)
 def _login_admin() -> dict[str, str]:
     response = client.post(
         "/auth/login",
-        data={"username": "admin", "password": "Admin@1234"},
+        data={"username": ADMIN_USERNAME, "password": ADMIN_PASSWORD},
     )
     assert response.status_code == 200
     token = response.json()["access_token"]

@@ -9,12 +9,13 @@ from app.database import SessionLocal
 from app.models.user import User
 from app.models.app_setting import AppSetting
 from app.models.tenant import Tenant
-from app.core.security import get_password_hash
+from app.core.security import get_password_hash, verify_password
+from app.core.admin_passwords import resolve_admin_password
 
 DEFAULT_TENANT_NAME = os.getenv("SEED_TENANT_NAME", "Default Tenant")
 DEFAULT_TENANT_SLUG = os.getenv("SEED_TENANT_SLUG", "default-tenant")
 DEFAULT_ADMIN_USER = os.getenv("SEED_ADMIN_USERNAME", "admin")
-DEFAULT_ADMIN_PASS = os.getenv("SEED_ADMIN_PASSWORD", "Admin@1234")
+DEFAULT_ADMIN_PASS = os.getenv("SEED_ADMIN_PASSWORD")
 DEFAULT_ADMIN_EMAIL = os.getenv("SEED_ADMIN_EMAIL", "admin@tenantra.local")
 DEFAULT_ADMIN_ROLE = os.getenv("SEED_ADMIN_ROLE", "admin")
 
@@ -34,6 +35,7 @@ def ensure_default_tenant(db):
     return t
 
 def ensure_admin(db):
+    password = DEFAULT_ADMIN_PASS or resolve_admin_password()
     u = db.query(User).filter(User.username == DEFAULT_ADMIN_USER).first()
     if u:
         # Backfill missing tenant_id or role if needed
@@ -45,6 +47,9 @@ def ensure_admin(db):
         if not getattr(u, 'role', None):
             u.role = DEFAULT_ADMIN_ROLE
             changed = True
+        if not verify_password(password, u.password_hash):
+            u.password_hash = get_password_hash(password)
+            changed = True
         if changed:
             db.add(u); db.commit(); db.refresh(u)
             print(f"[seed] Admin '{u.username}' updated (tenant/role backfilled).")
@@ -54,7 +59,7 @@ def ensure_admin(db):
     t = ensure_default_tenant(db)
     u = User(
         username=DEFAULT_ADMIN_USER,
-        password_hash=get_password_hash(DEFAULT_ADMIN_PASS),
+        password_hash=get_password_hash(password),
         email=DEFAULT_ADMIN_EMAIL,
         is_active=True,
         tenant_id=t.id,

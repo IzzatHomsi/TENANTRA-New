@@ -13,7 +13,7 @@ Checks:
 - Phase 7: scheduler flags (reads env echo), list module runs
 
 Run:
-  python tools/validate_phases_1_7.py --backend http://localhost:5000 --admin-user admin --admin-pass Admin@1234
+  python tools/validate_phases_1_7.py --backend http://localhost:5000 --admin-user admin --admin-pass <password>
 """
 
 from __future__ import annotations
@@ -48,7 +48,13 @@ def main() -> int:
     p.add_argument("--backend", default="http://localhost:5000")
     p.add_argument("--frontend", default=None)
     p.add_argument("--admin-user", default="admin")
-    p.add_argument("--admin-pass", default="Admin@1234")
+    default_admin_pass = os.getenv("ADMIN_PASS")
+    p.add_argument(
+        "--admin-pass",
+        default=default_admin_pass,
+        required=default_admin_pass is None,
+        help="Admin password (or set ADMIN_PASS env var)",
+    )
     p.add_argument("--mailhog", default=None, help="MailHog base URL (e.g., http://localhost:8025) for message verification")
     args = p.parse_args()
 

@@ -71,10 +71,11 @@ except ModuleNotFoundError as _mnfe:
     raise
 
 from app.core.security import get_password_hash, verify_password
+from app.core.admin_passwords import resolve_admin_password
 
 DEFAULT_ADMIN_USER = os.getenv("SEED_ADMIN_USERNAME", "admin")
 DEFAULT_ADMIN_EMAIL = os.getenv("SEED_ADMIN_EMAIL", "admin@example.com")
-DEFAULT_ADMIN_PASS = os.getenv("SEED_ADMIN_PASSWORD", "Admin@1234")
+DEFAULT_ADMIN_PASS = os.getenv("SEED_ADMIN_PASSWORD")
 DEFAULT_TENANT_ID = int(os.getenv("SEED_ADMIN_TENANT_ID", "1"))
 
 
@@ -93,10 +94,11 @@ def ensure_role(db: Session, name: str) -> None:
 def ensure_admin(db: Session) -> None:
     u = db.query(User).filter(User.username == DEFAULT_ADMIN_USER).first()
     if not u:
+        password = DEFAULT_ADMIN_PASS or resolve_admin_password()
         u = User(
             username=DEFAULT_ADMIN_USER,
             email=DEFAULT_ADMIN_EMAIL,
-            password_hash=get_password_hash(DEFAULT_ADMIN_PASS),
+            password_hash=get_password_hash(password),
             role="admin",
             tenant_id=DEFAULT_TENANT_ID,
             is_active=True,
@@ -113,8 +115,9 @@ def ensure_admin(db: Session) -> None:
         if not u.is_active:
             u.is_active = True
             changed = True
-        if not verify_password(DEFAULT_ADMIN_PASS, u.password_hash):
-            u.password_hash = get_password_hash(DEFAULT_ADMIN_PASS)
+        password = DEFAULT_ADMIN_PASS or resolve_admin_password()
+        if not verify_password(password, u.password_hash):
+            u.password_hash = get_password_hash(password)
             changed = True
         if changed:
             u.updated_at = datetime.utcnow()
@@ -128,7 +131,8 @@ def main():
         alembic_exe = shutil.which("alembic")
         if not alembic_exe:
             raise RuntimeError("alembic not found in PATH")
-        proc = subprocess.run([alembic_exe, "upgrade", "head"], check=False)  # nosec B603: fixed path, no shell
+        # Use `heads` so multi-branch trees are applied without errors.
+        proc = subprocess.run([alembic_exe, "upgrade", "heads"], check=False)  # nosec B603: fixed path, no shell
         if proc.returncode != 0:
             print("alembic upgrade head failed with exit code", proc.returncode)
             print("Failing seed to avoid running against an out-of-date DB.")

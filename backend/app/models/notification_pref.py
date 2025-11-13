@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy.ext.mutable import MutableDict
 from app.db.json_compat import JSONCompatible
 from sqlalchemy.orm import relationship
 
@@ -26,8 +27,8 @@ class NotificationPreference(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
 
     # Enabled channels and events stored as JSON objects
-    channels = Column(JSONCompatible(), nullable=False, default=dict)  # e.g., {"email": true, "webhook": false}
-    events = Column(JSONCompatible(), nullable=False, default=dict)    # e.g., {"scan_failed": true, ...}
+    channels = Column(MutableDict.as_mutable(JSONCompatible()), nullable=False, default=dict)  # e.g., {"email": true, "webhook": false}
+    events = Column(MutableDict.as_mutable(JSONCompatible()), nullable=False, default=dict)    # e.g., {"scan_failed": true, ...}
     digest = Column(String(32), nullable=False, default="immediate")  # immediate|hourly|daily
 
     created_at = Column(DateTime, default=datetime.utcnow)

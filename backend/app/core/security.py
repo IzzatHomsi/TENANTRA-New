@@ -1,8 +1,9 @@
 # backend/app/core/security.py
 # Security utilities: password hashing and JWT handling
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
+from uuid import uuid4
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -45,8 +46,16 @@ def get_password_hash(password: str) -> str:
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire})
+    now = datetime.now(timezone.utc)
+    expire = now + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    if "jti" not in to_encode:
+        to_encode["jti"] = uuid4().hex
+    to_encode.update(
+        {
+            "exp": int(expire.timestamp()),
+            "iat": now.timestamp(),
+        }
+    )
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def decode_access_token(token: str) -> Optional[dict]:
@@ -54,3 +63,24 @@ def decode_access_token(token: str) -> Optional[dict]:
         return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError:
         return None
+
+
+def set_admin_password(new_password: str, username: str = "admin") -> None:
+    """
+    Helper for operational scripts to rotate the admin password safely.
+    """
+    if not new_password:
+        raise ValueError("New password must not be empty.")
+
+    from app.database import SessionLocal  # local import to avoid circular deps
+    from app.models.user import User
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.username == username).first()
+        if not user:
+            raise RuntimeError(f"User '{username}' not found.")
+        user.password_hash = get_password_hash(new_password)
+        db.commit()
+    finally:
+        db.close()

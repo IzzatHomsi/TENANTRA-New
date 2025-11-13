@@ -113,6 +113,10 @@ def _iter_csv(rows: list[AuditLog]):
             s = s.replace('"', '""')
             return f'"{s}"'
 
+        try:
+            details_value = getattr(r, "details", "")
+        except Exception:
+            details_value = ""
         yield ",".join(
             [
                 esc(
@@ -124,7 +128,7 @@ def _iter_csv(rows: list[AuditLog]):
                 esc(r.action),
                 esc(r.result),
                 esc(getattr(r, "ip", "")),
-                esc(getattr(r, "details", "")),
+                esc(details_value),
             ]
         ) + "\n"
 

@@ -15,9 +15,12 @@ def encrypt_data(raw: str, key: bytes) -> str:
 
 
 def decrypt_data(enc: str, key: bytes) -> str:
-    data = base64.b64decode(enc)
-    nonce, ct = data[:12], data[12:]
-    k = hashlib.sha256(key).digest()
-    aesgcm = AESGCM(k)
-    pt = aesgcm.decrypt(nonce, ct, associated_data=None)
-    return pt.decode("utf-8")
+    try:
+        data = base64.b64decode(enc)
+        nonce, ct = data[:12], data[12:]
+        k = hashlib.sha256(key).digest()
+        aesgcm = AESGCM(k)
+        pt = aesgcm.decrypt(nonce, ct, associated_data=None)
+        return pt.decode("utf-8")
+    except Exception as exc:  # pragma: no cover - defensive path
+        raise ValueError("Failed to decrypt payload") from exc

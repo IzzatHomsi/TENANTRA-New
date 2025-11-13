@@ -1,7 +1,7 @@
 # Tenantra — Frequently Asked Questions (FAQ)
 
 ## Authentication & Access Control
-- Sign in at `/login`. Default dev admin is `admin` / `Admin@1234` (seeded). JWTs are issued by `POST /auth/login`. Inspect the current user via `GET /auth/me`. Admins can manage users and settings.
+- Sign in at `/login`. Default dev admin user is `admin`; set the password via `TENANTRA_ADMIN_PASSWORD` (see `.env.example`). JWTs are issued by `POST /auth/login`. Inspect the current user via `GET /auth/me`. Admins can manage users and settings.
 
 ## Tenants & CORS
 - CORS can be set via Admin Settings and by creating `TenantCORSOrigin` records. The backend can infer tenant from subdomain or `X-Tenant-Id` / `X-Tenant-Slug` headers.

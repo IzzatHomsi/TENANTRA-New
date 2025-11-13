@@ -5,13 +5,14 @@ from app.main import app
 from app.database import SessionLocal
 from app.models.agent import Agent
 from app.models.user import User
+from .helpers import ADMIN_USERNAME, ADMIN_PASSWORD
 
 
 client = TestClient(app)
 
 
 def _login_admin() -> str:
-    resp = client.post("/auth/login", data={"username": "admin", "password": "Admin@1234"})
+    resp = client.post("/auth/login", data={"username": ADMIN_USERNAME, "password": ADMIN_PASSWORD})
     assert resp.status_code == 200
     return resp.json()["access_token"]
 
@@ -30,7 +31,7 @@ def test_registry_ingest_and_drift_summary():
     token = _login_admin()
     db = SessionLocal();
     try:
-        admin: User = db.query(User).filter(User.username == 'admin').first()
+        admin: User = db.query(User).filter(User.username == ADMIN_USERNAME).first()
         tid = admin.tenant_id or 1
     finally:
         db.close()
@@ -57,4 +58,3 @@ def test_registry_ingest_and_drift_summary():
     assert r.status_code == 200
     body = r.json()
     assert isinstance(body.get("modified_entries"), list)
-

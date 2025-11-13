@@ -3,12 +3,13 @@ from fastapi.testclient import TestClient
 from app.database import SessionLocal
 from app.main import app
 from app.models.scheduled_scan import ScheduledScan
+from .helpers import ADMIN_USERNAME, ADMIN_PASSWORD
 
 client = TestClient(app)
 
 
 def _login_admin() -> str:
-    resp = client.post("/auth/login", data={"username": "admin", "password": "Admin@1234"})
+    resp = client.post("/auth/login", data={"username": ADMIN_USERNAME, "password": ADMIN_PASSWORD})
     assert resp.status_code == 200
     token = resp.json().get("access_token")
     assert token

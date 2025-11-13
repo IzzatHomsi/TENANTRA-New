@@ -26,8 +26,11 @@ def main() -> None:
             "/health", "/metrics", "/openapi.json",
         ]),
     )
-    # Deterministic JWT secret in dev to keep tokens valid across processes
-    os.environ.setdefault("JWT_SECRET", "dev-local-fixed-secret-change-in-prod")
+    if not os.getenv("TENANTRA_ADMIN_PASSWORD") and not os.getenv("TENANTRA_TEST_ADMIN_PASSWORD"):
+        raise RuntimeError(
+            "TENANTRA_ADMIN_PASSWORD (or TENANTRA_TEST_ADMIN_PASSWORD) must be set before running dev_server.py. "
+            "Copy .env.example and provide secure credentials."
+        )
     host = os.getenv("DEV_SERVER_HOST", "127.0.0.1")
     port = int(os.getenv("DEV_SERVER_PORT", os.getenv("APP_PORT", "5000")))
     uvicorn.run("app.main:app", host=host, port=port, log_level="warning")

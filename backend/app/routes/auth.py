@@ -2,17 +2,25 @@
 # Authentication routes: robust /auth/login (form or JSON) and /auth/me
 
 from typing import Optional  # import Optional for fields that may be None
+from datetime import datetime
+import os
+
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Form, Response  # FastAPI primitives
 from fastapi.security import OAuth2PasswordBearer  # OAuth2 token extractor from Authorization header
 from sqlalchemy.orm import Session  # SQLAlchemy session type for DB work
-from pydantic import BaseModel  # Pydantic models for request/response typing
+from pydantic import BaseModel, EmailStr, root_validator  # Pydantic models for request/response typing
 
 from app.database import get_db  # dependency that yields a DB session
 from app.models.tenant_cors_origin import TenantCORSOrigin
 from app.models.tenant import Tenant
-import os
 from app.models.user import User  # ORM model for users table
 from app.core.security import verify_password, create_access_token, decode_access_token  # crypto helpers
+from app.core.auth import get_current_user
+from app.core.security import get_password_hash
+from app.services import password_reset as password_reset_service, token_blocklist
+from app.utils.email import send_email
+from app.utils.password import validate_password_strength, PasswordValidationError
+from app.utils.audit import log_audit_event
 
 # Create a router; app mounts this under /api in main.py
 router = APIRouter()
@@ -20,6 +28,23 @@ router = APIRouter()
 # Extract Bearer tokens sent to protected endpoints (e.g., /auth/me)
 # tokenUrl informs OpenAPI docs where tokens are obtained.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+_TRUE_VALUES = {"1", "true", "yes", "on"}
+
+
+def _is_test_mode() -> bool:
+    return bool(
+        os.getenv("PYTEST_CURRENT_TEST")
+        or os.getenv("TENANTRA_TEST_BOOTSTRAP", "").lower() in _TRUE_VALUES
+    )
+
+
+def _exp_to_datetime(value: Optional[int]) -> Optional[datetime]:
+    if value is None:
+        return None
+    try:
+        return datetime.utcfromtimestamp(int(value))
+    except Exception:
+        return None
 
 # ---------- Pydantic models (request/response) ----------
 
@@ -46,6 +71,21 @@ class TokenOut(BaseModel):
     token_type: str           # usually 'bearer'
     # We include the user profile to let the frontend gate immediately after login.
     user: UserOut             # embedded minimal user snapshot (includes role)
+
+class ForgotPasswordPayload(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+
+    @root_validator(skip_on_failure=True)
+    def ensure_target(cls, values):
+        if not values.get("username") and not values.get("email"):
+            raise ValueError("Provide a username or email address.")
+        return values
+
+
+class ResetPasswordPayload(BaseModel):
+    token: str
+    new_password: str
 
 # ---------- Routes ----------
 
@@ -108,6 +148,31 @@ async def login(
             role=getattr(user, "role", None),
         ),
     )
+
+
+@router.post("/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    payload = decode_access_token(token)
+    if not payload:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+    token_blocklist.revoke_token(
+        db,
+        user_id=current_user.id,
+        jti=payload.get("jti"),
+        expires_at=_exp_to_datetime(payload.get("exp")),
+        reason="logout",
+    )
+    log_audit_event(
+        db,
+        user_id=current_user.id,
+        action="auth.logout",
+        result="success",
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 def _parse_env_allowed_origins() -> set[str]:
@@ -203,43 +268,87 @@ def login_preflight(request: Request, db: Session = Depends(get_db)) -> Response
 
     return Response(status_code=status.HTTP_204_NO_CONTENT, headers=headers)
 
-@router.get("/auth/me", response_model=UserOut)
-def get_current_user_me(
-    token: str = Depends(oauth2_scheme),  # pull Bearer token from Authorization header
-    db: Session = Depends(get_db),        # DB session
+
+@router.post("/auth/forgot-password", status_code=status.HTTP_202_ACCEPTED)
+def forgot_password(
+    payload: ForgotPasswordPayload,
+    request: Request,
+    db: Session = Depends(get_db),
 ):
-    """
-    Introspect the caller's access token and return their profile.
-    Always includes 'role' so the frontend can gate admin-only UI.
-    """
-    payload = decode_access_token(token)  # decode and validate JWT
-    if not payload:                       # reject if invalid/expired
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-        )
+    user: Optional[User] = None
+    if payload.username:
+        user = db.query(User).filter(User.username == payload.username).first()
+    elif payload.email:
+        user = db.query(User).filter(User.email == payload.email).first()
 
-    sub = payload.get("sub")              # subject is the user id as a string
-    try:
-        user_id = int(sub)                # coerce to int; invalid → 401
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token subject",
+    response = {"status": "queued"}
+    if user:
+        raw_token = password_reset_service.issue_password_reset_token(
+            db,
+            user,
+            user_agent=request.headers.get("user-agent"),
+            ip=request.client.host if request.client else None,
         )
-
-    user = db.query(User).filter(User.id == user_id).first()  # find user by id
-    if not user:                                              # user id not found → 404
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
+        log_audit_event(
+            db,
+            user_id=user.id,
+            action="auth.forgot_password",
+            result="success",
+            ip=request.client.host if request.client else None,
         )
+        if user.email:
+            send_email(
+                user.email,
+                "Tenantra password reset",
+                f"Use this token to reset your password: {raw_token}",
+            )
+        if _is_test_mode():
+            response["reset_token"] = raw_token
+    return response
 
-    # Return the normalized user profile (now includes role)
+@router.get("/auth/me", response_model=UserOut)
+def get_current_user_me(current_user: User = Depends(get_current_user)) -> UserOut:
     return UserOut(
-        id=user.id,
-        username=user.username,
-        email=getattr(user, "email", None),
-        is_active=bool(getattr(user, "is_active", True)),
-        role=getattr(user, "role", None),
+        id=current_user.id,
+        username=current_user.username,
+        email=getattr(current_user, "email", None),
+        is_active=bool(getattr(current_user, "is_active", True)),
+        role=getattr(current_user, "role", None),
     )
+
+
+@router.post("/auth/reset-password", status_code=status.HTTP_200_OK)
+def reset_password(
+    payload: ResetPasswordPayload,
+    db: Session = Depends(get_db),
+):
+    try:
+        validate_password_strength(payload.new_password)
+    except PasswordValidationError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+
+    try:
+        token_record = password_reset_service.use_password_reset_token(db, payload.token)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset token.")
+
+    user = db.query(User).filter(User.id == token_record.user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+    user.password_hash = get_password_hash(payload.new_password)
+    db.add(user)
+    db.commit()
+    token_blocklist.revoke_tokens_issued_before(
+        db,
+        user_id=user.id,
+        cutoff=datetime.utcnow(),
+        reason="password_reset",
+    )
+    log_audit_event(
+        db,
+        user_id=user.id,
+        action="auth.reset_password",
+        result="success",
+    )
+    return {"status": "ok"}

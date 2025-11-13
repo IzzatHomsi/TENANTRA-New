@@ -4,13 +4,14 @@ from fastapi.testclient import TestClient
 from app.database import SessionLocal
 from app.main import app
 from app.models.module import Module
+from .helpers import ADMIN_USERNAME, ADMIN_PASSWORD
 
 
 client = TestClient(app)
 
 
 def _login_admin() -> str:
-    resp = client.post("/auth/login", data={"username": "admin", "password": "Admin@1234"})
+    resp = client.post("/auth/login", data={"username": ADMIN_USERNAME, "password": ADMIN_PASSWORD})
     assert resp.status_code == 200
     return resp.json()["access_token"]
 
@@ -81,4 +82,3 @@ def test_panorama_stub_success_when_enabled():
     finally:
         _delete_module(module_id)
         os.environ.pop("TENANTRA_ENABLE_PANORAMA_STUB", None)
-

@@ -7,13 +7,14 @@ from app.database import SessionLocal
 from app.main import app
 from app.models.tenant import Tenant
 from app.models.user import User
+from .helpers import ADMIN_USERNAME, ADMIN_PASSWORD
 
 client = TestClient(app)
 
 
 def test_login_and_me():
     # Use the default admin password defined in the environment/seed
-    response = client.post("/auth/login", data={"username": "admin", "password": "Admin@1234"})
+    response = client.post("/auth/login", data={"username": ADMIN_USERNAME, "password": ADMIN_PASSWORD})
     assert response.status_code == 200
     token = response.json().get("access_token")
     assert token
@@ -64,7 +65,7 @@ def _create_user(username: str, email: str, password: str, tenant_id: int, role:
 
 
 def test_admin_user_creation_is_scoped_to_tenant():
-    token = _login("admin", "Admin@1234")
+    token = _login(ADMIN_USERNAME, ADMIN_PASSWORD)
     username = f"user_{uuid4().hex[:8]}"
     email = f"{username}@example.com"
     payload = {
