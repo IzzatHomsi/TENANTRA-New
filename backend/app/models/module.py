@@ -5,8 +5,9 @@ from datetime import datetime
 from enum import Enum
 
 from sqlalchemy import Boolean, Column, DateTime, Enum as SQLEnum, Integer, String, Text, UniqueConstraint
-from sqlalchemy.sql import expression
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import expression
 
 from app.db.base_class import Base
 from app.db.json_compat import JSONCompatible
@@ -57,7 +58,7 @@ class Module(Base, TimestampMixin, ModelMixin):
     operating_systems = Column(String(255), nullable=True)
     application_target = Column(String(255), nullable=True)
     compliance_mapping = Column(Text, nullable=True)
-    parameter_schema = Column(JSONCompatible(), nullable=True)
+    parameter_schema = Column(JSONB, nullable=True)
     last_update = Column(DateTime, nullable=True)
     enabled = Column(Boolean, nullable=False, default=False, server_default=expression.false())
 
