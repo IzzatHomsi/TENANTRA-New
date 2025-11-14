@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
+from app.core.permissions import require_admin
 from app.database import get_db
 from app.models.module import Module
 from app.models.scan_job import ScanJob

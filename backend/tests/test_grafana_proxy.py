@@ -137,7 +137,11 @@ def test_grafana_proxy_rate_limit_enforced(mock_request: AsyncMock):
                 .first()
             )
             assert audit is not None
-            assert "rate-limit" in (audit.details or "")
+            details = audit.details or ""
+            if isinstance(details, dict):
+                assert details.get("reason") == "rate-limit"
+            else:
+                assert "rate-limit" in details
         finally:
             db.close()
     finally:
