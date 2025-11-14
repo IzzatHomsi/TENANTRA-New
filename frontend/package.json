@@ -9,12 +9,13 @@
     "build:report": "node ./scripts/build-report.mjs",
     "bundle:check": "node ./scripts/check-bundle.mjs",
     "dev:ssr": "node ./server/devServer.mjs",
-    "build:module-catalog-remote": "vite build --config vite.catalog-remote.config.js",
-    "build:ssr": "vite build --config vite.ssr.config.js",
+    "build:module-catalog-remote": "vite build --mode catalog-remote",
+    "build:ssr": "vite build --mode ssr",
     "typecheck": "tsc --noEmit",
     "ssr:serve": "node ./server/prodServer.mjs",
     "preview": "vite preview --host",
-    "test:e2e": "playwright test",
+    "test:frontend": "playwright test tests/moduleCatalog*.spec.ts --reporter=line",
+    "test:e2e": "playwright test tests/e2e --reporter=line",
     "test:lighthouse": "node ./scripts/run-lighthouse.mjs"
   },
   "dependencies": {

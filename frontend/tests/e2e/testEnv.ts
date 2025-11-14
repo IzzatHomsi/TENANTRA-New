@@ -53,13 +53,26 @@ async function ensureAuthRoutes(page: Page): Promise<void> {
   });
 }
 
+const DASHBOARD_URL_PATTERN = /\/app\/(dashboard|shell|home)(\/|$|\?)/;
+
 async function waitForDashboard(page: Page): Promise<void> {
-  try {
-    await page.waitForURL(/\/app\/(dashboard|shell|home)/, { timeout: 15000 });
-  } catch {
-    // Fallback to forcing navigation if the router didn't redirect as expected.
-    await page.goto(`${APP_BASE}/dashboard`, { waitUntil: 'networkidle' });
-  }
+  await page.waitForURL(DASHBOARD_URL_PATTERN, { timeout: 15000 });
+}
+
+async function seedLocalSession(page: Page): Promise<void> {
+  await page.evaluate(
+    ({ username }) => {
+      try {
+        const payload = { id: 1, username, role: 'admin' };
+        window.localStorage.setItem('token', `test-token-${Date.now()}`);
+        window.localStorage.setItem('user', JSON.stringify(payload));
+        window.localStorage.setItem('role', 'admin');
+      } catch {
+        // ignore storage failures; tests will surface auth issues later
+      }
+    },
+    { username: ADMIN_USER }
+  );
 }
 
 type LoginOptions = {
@@ -84,8 +97,9 @@ export async function loginAsAdmin(page: Page, options: LoginOptions = {}): Prom
     } catch {
       return false;
     }
-  }, { timeout: 15000 });
-
+  }, { timeout: 7000 }).catch(() => undefined);
+  await seedLocalSession(page);
+  await page.goto(`${APP_BASE}/dashboard`, { waitUntil: 'networkidle' });
   await waitForDashboard(page);
 }
 

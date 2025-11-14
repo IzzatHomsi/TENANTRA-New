@@ -9,6 +9,10 @@ import { dehydrate } from "@tanstack/react-query";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
 
+if (!process.env.VITE_BUILD_TARGET) {
+  process.env.VITE_BUILD_TARGET = "ssr";
+}
+
 async function createServer() {
   const app = express();
   app.disable("x-powered-by");

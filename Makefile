@@ -2,6 +2,9 @@
 # Makefile for Tenantra Phase 0 & 1
 
 TENANTRA_ENV ?= development
+TENANTRA_TEST_ADMIN_PASSWORD ?= Admin@1234
+ADMIN_USER ?= admin
+PYTHON ?= python3
 ENV_FILE := .env.$(TENANTRA_ENV)
 TEST_DB_URL := sqlite:///./test_api.db
 ifneq ($(wildcard $(ENV_FILE)),)
@@ -40,6 +43,18 @@ test:
 		-e DATABASE_URL=$(TEST_DB_URL) \
 		-e SQLALCHEMY_DATABASE_URI=$(TEST_DB_URL) \
 		backend pytest
+
+# Run backend, frontend regression, and Playwright E2E suites locally
+.PHONY: test-all
+test-all:
+	@echo "Running backend tests..."
+	cd backend && $(PYTHON) -m pytest -q
+	@echo "Building frontend bundle..."
+	cd frontend && npm run build
+	@echo "Running frontend UI specs..."
+	cd frontend && TENANTRA_TEST_ADMIN_PASSWORD="$(TENANTRA_TEST_ADMIN_PASSWORD)" ADMIN_PASS="$(TENANTRA_TEST_ADMIN_PASSWORD)" ADMIN_USER="$(ADMIN_USER)" npm run test:frontend
+	@echo "Running Playwright E2E suite..."
+	cd frontend && TENANTRA_TEST_ADMIN_PASSWORD="$(TENANTRA_TEST_ADMIN_PASSWORD)" ADMIN_PASS="$(TENANTRA_TEST_ADMIN_PASSWORD)" ADMIN_USER="$(ADMIN_USER)" npm run test:e2e
 
 # Clean up
 clean:

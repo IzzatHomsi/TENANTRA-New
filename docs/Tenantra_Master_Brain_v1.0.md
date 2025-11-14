@@ -14,6 +14,8 @@ Tenantra is built on a modern, containerized architecture:
 - **Orchestration:** Docker Compose for easy deployment and scaling.
 - **Observability:** Optional integrations with Prometheus, Grafana, Loki, and Vault.
 
+> **Vite build targets:** `frontend/vite.config.js` now drives every build profile. Run `vite build` (SPA/PWA default), `vite build --mode catalog-remote` (module federation remote), or `vite build --mode ssr` (SSR bundle). The config enables the proper plugins per target so we no longer maintain separate config files.
+
 Each tenant’s data is fully isolated by schema and RBAC policy. The system supports Dev, Staging, and Production environments.
 
 ### 2.1 Security Foundation
@@ -200,6 +202,21 @@ This file acts as the bridge between the low-level security functions and the Fa
     - **Purpose:** A FastAPI dependency that ensures the current user has permissions to read settings (a broader set of roles than just admin).
     - **Logic:** Similar to `get_admin_user`, but checks the user's role against a larger set of roles (`_SETTINGS_READ_ROLES`), which includes auditors and read-only admins.
     - **Returns:** The authenticated `User` object with settings-read permissions.
+
+### 3.6 Phase 2 Database & Backend Hardening
+Sprint 2 delivered the “Database & Backend Health” improvements. Highlights now live in the codebase:
+
+- **Mixins + Timestamps**: Every ORM model inherits the updated `TimestampMixin`/`ModelMixin`. Revision `T_025_phase2_schema_health` enforces UTC defaults and back-fills missing `created_at`/`updated_at` columns.
+- **JSONB Everywhere**: Module parameter schemas and process drift payloads now use PostgreSQL JSONB for indexable queries.
+- **Module Catalog Simplification**: The legacy `enabled` flag was removed; modules rely on a single `ModuleStatus` enum (`draft`, `active`, `disabled`, `deprecated`, `retired`) and tenant overrides.
+- **Notification Consolidation**: `notification_settings` and its routes were removed in favor of `/notification-prefs`, which already backed tenant/user overrides.
+- **Tenant Scope Guard**: A reusable dependency (`tenant_scope_dependency`) drives strict tenant scoping for alerts, assets, exports, and notification preference APIs.
+- **Celery Queue Architecture**: The thread-based workers were replaced with Redis + Celery (`celery_worker` + `celery_beat`) plus database-level locking (`SELECT ... FOR UPDATE SKIP LOCKED`). `docker-compose.yml` ships Redis secrets, Celery services, and read/write tmpfs mounts.
+- **Dependency & Tooling Updates**: Requirements are fully pinned, the driver switched to `psycopg[binary]`, PDF exports now use `reportlab`, and FastAPI now rides on `pydantic[email]==2.7.4` (aligning backend models/tests with the v2 API). The backend and CLI builders rewrite raw `postgresql://` URLs to `postgresql+psycopg://`.
+- **CORS Simplification**: The bespoke `/auth/login` OPTIONS handler was dropped; `DynamicCORSMiddleware` is the single source of truth.
+- **Validation**: Option 1 of `tenantra_control_menu.sh` (full setup + migrate + seed) rebuilds the stack cleanly; Redis, Celery worker/beat, backend, frontend, Grafana, Prometheus, and Postgres all reported healthy after the run (Grafana data folder emits benign permission warnings during cleanup).
+- **SQLite Test Harness**: The in-memory runner now pins SQLite connections to `StaticPool` with a generous timeout to stop `database is locked` flakes during parallel API tests.
+- **Testing Status**: Linux cannot execute `phase2_test_suite*.ps1` without PowerShell. Backend `docker exec TEN-S-backend pytest -q` now passes (61 passed / 1 skipped); rerun the PowerShell suites on a Windows host to finish Phase 2 validation.
 
 ---
 ##### **`app/core/tokens.py`**
@@ -1379,15 +1396,20 @@ cd frontend
 npm install
 ```
 
+**4. Environment files:**
+```bash
+cp .env.example .env.development   # adjust secrets per environment
+```
+The `.env.example` template now lists every critical variable (encryption keys, admin passwords, worker flags, Vite envs). Copy it for each environment (`.env.staging`, `.env.production`, etc.) and rotate `TENANTRA_ENC_KEY`/`JWT_SECRET` before the stack starts.
+
 ## 6. Running the Application
 ### With Docker (Recommended)
-The easiest way to run the full application stack is with Docker Compose:
+Use the control menu for deterministic stack bring-up (migrate + seed + health checks in one flow):
 ```bash
-make up       # Start the application stack
-make migrate  # Apply database migrations
-make seed     # Seed the database with initial data
+./tenantra_control_menu.sh --repo-root "$(pwd)" --no-pause
+# choose option 1 → build + up + migrate + seed
 ```
-The frontend will be available at `http://localhost:5173` and the backend at `http://localhost:5000`.
+The menu mirrors the `make up/migrate/seed` commands, adds health probes, and records failures per step. Command-line fallbacks (`make up`, `make migrate`, `make seed`) still work when you only need a subset.
 
 ### Local Development
 **Backend:**
@@ -1400,24 +1422,23 @@ python backend/dev_server.py
 npm run dev
 ```
 
-## 7. Running Tests
-**Backend:**
-```bash
-pytest backend/
-```
+For deeper operational guidance (logs, health probes, rebuild flows) see `docs/RUNBOOK.md`.
 
-**Frontend:**
-```bash
-npm test
-```
+## 7. Running Tests
+- **One command:** `make test-all` (backend pytest + Playwright UI specs + Playwright E2E). This is required before every PR and matches the CI workflow described below.
+- **Backend only:** `cd backend && pytest -q`
+- **Frontend UI specs:** `cd frontend && TENANTRA_TEST_ADMIN_PASSWORD=... npm run test:frontend`
+- **Playwright E2E:** `cd frontend && TENANTRA_TEST_ADMIN_PASSWORD=... npm run test:e2e`
 
 ## 8. CI/CD
-This project uses GitHub Actions for CI/CD. The main workflows are:
-- `backend-ci.yml`: Runs linting, type checking, security scans, and tests for the backend.
-- `frontend-ci.yml`: Installs dependencies, runs ESLint, and builds the frontend.
-- `e2e-staging.yml`: Runs end-to-end tests against a staging environment.
+GitHub Actions coverage:
+- `backend-ci.yml`: linting, typing, Bandit, pytest, OpenAPI diff.
+- `frontend-ci.yml`: Node matrix (Linux/Windows) + ESLint + bundle budgets + Lighthouse.
+- `test-all.yml`: Executes `make test-all` (new Sprint 3 requirement) on every pull request regardless of touched paths.
+- `e2e-staging.yml`: Playwright against staging.
+- `newman-e2e*.yml`, `lighthouse.yml`, `secret-scan.yml`, etc. for the remaining quality gates.
 
-For more details, see the workflow files in `.github/workflows`.
+Refer to `.github/workflows/` for exact steps.
 
 ## 9. Security
 This section outlines the security measures in place for the Tenantra platform.
