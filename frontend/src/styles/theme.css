@@ -1,31 +1,37 @@
 :root {
-  /* Tenantra neutral palette (light) */
-  --tena-primary: #1877F2;    /* brand blue */
-  --tena-secondary: #42b72a;  /* action green */
-  --tena-neutral: #f0f2f5;    /* app background */
-  --tena-surface: #ffffff;    /* cards/surfaces */
-  --tena-text: #101828;       /* primary text */
-  --tena-muted: #667085;      /* secondary text */
-  --tena-border: #e5e7eb;     /* subtle borders */
-  --tena-muted-strong: #475467;
-  --tena-muted-soft: #98a2b3;
-  --tena-surface-soft: #f5f6f7;
-  --tena-surface-strong: #dbe0ea;
-  --tena-border-strong: #d0d5dd;
-  --tena-primary-rgb: 24, 119, 242;
-  --tena-secondary-rgb: 66, 183, 42;
-  --tena-danger: #f02849;
-  --tena-danger-rgb: 240, 40, 73;
-  --tena-warning: #f7b928;
-  --tena-warning-rgb: 247, 185, 40;
-  --sidebar-bg: #ffffff;
-  --sidebar-text: #101828;
-  --sidebar-muted: #475467;
-  --sidebar-border: #e5e7eb;
-  --sidebar-hover-bg: rgba(24, 119, 242, 0.08);
+  /* Tenantra.be inspired palette */
+  --tena-primary: #111827; /* deep navy */
+  --tena-primary-rgb: 17, 24, 39;
+  --tena-secondary: #16a34a; /* success green */
+  --tena-secondary-rgb: 22, 163, 74;
+  --tena-accent: #4f46e5; /* indigo accent */
+  --tena-accent-rgb: 79, 70, 229;
+  --tena-neutral: #f3f4f6;
+  --tena-surface: #ffffff;
+  --tena-surface-soft: #f8fafc;
+  --tena-surface-strong: #e2e8f0;
+  --tena-text: #0f172a;
+  --tena-muted: #475467;
+  --tena-muted-strong: #1f2937;
+  --tena-muted-soft: #94a3b8;
+  --tena-border: #e5e7eb;
+  --tena-border-strong: #d1d5db;
+  --tena-danger: #dc2626;
+  --tena-danger-rgb: 220, 38, 38;
+  --tena-warning: #d97706;
+  --tena-warning-rgb: 217, 119, 6;
+  --sidebar-bg: rgba(255, 255, 255, 0.98);
+  --sidebar-text: #0f172a;
+  --sidebar-muted: #64748b;
+  --sidebar-border: rgba(15, 23, 42, 0.08);
+  --sidebar-hover-bg: rgba(15, 23, 42, 0.06);
   --sidebar-active-text: #ffffff;
-  /* Typography */
-  --font-sans: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, "Noto Sans", Roboto, "Segoe UI", sans-serif;
+  --page-gradient-start: #f8fafc;
+  --page-gradient-mid: #eef2ff;
+  --page-gradient-end: #ffffff;
+  --font-sans: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  --tena-shadow-card: 0 25px 60px -40px rgba(15, 23, 42, 0.45);
+
   /* 8px spacing scale */
   --space-1: 4px;
   --space-2: 8px;
@@ -38,40 +44,55 @@
 }
 
 .dark:root {
-  --tena-primary: #1877F2;    /* keep brand */
-  --tena-secondary: #58D85A;
-  --tena-neutral: #18191a;    /* fb dark bg */
-  --tena-surface: #242526;    /* fb dark surface */
-  --tena-text: #e5e7eb;       /* light text */
-  --tena-muted: #cbd5e1;      /* muted text */
-  --tena-border: #374151;     /* dark border */
-  --tena-muted-strong: #94a3b8;
-  --tena-muted-soft: #64748b;
-  --tena-surface-soft: #2f3033;
-  --tena-surface-strong: #3a3b3c;
-  --tena-border-strong: #4b5563;
-  --tena-primary-rgb: 24, 119, 242;
-  --tena-secondary-rgb: 88, 216, 90;
+  --tena-primary: #111827;
+  --tena-primary-rgb: 17, 24, 39;
+  --tena-secondary: #22c55e;
+  --tena-secondary-rgb: 34, 197, 94;
+  --tena-accent: #818cf8;
+  --tena-accent-rgb: 129, 140, 248;
+  --tena-neutral: #0b1220;
+  --tena-surface: #111827;
+  --tena-surface-soft: #0f172a;
+  --tena-surface-strong: #1f2937;
+  --tena-text: #f3f4f6;
+  --tena-muted: #cbd5f5;
+  --tena-muted-soft: #94a3b8;
+  --tena-muted-strong: #cbd5e1;
+  --tena-border: #1f2937;
+  --tena-border-strong: #334155;
   --tena-danger: #f87171;
   --tena-danger-rgb: 248, 113, 113;
   --tena-warning: #facc15;
   --tena-warning-rgb: 250, 204, 21;
-  --sidebar-bg: #0f172a;
-  --sidebar-text: #e2e8f0;
-  --sidebar-muted: #94a3b8;
-  --sidebar-border: #1f2937;
-  --sidebar-hover-bg: rgba(255, 255, 255, 0.06);
+  --sidebar-bg: rgba(17, 24, 39, 0.92);
+  --sidebar-text: #f8fafc;
+  --sidebar-muted: #cbd5f5;
+  --sidebar-border: rgba(148, 163, 184, 0.2);
+  --sidebar-hover-bg: rgba(255, 255, 255, 0.08);
   --sidebar-active-text: #ffffff;
+  --page-gradient-start: #020617;
+  --page-gradient-mid: #0f172a;
+  --page-gradient-end: #111827;
+  --tena-shadow-card: 0 30px 70px -45px rgba(2, 6, 23, 0.9);
 }
 
+body {
+  font-family: var(--font-sans);
+  background: linear-gradient(180deg, var(--page-gradient-start) 0%, var(--page-gradient-mid) 42%, var(--page-gradient-end) 100%);
+  color: var(--tena-text);
+  min-height: 100vh;
+  text-rendering: optimizeLegibility;
+}
 
-.dark body { background-color: var(--tena-neutral); color: var(--tena-text); }
-body { background-color: var(--tena-neutral); color: var(--tena-text); font-family: var(--font-sans); }
+.dark body {
+  background: linear-gradient(180deg, var(--page-gradient-start) 0%, var(--page-gradient-mid) 60%, var(--page-gradient-end) 100%);
+  color: var(--tena-text);
+}
 
-/* Improve dark mode text contrast for helper text */
-.dark .text-gray-500 { color: #9ca3af !important; } /* gray-400 */
-.dark .text-gray-600 { color: #d1d5db !important; } /* gray-300 */
-.dark .text-gray-700 { color: #e5e7eb !important; } /* gray-200 */
+/* Improve dark mode helper text contrast */
+.dark .text-gray-500 { color: #94a3b8 !important; }
+.dark .text-gray-600 { color: #cbd5f5 !important; }
+.dark .text-gray-700 { color: #e2e8f0 !important; }
 
 /* Panel + tables + form controls align to theme card bg */
 .panel,
@@ -81,21 +102,13 @@ body { background-color: var(--tena-neutral); color: var(--tena-text); font-fami
 .panel-body,
 .panel-header { background-color: var(--tena-surface); }
 
-.data-table th, .data-table td { background-color: inherit; }
+.data-table th,
+.data-table td { background-color: inherit; }
 
 .field-control { background-color: var(--tena-surface); color: inherit; }
-.dark .field-control { border-color: #374151; }
+.dark .field-control { border-color: var(--tena-border); background-color: var(--tena-surface-soft); }
 
-/* Extend card/background var to common utility classes across pages */
-.bg-white { background-color: var(--tena-surface) !important; }
-.dark .dark\:bg-gray-800 { background-color: var(--tena-surface) !important; }
-.dark .dark\:bg-gray-700 { background-color: var(--tena-surface) !important; }
-
-/* Header and buttons adopt brand color */
-.text-primary, .bg-primary { background-color: var(--tena-primary) !important; color: #fff !important; }
-header, .page-header { background: linear-gradient(0deg, rgba(0,0,0,0.02), rgba(0,0,0,0.02)), var(--tena-surface); }
-
-/* Alignment overrides for legacy Tailwind utilities */
+/* Color utility overrides */
 .text-gray-900,
 .text-gray-800,
 .text-gray-700,
@@ -141,7 +154,7 @@ header, .page-header { background: linear-gradient(0deg, rgba(0,0,0,0.02), rgba(
 .bg-slate-200 { background-color: var(--tena-surface) !important; }
 
 .bg-blue-50,
-.bg-blue-100 { background-color: rgba(var(--tena-primary-rgb), 0.12) !important; }
+.bg-blue-100 { background-color: rgba(var(--tena-primary-rgb), 0.08) !important; }
 
 .bg-green-50,
 .bg-green-100,
@@ -171,77 +184,352 @@ header, .page-header { background: linear-gradient(0deg, rgba(0,0,0,0.02), rgba(
 
 .border-blue-200,
 .border-blue-300,
-.hover\\:border-blue-200:hover,
-.hover\\:border-blue-300:hover { border-color: rgba(var(--tena-primary-rgb), 0.35) !important; }
+.hover\:border-blue-200:hover,
+.hover\:border-blue-300:hover { border-color: rgba(var(--tena-primary-rgb), 0.3) !important; }
 
 .border-green-200,
-.border-emerald-200 { border-color: rgba(var(--tena-secondary-rgb), 0.35) !important; }
+.border-emerald-200 { border-color: rgba(var(--tena-secondary-rgb), 0.3) !important; }
 
 .border-red-200,
-.border-red-300 { border-color: rgba(var(--tena-danger-rgb), 0.35) !important; }
+.border-red-300 { border-color: rgba(var(--tena-danger-rgb), 0.32) !important; }
 
 .border-amber-200,
-.border-yellow-200 { border-color: rgba(var(--tena-warning-rgb), 0.35) !important; }
+.border-yellow-200 { border-color: rgba(var(--tena-warning-rgb), 0.32) !important; }
 
-/* Primary top bar */
+/* Shell layout */
+.tena-app {
+  min-height: 100vh;
+  background: linear-gradient(180deg, var(--page-gradient-start) 0%, var(--page-gradient-mid) 45%, var(--page-gradient-end) 100%);
+}
+.dark .tena-app {
+  background: linear-gradient(180deg, var(--page-gradient-start) 0%, var(--page-gradient-mid) 50%, var(--page-gradient-end) 100%);
+}
+
+/* Header */
 .tena-header {
-  background-color: var(--tena-primary);
-  color: #fff;
-  border-bottom: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid var(--tena-border);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
 }
-.tena-header * { color: #ffffff !important; }
-.tena-header .tenant-select {
-  background: transparent;
-  color: #fff;
-  border: 1px solid rgba(255,255,255,0.35);
-  border-radius: 6px;
+.dark .tena-header {
+  background: rgba(15, 23, 42, 0.9);
+  border-bottom-color: rgba(148, 163, 184, 0.2);
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.8);
 }
-.tena-header .tena-header__iconbtn {
-  border-color: rgba(255,255,255,0.35) !important;
-  background: transparent !important;
+.tena-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding: 0 1.5rem;
+  gap: 1.25rem;
 }
-.tena-header .tena-header__iconbtn:hover { background: rgba(255,255,255,0.1) !important; }
-.tena-header .tena-header__logout {
-  background: rgba(255,255,255,0.12) !important;
-  border: 1px solid rgba(255,255,255,0.35) !important;
-}
-.tena-header .tena-header__logout:hover { background: rgba(255,255,255,0.2) !important; }
 
-/* Inputs and selects contrast improvements */
-input, select, textarea {
+.tena-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+.tena-brand__glyph {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: linear-gradient(130deg, var(--tena-primary) 0%, rgba(var(--tena-accent-rgb), 1) 100%);
+  color: #fff;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.02em;
+}
+.tena-brand__eyebrow {
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  color: var(--tena-muted);
+}
+.tena-brand__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--tena-text);
+}
+.dark .tena-brand__eyebrow { color: #cbd5f5; }
+.dark .tena-brand__title { color: #f8fafc; }
+
+.top-search {
+  border: 1px solid var(--tena-border);
+  border-radius: 999px;
+  background: var(--tena-surface);
+  padding: 0.35rem 0.9rem;
+  min-width: 200px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.top-search:focus {
+  border-color: rgba(var(--tena-accent-rgb), 0.8);
+  box-shadow: 0 0 0 3px rgba(var(--tena-accent-rgb), 0.15);
+  outline: none;
+}
+.dark .top-search {
+  background: var(--tena-surface-soft);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: var(--tena-text);
+}
+.top-search::placeholder { color: var(--tena-muted-soft); }
+
+.tenant-select {
+  border: 1px solid var(--tena-border);
+  border-radius: 999px;
+  background: var(--tena-surface);
+  padding: 0.35rem 1.1rem 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--tena-text);
+}
+.tenant-select:focus {
+  border-color: rgba(var(--tena-accent-rgb), 0.65);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(var(--tena-accent-rgb), 0.18);
+}
+.dark .tenant-select {
+  background: var(--tena-surface-soft);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: var(--tena-text);
+}
+
+.tena-api-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--tena-border);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tena-text);
+}
+.dark .tena-api-pill {
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #e2e8f0;
+}
+
+.tena-header__iconbtn {
+  border: 1px solid var(--tena-border);
+  border-radius: 12px;
+  background: var(--tena-surface);
+  color: var(--tena-text);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.tena-header__iconbtn:hover {
+  background: var(--tena-surface-soft);
+  border-color: rgba(var(--tena-accent-rgb), 0.6);
+}
+.dark .tena-header__iconbtn {
+  background: var(--tena-surface-soft);
+  border-color: rgba(148, 163, 184, 0.3);
+  color: var(--tena-text);
+}
+
+.tena-header__logout {
+  border-radius: 999px;
+  border: 1px solid var(--tena-border);
+  background: #fefefe;
+  color: var(--tena-primary);
+  font-weight: 600;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.tena-header__logout:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px rgba(15, 23, 42, 0.12);
+}
+.dark .tena-header__logout {
+  background: rgba(148, 163, 184, 0.1);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #f8fafc;
+}
+
+/* Sidebar */
+.sidebar {
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  border: 1px solid var(--sidebar-border);
+  border-radius: 28px;
+  box-shadow: var(--tena-shadow-card);
+  min-height: fit-content;
+  max-height: calc(100vh - 6rem);
+  overflow-y: auto;
+}
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.45);
+  border-radius: 999px;
+}
+.tena-sidebar__intro .tena-sidebar__title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--sidebar-text);
+}
+.tena-sidebar__intro .tena-sidebar__subtitle {
+  font-size: 0.78rem;
+  color: var(--sidebar-muted);
+}
+
+.tena-nav__section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--sidebar-muted);
+}
+
+.tena-nav__link {
+  display: block;
+  width: 100%;
+  border-radius: 18px;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--sidebar-muted);
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.tena-nav__link:hover {
+  background: var(--sidebar-hover-bg);
+  color: var(--sidebar-text);
+}
+.tena-nav__link--active {
+  background: linear-gradient(125deg, var(--tena-primary) 0%, rgba(var(--tena-accent-rgb), 0.9) 100%);
+  color: #fff !important;
+  box-shadow: 0 15px 35px -20px rgba(15, 23, 42, 0.4);
+}
+.dark .tena-nav__link {
+  color: #cbd5f5;
+}
+
+.tena-sidebar__note {
+  border-radius: 18px;
+  border: 1px dashed rgba(var(--tena-accent-rgb), 0.35);
+  background: rgba(var(--tena-accent-rgb), 0.08);
+  color: var(--sidebar-text);
+}
+.dark .tena-sidebar__note {
+  border-color: rgba(129, 140, 248, 0.4);
+  background: rgba(129, 140, 248, 0.08);
+  color: #e2e8f0;
+}
+
+/* Settings menu */
+.tena-settings-menu {
+  border-radius: 20px;
+  border: 1px solid var(--tena-border);
+  background: var(--tena-surface);
+  box-shadow: var(--tena-shadow-card);
+}
+.dark .tena-settings-menu {
+  border-color: rgba(148, 163, 184, 0.35);
+  background: var(--tena-surface);
+}
+.tena-settings-menu__link {
+  display: block;
+  border-radius: 12px;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.9rem;
+  color: var(--tena-text);
+}
+.tena-settings-menu__link:hover {
+  background: var(--tena-neutral);
+  color: var(--tena-primary);
+}
+.dark .tena-settings-menu__link {
+  color: #f8fafc;
+}
+.dark .tena-settings-menu__link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+/* Form controls */
+input,
+select,
+textarea {
   background-color: var(--tena-surface);
   color: inherit;
+  border-color: var(--tena-border);
 }
-.dark input, .dark select, .dark textarea {
-  background-color: #18181b;
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: var(--tena-surface-soft);
   color: var(--tena-text);
   border-color: var(--tena-border);
 }
-input::placeholder, textarea::placeholder { color: #9ca3af; }
-.dark input::placeholder, .dark textarea::placeholder { color: #9ca3af; }
-.sidebar { background: var(--sidebar-bg); color: var(--sidebar-text); border-right: 1px solid var(--sidebar-border); }
-.sidebar a { color: var(--sidebar-muted); }
-.sidebar a:hover { background: var(--sidebar-hover-bg); color: var(--sidebar-text); }
-.sidebar a.active { background: var(--tena-primary); color: var(--sidebar-active-text) !important; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
-.sidebar { transition: transform .2s ease, background-color .2s ease, color .2s ease; }
+input::placeholder,
+textarea::placeholder { color: #94a3b8; }
+.dark input::placeholder,
+.dark textarea::placeholder { color: #94a3b8; }
 
-.top-search { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.35); color: #fff; }
-.top-search::placeholder { color: rgba(255,255,255,0.85); }
 .avatar {
-  width: 28px; height: 28px; border-radius: 9999px; display: inline-flex; align-items:center; justify-content:center;
-  background: rgba(255,255,255,0.2); color: #fff; font-weight: 700; font-size: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--tena-primary), rgba(var(--tena-accent-rgb), 0.8));
+  color: #fff;
+  text-transform: uppercase;
 }
 
-/* Subtle hover animation for cards */
-.card { transition: transform .12s ease, box-shadow .2s ease; }
-.card:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,.10); }
+.tena-main-panel {
+  border-radius: 32px;
+  border: 1px solid var(--tena-border);
+  background: rgba(255, 255, 255, 0.96);
+  padding: clamp(1.25rem, 2vw, 2.4rem);
+  box-shadow: var(--tena-shadow-card);
+}
+.dark .tena-main-panel {
+  background: rgba(17, 24, 39, 0.85);
+}
+
+.tena-scope-banner {
+  border-radius: 18px;
+  border: 1px dashed rgba(var(--tena-accent-rgb), 0.4);
+  background: rgba(var(--tena-accent-rgb), 0.08);
+  color: var(--tena-text);
+}
+.dark .tena-scope-banner {
+  background: rgba(129, 140, 248, 0.08);
+  border-color: rgba(129, 140, 248, 0.4);
+  color: #f8fafc;
+}
+
+/* Card hover */
+.card {
+  transition: transform 0.18s ease, box-shadow 0.2s ease;
+  box-shadow: var(--tena-shadow-card);
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 35px 60px -40px rgba(15, 23, 42, 0.55);
+}
 
 /* Page-level skeletons */
-.skeleton { position: relative; overflow: hidden; background: #e5e7eb; }
-.dark .skeleton { background: #374151; }
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #e5e7eb;
+}
+.dark .skeleton {
+  background: #1f2937;
+}
 .skeleton::after {
-  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
   animation: shimmer 1.2s infinite;
 }
 @keyframes shimmer {

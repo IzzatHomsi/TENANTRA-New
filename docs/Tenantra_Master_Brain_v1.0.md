@@ -1374,16 +1374,16 @@ The frontend code is located in the `frontend/` directory.
 - **Settings (`/admin-settings`, `/alert-settings`):** Admin-only pages for configuring various aspects of the application.
 
 ### 4.5 Frontend Styling (Tenantra Theme)
-The frontend implements a custom Tenantra UI theme to ensure a cohesive and modern user experience. The theme is defined through a set of design tokens and layout patterns documented in `docs/ui-theme.md`.
-- **Color System:** A specific color palette is defined with CSS custom properties (e.g., `--tena-primary: #1877F2`). These are aliased in Tailwind CSS for easy use through semantic color tokens.
-- **Typography:** A standard font stack is used, with specific weights and sizes for headers, body copy, and muted text.
-- **Layout & Spacing:** The layout is based on an 8px rhythm, with a spacing scale exposed as CSS custom properties (e.g., `--space-4` for 16px).
+The frontend implements a custom Tenantra UI theme to ensure a cohesive and modern user experience. The design language now mirrors the production marketing site (`tenantra.be`) so that the SaaS console and the public site feel like one system. Theme tokens live in `frontend/src/styles/theme.css`, are exposed to Tailwind through semantic aliases configured in `tailwind.config.js`, and remain documented in `docs/ui-theme.md`.
+- **Color System:** CSS custom properties define the palette (`--tena-primary: #111827`, `--tena-accent: #4F46E5`, `--tena-neutral: #F3F4F6`). These values were derived directly from tenantra.be and applied globally (header, sidebar, cards) to keep marketing + product visuals in sync.
+- **Typography:** The UI uses the same Inter/system stack as the marketing site with refined weights for eyebrows, titles, and supporting copy.
+- **Layout & Spacing:** Layouts still follow the 8px rhythm but surfaces now use softer 24–32px radii, glassmorphism, and gradient backgrounds to match the hero/section treatments on tenantra.be.
 - **Core Components:**
-    - **Header:** A primary top bar with a brand-blue background.
-    - **Sidebar:** A dark slate sidebar with active items highlighted in blue.
-    - **Cards:** Elevated surfaces with soft drop shadows.
-    - **Buttons:** A set of buttons (primary, ghost, outline) styled to match the theme.
-- **Iconography:** A set of custom SVG icons is used, located in `components/ui/Icon.jsx`.
+    - **Header:** A translucent, blurred top bar with a Tenantra glyph, API health pill, and pill-shaped actions (matching the sticky marketing header).
+    - **Sidebar:** A glass card with gradient active states (`tena-nav__link--active`) and uppercase section labels styled after the marketing site navigation.
+    - **Cards & Panels:** Rounded 28–32px surfaces with long, subtle drop shadows (`--tena-shadow-card`) and a soft white/indigo gradient background.
+    - **Buttons:** Pill-shaped primary/outline/ghost buttons that share the marketing call-to-action styling (deep navy fill, white text, hover lift).
+- **Iconography:** A set of custom SVG icons is used, located in `components/ui/Icon.jsx`, and inherits the updated color tokens.
 
 ## 5. Installation and Setup
 To set up the development environment, you will need:

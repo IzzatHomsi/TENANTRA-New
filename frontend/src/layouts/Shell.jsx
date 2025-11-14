@@ -89,7 +89,7 @@ export default function Shell() {
     const colorSetting = supportSettings?.["theme.colors.primary"];
     let color = colorSetting;
     if (!color || String(color).toLowerCase() === "#0ea5e9") {
-      color = "#1877F2";
+      color = "#111827";
     }
     try {
       document.documentElement.style.setProperty("--tena-primary", color);
@@ -411,7 +411,7 @@ export default function Shell() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral text-primary-text dark:bg-neutral dark:text-primary-text">
+    <div className="tena-app min-h-screen text-primary-text dark:text-primary-text">
       <GlobalNotice kind={notice.kind} message={notice.message} onClose={() => setNotice({ kind: "info", message: "" })} />
       {extensionWarning && (
         <div className="mx-auto max-w-7xl px-4 pt-4">
@@ -437,53 +437,60 @@ export default function Shell() {
         </div>
       )}
       {/* Top bar */}
-      <header className="tena-header sticky top-0 z-10">
-        <div className="mx-auto max-w-7xl flex items-center justify-between" style={{ paddingLeft: 'var(--space-4)', paddingRight: 'var(--space-4)', height: 56 }}>
+      <header className="tena-header sticky top-0 z-20">
+        <div className="tena-header__inner mx-auto w-full max-w-7xl">
           <div className="flex items-center gap-3">
             <button
               type="button"
-              className="tena-header__iconbtn inline-flex h-9 w-9 items-center justify-center rounded-md border lg:hidden"
+              className="tena-header__iconbtn inline-flex h-9 w-9 items-center justify-center border lg:hidden"
               onClick={() => setSidebarOpen((v) => !v)}
               aria-label="Toggle navigation"
             >
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 6h18M3 12h18M3 18h18" />
+              </svg>
             </button>
-            <div>
-              <div className="text-xs uppercase tracking-wide" style={{ opacity: 0.85 }}>Tenantra Platform</div>
-              <div className="text-sm font-semibold">{currentRouteLabel}</div>
+            <div className="tena-brand">
+              <span className="tena-brand__glyph" aria-hidden="true">T</span>
+              <div>
+                <div className="tena-brand__eyebrow">Tenantra Ops Fabric</div>
+                <div className="tena-brand__title">{currentRouteLabel}</div>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-4 relative">
+          <div className="relative flex items-center gap-3 md:gap-4">
             <input
-              className="hidden md:block rounded-md px-2 py-1 text-sm top-search"
+              type="search"
+              className="top-search hidden md:block"
               placeholder="Search…"
               onKeyDown={(e)=>{ if(e.key==='Enter'){ window.dispatchEvent(new CustomEvent('tena:notice',{ detail: { kind:'info', message:`Search for "${e.currentTarget.value}" not yet implemented`}})); e.currentTarget.blur(); } }}
             />
             {isAdminRole(role) && tenants.length > 0 && (
-              <div>
-                <select
-                  value={tenantId || ""}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    const t = tenants.find((tenant) => tenant.id === v);
-                    setTenant(v, t?.name);
-                    setGlobalToast(v ? 'Tenant switched' : 'Tenant cleared');
-                  }}
-                  className="tenant-select px-2 py-1 text-sm"
-                  title="Select tenant scope"
-                >
-                  <option value="">All tenants</option>
-                  {tenants.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-              </div>
+              <select
+                value={tenantId || ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  const t = tenants.find((tenant) => tenant.id === v);
+                  setTenant(v, t?.name);
+                  setGlobalToast(v ? 'Tenant switched' : 'Tenant cleared');
+                }}
+                className="tenant-select"
+                title="Select tenant scope"
+              >
+                <option value="">All tenants</option>
+                {tenants.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
             )}
             <div className="hidden sm:block text-right">
-              <div className="text-sm font-medium">{user?.username || "user"}</div>
-              <div className="text-xs text-secondary-text" style={{ opacity: 0.85 }}>{role || "role"}</div>
+              <div className="text-sm font-semibold">{user?.username || "user"}</div>
+              <div className="text-xs text-secondary-text">{role || "role"}</div>
             </div>
-            <div className="flex items-center gap-2 rounded-full border border-border-color px-2 py-1 text-[11px] text-primary-text" title={`API status • ${apiStatusLabel}${apiStatus.lastChecked ? ` @ ${apiStatus.lastChecked}` : ""}`}>
+            <div
+              className="tena-api-pill"
+              title={`API status • ${apiStatusLabel}${apiStatus.lastChecked ? ` @ ${apiStatus.lastChecked}` : ""}`}
+            >
               <span
                 aria-hidden="true"
                 className="inline-block h-2 w-2 rounded-full"
@@ -494,81 +501,91 @@ export default function Shell() {
             </div>
             <div className="avatar" title={user?.username || ''}>{(user?.username||'U').toString().charAt(0).toUpperCase()}</div>
             <div className="relative">
-            <button
-              type="button"
-              onClick={() => setSettingsOpen((v) => !v)}
-              className="tena-header__iconbtn inline-flex h-9 w-9 items-center justify-center rounded-md border"
-              title="System settings"
-              aria-haspopup="menu"
-              aria-expanded={settingsOpen}
-            >
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0A1.65 1.65 0 0 0 9 3.09V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82h0A1.65 1.65 0 0 0 20.91 9H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>
-              </svg>
-            </button>
-            {settingsOpen && (
-              <div className="absolute right-0 top-10 z-20 w-64 rounded-md border border-border-color bg-surface p-3 text-primary-text shadow-lg transition-colors dark:bg-surface dark:border-border-color">
-                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-secondary-text">System</div>
-                <label className="mb-1 block text-sm text-secondary-text" htmlFor="themeSelect">Theme</label>
-                <select
-                  id="themeSelect"
-                  value={theme}
-                  onChange={(e) => { setTheme(e.target.value); setToast("Theme updated"); }}
-                  className="w-full rounded-md border border-border-color bg-surface px-2 py-1 text-sm text-primary-text transition-colors dark:bg-surface dark:border-border-color"
-                >
-                  <option value="system">System</option>
-                  <option value="light">Light</option>
-                  <option value="dark">Dark</option>
-                </select>
-                {toast && (
-                  <div className="mt-2 rounded bg-[#D1FAE5] text-[#065F46] px-2 py-1 text-xs dark:bg-[#065F46]/40 dark:text-[#A7F3D0]">
-                    {toast}
-                  </div>
-                )}
-                <div className="mt-3 h-px bg-border-color dark:bg-border-color" />
-                <div className="mt-3 text-sm text-primary-text">
-                  <NavLink to="/profile" className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>My Profile</NavLink>
-                  {isAdmin && (
-                    <>
-                      <NavLink to="/alert-settings" className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>Alert Settings</NavLink>
-                      <NavLink to="/admin-settings" className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>Admin Settings</NavLink>
-                      <NavLink to="/feature-flags" className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>Feature Flags</NavLink>
-                      <NavLink to="/audit-logs" className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>Audit Logs</NavLink>
-                      <NavLink to="/observability-setup" className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>Observability Setup</NavLink>
-                      <NavLink to="/faq" className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>Help & FAQ</NavLink>
-                      <NavLink to="/users" className="block rounded px-2 py-1 text-primary-text hover:bg-neutral" onClick={()=>setSettingsOpen(false)}>User Directory</NavLink>
-                    </>
+              <button
+                type="button"
+                onClick={() => setSettingsOpen((v) => !v)}
+                className="tena-header__iconbtn inline-flex h-9 w-9 items-center justify-center border"
+                title="System settings"
+                aria-haspopup="menu"
+                aria-expanded={settingsOpen}
+              >
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0A1.65 1.65 0 0 0 9 3.09V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82h0A1.65 1.65 0 0 0 20.91 9H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>
+                </svg>
+              </button>
+              {settingsOpen && (
+                <div className="tena-settings-menu absolute right-0 top-12 z-30 w-64 p-4 text-primary-text">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-secondary-text">System</div>
+                  <label className="mb-1 block text-sm text-secondary-text" htmlFor="themeSelect">Theme</label>
+                  <select
+                    id="themeSelect"
+                    value={theme}
+                    onChange={(e) => { setTheme(e.target.value); setToast("Theme updated"); }}
+                    className="w-full rounded-md border border-border-color bg-surface px-2 py-1 text-sm text-primary-text transition-colors dark:bg-surface dark:border-border-color"
+                  >
+                    <option value="system">System</option>
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                  </select>
+                  {toast && (
+                    <div className="mt-2 rounded bg-[#D1FAE5] px-2 py-1 text-xs text-[#065F46] dark:bg-[#065F46]/40 dark:text-[#A7F3D0]">
+                      {toast}
+                    </div>
                   )}
+                  <div className="mt-3 h-px bg-border-color dark:bg-border-color" />
+                  <div className="mt-3 text-sm text-primary-text">
+                    <NavLink to="/profile" className="tena-settings-menu__link" onClick={()=>setSettingsOpen(false)}>My Profile</NavLink>
+                    {isAdmin && (
+                      <>
+                        <NavLink to="/alert-settings" className="tena-settings-menu__link" onClick={()=>setSettingsOpen(false)}>Alert Settings</NavLink>
+                        <NavLink to="/admin-settings" className="tena-settings-menu__link" onClick={()=>setSettingsOpen(false)}>Admin Settings</NavLink>
+                        <NavLink to="/feature-flags" className="tena-settings-menu__link" onClick={()=>setSettingsOpen(false)}>Feature Flags</NavLink>
+                        <NavLink to="/audit-logs" className="tena-settings-menu__link" onClick={()=>setSettingsOpen(false)}>Audit Logs</NavLink>
+                        <NavLink to="/observability-setup" className="tena-settings-menu__link" onClick={()=>setSettingsOpen(false)}>Observability Setup</NavLink>
+                        <NavLink to="/faq" className="tena-settings-menu__link" onClick={()=>setSettingsOpen(false)}>Help & FAQ</NavLink>
+                        <NavLink to="/users" className="tena-settings-menu__link" onClick={()=>setSettingsOpen(false)}>User Directory</NavLink>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
             </div>
             <button
               type="button"
               onClick={handleLogout}
-              className="tena-header__logout inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium hover:opacity-90"
+              className="tena-header__logout inline-flex items-center px-4 py-2 text-sm"
             >
               Logout
             </button>
           </div>
         </div>
       </header>
+      {sidebarOpen && (
+        <div
+          className="fixed inset-x-0 bottom-0 z-10 bg-slate-900/30 backdrop-blur-sm lg:hidden"
+          style={{ top: 64 }}
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
       {globalToast && (
-        <div className="fixed right-4 top-14 z-30 rounded bg-secondary px-3 py-1.5 text-xs text-white shadow">
+        <div className="fixed right-4 top-20 z-30 rounded bg-secondary px-3 py-1.5 text-xs text-white shadow">
           {globalToast}
         </div>
       )}
 
       {/* Shell */}
-      <div className="flex w-full gap-6 px-4 sm:px-6 lg:px-8 py-6 transition-colors duration-200">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 pb-10 pt-6 transition-colors duration-200 lg:flex-row lg:px-8">
         {/* Sidebar */}
-        <aside className={`fixed inset-y-14 left-0 w-72 sidebar p-4 transition-transform lg:static lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:block`}>
-          <div className="mb-4 flex items-center gap-2">
+        <aside
+          className={`fixed inset-y-16 left-0 z-20 w-72 sidebar px-5 py-6 transition-transform duration-300 lg:relative lg:inset-auto lg:z-0 lg:block lg:h-auto lg:max-h-none lg:translate-x-0 lg:sticky lg:top-6 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+          aria-label="Primary navigation"
+        >
+          <div className="tena-sidebar__intro mb-4 flex items-center gap-2">
             <span className="inline-block h-2.5 w-2.5 rounded-full bg-secondary" />
             <div>
-              <div className="text-sm font-semibold">Tenantra</div>
-              <div className="text-xs text-secondary-text">Operations Fabric</div>
+              <div className="tena-sidebar__title">Tenantra</div>
+              <div className="tena-sidebar__subtitle">Operations Fabric</div>
               {tenantId && (
                 <div className="text-xs mt-0.5 text-secondary-text dark:text-secondary-text">Tenant: {tenantName || `#${tenantId}`}</div>
               )}
@@ -578,15 +595,14 @@ export default function Shell() {
           <div className="space-y-6">
             {navSections.map((section) => (
               <div key={section.label}>
-                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-secondary-text">{section.label}</div>
+                <div className="mb-2 text-secondary-text tena-nav__section-label">{section.label}</div>
                 <nav className="space-y-1">
                   {section.items.map((item) => (
                     <NavLink
                       key={item.to}
                       to={item.to}
                       end={Boolean(item.exact)}
-                      className={({ isActive }) => `block rounded-md px-3 py-2 text-sm ${isActive ? 'active' : ''}`}
-                      style={({ isActive }) => isActive ? undefined : undefined}
+                      className={({ isActive }) => `tena-nav__link ${isActive ? 'tena-nav__link--active' : ''}`}
                       onClick={() => setSidebarOpen(false)}
                     >
                       {item.label}
@@ -597,16 +613,16 @@ export default function Shell() {
             ))}
           </div>
 
-          <div className="mt-8 rounded-md border border-border-color p-3 text-xs text-secondary-text dark:text-secondary-text dark:border-border-color">
+          <div className="tena-sidebar__note mt-8 border px-3 py-3 text-xs text-secondary-text">
             Resilient compliance, runtime integrity, and tenant trust in a unified workspace.
           </div>
         </aside>
 
         {/* Main */}
         <main className="flex-1 min-w-0">
-          <div className="rounded-lg bg-surface p-4 shadow-sm dark:bg-surface">
+          <div className="tena-main-panel">
             {tenantId && (
-              <div className="mb-3 rounded border border-dashed border-border-color p-2 text-xs text-primary-text dark:border-border-color dark:text-secondary-text">
+              <div className="tena-scope-banner mb-3 px-3 py-2 text-xs">
                 Tenant scope: <strong className="text-primary-text dark:text-primary-text">{tenantName || `#${tenantId}`}</strong>
               </div>
             )}

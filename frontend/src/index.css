@@ -6,27 +6,27 @@
 
 /* Optional: Custom base styles */
 body {
-  @apply bg-neutral text-primary-text;
+  @apply text-primary-text antialiased;
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center rounded-lg border border-transparent px-3 py-2 text-sm font-semibold transition duration-150 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center rounded-full border border-transparent px-4 py-2 text-sm font-semibold tracking-tight text-primary-text transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900 disabled:cursor-not-allowed disabled:opacity-60;
   }
   .btn-primary {
-    @apply bg-primary text-white shadow-sm hover:brightness-105;
+    @apply bg-primary text-white shadow-lg hover:-translate-y-0.5 hover:shadow-xl;
   }
   .btn-ghost {
     @apply border border-border-color bg-transparent text-primary-text hover:bg-neutral;
   }
   .btn-outline {
-    @apply border border-primary bg-transparent text-primary hover:bg-blue-50;
+    @apply border-2 border-primary bg-transparent text-primary hover:bg-primary hover:text-white;
   }
   .btn-danger {
-    @apply bg-red-600 text-white hover:bg-red-500;
+    @apply bg-red-600 text-white shadow-sm hover:bg-red-500;
   }
   .card {
-    @apply rounded-xl border border-border-color bg-surface transition-[transform,box-shadow] duration-150 ease-in-out hover:-translate-y-0.5 hover:shadow-lg;
+    @apply rounded-3xl border border-border-color bg-surface shadow-lg transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-2xl;
   }
   .shadow-soft {
     @apply shadow-md;
@@ -53,7 +53,7 @@ body {
   .banner { @apply mb-3 rounded-md border p-2 text-sm; }
   .banner--error { @apply border-red-200 bg-red-50 text-red-700; }
   .form-grid { @apply space-y-3; }
-  .primary-button { @apply mt-4 inline-flex w-full items-center justify-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-[#166FE5] disabled:opacity-60; }
+  .primary-button { @apply mt-4 inline-flex w-full items-center justify-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-lg hover:-translate-y-0.5 hover:bg-primary/90 disabled:opacity-60; }
 
   /* Panels, tables, lists */
   .panel { @apply rounded-lg border border-border-color bg-surface shadow-sm; }
