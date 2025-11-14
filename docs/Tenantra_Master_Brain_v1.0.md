@@ -55,9 +55,9 @@ The backend code is located in the `backend/` directory.
 - **Auth & Identity (`app/core/auth.py`, `app/core/security.py`):** Handles JWT creation, decoding, password hashing, and provides FastAPI dependencies for authenticating users and checking roles.
 - **User Management (`app/routes/users_admin.py`, `app/routes/users_me.py`):** Exposes CRUD endpoints for managing users (admin) and allows users to manage their own profiles (me). Self-service routes reuse `get_current_user` so any token revoked via logout or password reset is honored uniformly. Touches the `User` model.
 - **Tenants & Plans (`app/routes/tenants_admin.py`):** Provides endpoints for managing tenants. Touches the `Tenant` model.
-- **Scan Scheduling & Execution (`app/routes/schedules.py`, `app/routes/module_runs.py`, `app/tasks/scheduler.py`):** Schedules scans and records execution status. `app/tasks/scheduler.py` is the Celery task that polls due schedules with `SELECT ... FOR UPDATE SKIP LOCKED` and dispatches runs through the module executor service.
+- **Scan Scheduling & Execution (`app/routes/schedules.py`, `app/routes/scan_orchestration.py`, `app/services/scheduler_service.py`):** All scheduling now flows through the `scan_jobs` table; the legacy `scheduled_scans` model has been removed and migrations (`T_027`, `T_030`) backfill the richer columns (`module_id`, `agent_id`, `parameters`, `enabled`, `next_run_at`, `last_run_at`). `scheduler_service.py` and the Celery beat worker poll pending `scan_jobs` with `SELECT ... FOR UPDATE SKIP LOCKED`, update `next_run_at/last_run_at`, and emit work items for the executor.
 - **Alerts & Notifications (`app/routes/alerts.py`, `app/routes/notifications.py`, `app/tasks/notifications.py`):** Manages alert definitions and notification delivery. `app/tasks/notifications.py` is the Celery task that dequeues pending notifications and writes delivery logs.
-- **Audit Logging (`app/routes/audit_logs.py`):** Provides endpoints to query the immutable audit trail of actions performed in the system.
+- **Audit Logging (`app/routes/audit_logs.py`):** Provides endpoints to query the immutable audit trail of actions performed in the system. Recent hardening (`T_028_audit_log_enrichment`) ensures the backing table always includes `action`, `result`, and `ip` columns so the `/audit-logs` list + CSV export never 500s when filtering by outcome.
 
 ### 3.3 REST / API Endpoints
 The backend exposes a wide range of RESTful endpoints. Most are prefixed with `/api`. Here is a summary of the core ones:
@@ -65,6 +65,7 @@ The backend exposes a wide range of RESTful endpoints. Most are prefixed with `/
 | Method | Path | Purpose | Auth Required |
 | --- | --- | --- | --- |
 | POST | `/auth/login` | Authenticate and receive a JWT. | No |
+| POST | `/auth/register` | Provision a tenant + admin user. | No |
 | GET | `/users/me` | Get the current user's profile. | Yes |
 | GET | `/admin/users` | Get a list of all users. | Yes (Admin) |
 | POST | `/admin/users` | Create a new user. | Yes (Admin) |
@@ -200,13 +201,14 @@ Sprint 2 delivered the “Database & Backend Health” improvements. Highlights 
 
 - **Mixins + Timestamps**: Every ORM model inherits the updated `TimestampMixin`/`ModelMixin`. Revision `T_025_phase2_schema_health` enforces UTC defaults and back-fills missing `created_at`/`updated_at` columns.
 - **JSONB Everywhere**: Module parameter schemas and process drift payloads now use PostgreSQL JSONB for indexable queries.
-- **Module Catalog Simplification**: The legacy `enabled` flag was removed; modules rely on a single `ModuleStatus` enum (`draft`, `active`, `disabled`, `deprecated`, `retired`) and tenant overrides.
+- **Module Catalog Hardening**: `modules.status` now uses a dedicated `module_status` enum (`draft`, `active`, `disabled`, `deprecated`, `retired`) and we reintroduced an explicit `enabled` flag (default `FALSE`) so modules ship disabled-by-default while respecting historic tenant overrides. `tenant_modules` remains the per-tenant switch, and `module_agent_mapping` (created by `T_030`) gives agents a highest-precedence allow/deny list.
 - **Notification Consolidation**: `notification_settings` and its routes were removed in favor of `/notification-prefs`, which already backed tenant/user overrides.
 - **Tenant Scope Guard**: A reusable dependency (`tenant_scope_dependency`) drives strict tenant scoping for alerts, assets, exports, and notification preference APIs.
 - **Celery Queue Architecture**: The thread-based workers were replaced with Redis + Celery (`celery_worker` + `celery_beat`) plus database-level locking (`SELECT ... FOR UPDATE SKIP LOCKED`). `docker-compose.yml` ships Redis secrets, Celery services, and read/write tmpfs mounts.
 - **Dependency & Tooling Updates**: Requirements are fully pinned, the driver switched to `psycopg[binary]`, PDF exports now use `reportlab`, and FastAPI now rides on `pydantic[email]==2.7.4` (aligning backend models/tests with the v2 API). The backend and CLI builders rewrite raw `postgresql://` URLs to `postgresql+psycopg://`.
 - **CORS Simplification**: The bespoke `/auth/login` OPTIONS handler was dropped; `DynamicCORSMiddleware` is the single source of truth.
 - **Validation**: Option 1 of `tenantra_control_menu.sh` (full setup + migrate + seed) rebuilds the stack cleanly; Redis, Celery worker/beat, backend, frontend, Grafana, Prometheus, and Postgres all reported healthy after the run (Grafana data folder emits benign permission warnings during cleanup).
+- **Rate-limit Safeguard**: `RateLimitMiddleware` now permanently whitelists `/api/health` (and its `/api` alias) so heartbeat widgets and diagnostics no longer compete with dashboard traffic. Mission-critical admin routes continue to inherit tenant-aware throttling, but health probes can execute at any cadence without triggering 429 storms.
 - **SQLite Test Harness**: The in-memory runner now pins SQLite connections to `StaticPool` with a generous timeout to stop `database is locked` flakes during parallel API tests.
 - **Testing Status**: Linux cannot execute `phase2_test_suite*.ps1` without PowerShell. Backend `docker exec TEN-S-backend pytest -q` now passes (61 passed / 1 skipped); rerun the PowerShell suites on a Windows host to finish Phase 2 validation.
 
@@ -348,6 +350,9 @@ This file provides generic, reusable functions for role-based access control log
     - **Purpose:** To enforce that a user has one of the allowed roles, raising a `ValueError` if they do not.
     - **Logic:** Calls `has_any_role()` and raises a `ValueError` with a descriptive message if the check fails. This is intended for use in business logic layers where an `HTTPException` might not be appropriate.
     - **Throws:** `ValueError` if the role check fails.
+
+- **`app/utils/rbac.py` bridge**
+    - Provides the FastAPI-friendly `role_required()` dependency. It now normalizes both `user.role` (single string) and any attached `user.roles` collections/objects before calling `has_any_role()`, which fixed the `'User' object is not iterable` crashes that previously hit `/modules/mapping` and other admin routes.
 
 ---
 ##### **`app/core/permissions.py`**
@@ -626,7 +631,18 @@ This section details the authentication endpoints located in `backend/app/routes
         5.  If the origin is in the final list of allowed origins, it returns a 204 No Content response with the appropriate `Access-Control-Allow-*` headers, including `Access-Control-Allow-Origin: <request_origin>`.
         6.  If the origin is not allowed, it returns a 204 response without the CORS headers, effectively denying the cross-origin request.
 
-#### 3.9.5 Endpoint: `GET /auth/me`
+#### 3.9.5 Endpoint: `POST /auth/register`
+
+- **`register(payload: RegistrationRequest, ...)`**
+    - **Purpose:** Allows a prospective customer to provision a new tenant and admin user without operator intervention.
+    - **Request Body:** `tenant_name`, `username`, `email`, `password`.
+    - **Logic:**
+        1.  Ensures the username and email are unique, then enforces password-strength requirements via `validate_password_strength`.
+        2.  Generates a unique tenant name/slug pair and writes a `Tenant` row.
+        3.  Hashes the password, creates an `admin` user scoped to the new tenant, and logs an `auth.register` audit entry.
+        4.  Sends a best-effort welcome email (if SMTP is configured) and returns `{ tenant_id, tenant_slug, user_id, requires_verification: false }`.
+
+#### 3.9.6 Endpoint: `GET /auth/me`
 
 - **`get_current_user_me(token: str = Depends(oauth2_scheme), ...)`**
     - **Purpose:** To allow a client to validate an access token and retrieve the profile of the user associated with it.
@@ -766,10 +782,10 @@ This section details the endpoints related to agent management, scan scheduling,
     - **Protection:** Requires an authenticated user (which can be an agent itself, though the code uses `get_current_user`). It also enforces a tenant match between the agent and the user making the request.
     - **Logic:**
         1.  The agent makes a request to its own config endpoint.
-        2.  The system fetches all `Module` definitions from the database.
-        3.  It then checks for any tenant-specific overrides in the `TenantModule` table.
-        4.  It computes the final list of *enabled* module names for that agent's tenant.
-        5.  Returns a JSON object containing the `agent_id` and the list of enabled `modules`.
+        2.  The system loads all `Module` definitions plus their default `enabled` flag (defaults to `FALSE` unless explicitly turned on).
+        3.  It resolves overrides in order of precedence: `ModuleAgentMapping` (per-agent allow/deny), then `TenantModule` (per-tenant defaults), and finally the module's own `enabled` flag + status.
+        4.  It computes the final list of *enabled* module names for that agent's tenant using this precedence.
+        5.  Returns a JSON object containing the `agent_id` and the resolved list of enabled `modules`.
 
 - **`GET /admin/agents`** (`agents_admin.py`)
     - **Purpose:** Allows an administrator to list all agents.
@@ -779,6 +795,14 @@ This section details the endpoints related to agent management, scan scheduling,
         1.  Queries the `Agent` table.
         2.  If `tenant_id` is provided, it adds a filter to the query.
         3.  Returns a list of agent objects, including their `id`, `name`, `tenant_id`, and `is_active` status.
+
+- **`POST /agents/results`** (`agents.py`)
+    - **Purpose:** Gives an authenticated agent a safe channel to submit scan results back to the control plane.
+    - **Protection:** Requires the agent ID in the JSON body plus the corresponding `X-Agent-Token` header.
+    - **Logic:**
+        1.  Validates the agent/token pair via `verify_agent_token`.
+        2.  Resolves the module by ID or name so results are always tied to a canonical `module_id`.
+        3.  Persists a `ScanModuleResult` row scoped to the agent's tenant and returns the created record ID/status.
 
 #### 3.11.3 Scan Scheduling Endpoints (`/schedules`)
 
@@ -790,7 +814,7 @@ This section details the endpoints related to agent management, scan scheduling,
         1.  Validates that the `module_id` exists.
         2.  Resolves the `tenant_id` (must be specified for super admins, defaults to the admin's own tenant otherwise).
         3.  Calculates the `next_run_at` timestamp based on the `cron_expr` using the `compute_next_run` utility.
-        4.  Creates a new `ScheduledScan` record in the database with a status of "scheduled".
+        4.  Creates a new module `ScanJob` record in the database with a status of "scheduled".
         5.  Returns the newly created schedule object.
 
 - **`GET /schedules`** (`schedules.py`)
@@ -799,12 +823,12 @@ This section details the endpoints related to agent management, scan scheduling,
     - **Logic:**
         1.  If the user is not a super admin, the query is automatically filtered by the user's `tenant_id`.
         2.  Supports an optional `module_id` query parameter to filter by module.
-        3.  Returns a list of schedule objects.
+        3.  Returns a list of module `ScanJob` objects.
 
 - **`DELETE /schedules/{schedule_id}`** (`schedules.py`)
     - **Purpose:** To delete a scheduled scan.
     - **Protection:** Requires an admin user and enforces tenant scope (an admin cannot delete a schedule from another tenant).
-    - **Logic:** Finds the `ScheduledScan` by its ID and deletes it from the database.
+    - **Logic:** Finds the module `ScanJob` by its ID and deletes it from the database.
 
 #### 3.11.4 Scan Orchestration Endpoints (`/scan-orchestration`)
 
@@ -953,6 +977,11 @@ This section covers the endpoints for viewing asset inventory, analyzing complia
         3.  Queries the `ComplianceResult` table for all results within the date range and for the user's tenant.
         4.  Aggregates the results, incrementing the `pass` or `fail` count for each day.
         5.  Returns a list of objects, each containing a `date`, `pass` count, and `fail` count.
+
+- **`GET /compliance/trends/insights`** (`compliance.py`)
+    - **Purpose:** Provides the same trend data plus aggregate KPIs (coverage %, open failures, net change) for the dashboard tiles.
+    - **Protection:** Requires an authenticated user; enforces tenant scope and supports the same `days`/`module` filters.
+    - **Logic:** Reuses the trend aggregation and derives summary statistics (`coverage`, `open_failures`, `net_change`) before returning `{ trend: [...], summary: { ... } }`.
 
 - **`GET /compliance/results`** (`compliance.py`)
     - **Purpose:** To retrieve a list of raw compliance scan results for detailed analysis.
@@ -1160,7 +1189,7 @@ This section covers a diverse set of endpoints for managing core application con
     - **Protection:** Requires an admin user with a tenant scope.
     - **Logic:**
         1.  Ensures a "Port Scan" module exists.
-        2.  Creates two `ScheduledScan` records for the current tenant to run the port scan module on a recurring basis (e.g., every 30 minutes).
+        2.  Creates two module `ScanJob` records for the current tenant to run the port scan module on a recurring basis (e.g., every 30 minutes).
 
 ### 3.16 API Route: Scanning Modules
 The scanning modules are a core component of Tenantra's architecture. They are designed to be database-first, meaning the authoritative source for all modules is the database, not CSV files.
@@ -1172,7 +1201,7 @@ The scanning modules are a core component of Tenantra's architecture. They are d
 
 #### 3.16.2 Database Schema
 The following tables are used to manage the scanning modules:
-- `modules`: Stores the identity and metadata of each module.
+- `modules`: Stores the identity and metadata of each module, including the `enabled` flag (defaults to `false`) that controls whether new tenants inherit the module as active.
 - `module_versions`: Stores the semantic version, checksum, parameter schema, and other details for each version of a module.
 - `module_parameters`: Defines the parameters that a module accepts.
 - `module_runs`: Records the execution of each module.
@@ -1350,15 +1379,16 @@ The frontend code is located in the `frontend/` directory.
 - **Users (`/users`):** An admin-only page for creating, viewing, and managing users within the tenant. It interacts with the `/admin/users` API endpoints.
 - **Profile (`/profile`):** A page where users can view and edit their own profile information. It interacts with the `/users/me` API endpoints.
 - **Module Catalog (`/modules`):** Displays the list of available scanning modules that can be scheduled.
+- **Agent Management (`/agent-management`):** Admin-only page to enroll agents, view enrollment tokens, and configure module overrides per agent. The React view now memoizes auth headers and only refreshes once per selection so it no longer hammers `/api/admin/agents`/`/api/modules`—this removed the rate-limit floods that previously caused UI lockups.
 - **Settings (`/admin-settings`, `/alert-settings`):** Admin-only pages for configuring various aspects of the application.
 
-### 4.5 Frontend Styling (Facebook Theme)
-The frontend implements a custom, Facebook-inspired theme to ensure a cohesive and modern user experience. The theme is defined through a set of design tokens and layout patterns documented in `docs/facebook-theme.md`.
-- **Color System:** A specific color palette is defined with CSS custom properties (e.g., `--tena-primary: #1877F2`). These are aliased in Tailwind CSS for easy use (e.g., `bg-facebook-blue`).
+### 4.5 Frontend Styling (Tenantra Theme)
+The frontend implements a custom Tenantra UI theme to ensure a cohesive and modern user experience. The theme is defined through a set of design tokens and layout patterns documented in `docs/ui-theme.md`.
+- **Color System:** A specific color palette is defined with CSS custom properties (e.g., `--tena-primary: #1877F2`). These are aliased in Tailwind CSS for easy use through semantic color tokens.
 - **Typography:** A standard font stack is used, with specific weights and sizes for headers, body copy, and muted text.
 - **Layout & Spacing:** The layout is based on an 8px rhythm, with a spacing scale exposed as CSS custom properties (e.g., `--space-4` for 16px).
 - **Core Components:**
-    - **Header:** A Facebook-style top bar with a brand-blue background.
+    - **Header:** A primary top bar with a brand-blue background.
     - **Sidebar:** A dark slate sidebar with active items highlighted in blue.
     - **Cards:** Elevated surfaces with soft drop shadows.
     - **Buttons:** A set of buttons (primary, ghost, outline) styled to match the theme.

@@ -50,7 +50,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         self.key_func = key_func or default_key
         # Always-skipped exact paths
-        self.always_skip = {'/health', '/metrics', '/openapi.json', '/docs', '/favicon.ico'}
+        self.always_skip = {'/health', '/metrics', '/openapi.json', '/docs', '/favicon.ico', '/api/health'}
         # Optional skip prefixes from env (comma-separated). Typical:
         #   RATE_LIMIT_SKIP="/api/auth,/auth,/api/support/settings/public,/support/settings/public"
         raw_skip = os.getenv('RATE_LIMIT_SKIP', '')
@@ -58,6 +58,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # Provide sensible defaults to avoid throttling auth and public settings in dev
         default_skips = [
             '/api/auth', '/auth',
+            '/api/health',
             '/api/support/settings/public', '/support/settings/public',
             '/api/scan-orchestration', '/scan-orchestration',
             '/api/admin/observability/grafana', '/grafana',
