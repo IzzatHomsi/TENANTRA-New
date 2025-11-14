@@ -57,7 +57,7 @@ The backend code is located in the `backend/` directory.
 - **Tenants & Plans (`app/routes/tenants_admin.py`):** Provides endpoints for managing tenants. Touches the `Tenant` model.
 - **Scan Scheduling & Execution (`app/routes/schedules.py`, `app/routes/scan_orchestration.py`, `app/services/scheduler_service.py`):** All scheduling now flows through the `scan_jobs` table; the legacy `scheduled_scans` model has been removed and migrations (`T_027`, `T_030`) backfill the richer columns (`module_id`, `agent_id`, `parameters`, `enabled`, `next_run_at`, `last_run_at`). `scheduler_service.py` and the Celery beat worker poll pending `scan_jobs` with `SELECT ... FOR UPDATE SKIP LOCKED`, update `next_run_at/last_run_at`, and emit work items for the executor.
 - **Alerts & Notifications (`app/routes/alerts.py`, `app/routes/notifications.py`, `app/tasks/notifications.py`):** Manages alert definitions and notification delivery. `app/tasks/notifications.py` is the Celery task that dequeues pending notifications and writes delivery logs.
-- **Audit Logging (`app/routes/audit_logs.py`):** Provides endpoints to query the immutable audit trail of actions performed in the system. Recent hardening (`T_028_audit_log_enrichment`) ensures the backing table always includes `action`, `result`, and `ip` columns so the `/audit-logs` list + CSV export never 500s when filtering by outcome.
+- **Audit Logging (`app/routes/audit_logs.py`):** Provides endpoints to query the immutable audit trail of actions performed in the system. Recent hardening (`T_028_audit_log_enrichment`) ensures the backing table always includes `action`, `result`, and `ip` columns so the `/audit-logs` list + CSV export never 500s when filtering by outcome. The SPA now renders the structured `details` payload as a summarized change list (or prettified JSON) instead of attempting to drop raw objects into the DOM, which eliminates the React `Invariant #31` console errors that previously appeared when an audit entry carried diff metadata.
 
 ### 3.3 REST / API Endpoints
 The backend exposes a wide range of RESTful endpoints. Most are prefixed with `/api`. Here is a summary of the core ones:
@@ -805,6 +805,7 @@ This section details the endpoints related to agent management, scan scheduling,
         3.  Calculates the `next_run_at` timestamp based on the `cron_expr` using the `compute_next_run` utility.
         4.  Creates a new module `ScanJob` record in the database with a status of "scheduled".
         5.  Returns the newly created schedule object.
+        - **Sprint 5 hardening:** The module now imports the missing schema/auth helpers (`ScheduleCreate/ScheduleOut`, `get_db`, `get_current_user`) so FastAPI can register the router again. The create/delete handlers rely on `require_admin`, which keeps RBAC identical to the earlier `_ensure_admin` helper while avoiding startup crashes that returned 404s for `/schedules`.
 
 - **`GET /schedules`** (`schedules.py`)
     - **Purpose:** To list existing scheduled scans.
@@ -1088,6 +1089,7 @@ This section details the multi-layered system for defining alert rules, managing
     - **Protection:** Requires an authenticated user. Standard users can only update their own preferences; admins can update tenant-wide settings.
     - **Logic:** "Upserts" a `NotificationPreference` record. It updates the record if one exists or creates a new one if it doesn't.
     - **Bootstrap Note:** `bootstrap_test_data()` now imports the `NotificationPreference` model before running `Base.metadata.create_all`, ensuring the backing table exists during local or CI tests without running Alembic migrations.
+    - **Test Fixture Note:** The same bootstrap now forces the `app_settings` table to exist (via `AppSetting.__table__.create(..., checkfirst=True)`) and seeds baseline keys such as `site.name`, `grafana.url`, and `features`. This backfills sqlite-based pytest runs with the settings data that the Grafana proxy, feature flags, and public settings endpoints require, so `make test-all` no longer fails with “no such table: app_settings”.
 
 - **`GET /notification-history`** (`notification_history.py`)
     - **Purpose:** To retrieve a log of past notification delivery attempts.
@@ -1168,6 +1170,7 @@ This section covers a diverse set of endpoints for managing core application con
         2.  Makes an HTTP request to Grafana's `/api/health` endpoint.
         3.  Implements a circuit breaker pattern to avoid overwhelming a failing service. If health checks fail repeatedly, the circuit "opens" and subsequent requests will fail immediately for a configured timeout period.
     - **Operational note (Sprint 4):** The Grafana reverse proxy (`app/routes/grafana_proxy.py`) now inspects `POST /grafana/api/ds/query` payloads and coerces any numeric `from`/`to` fields (including nested `range` objects) into strings before forwarding the request upstream. Grafana 10 tightened its JSON schema and rejects numeric timestamps, so this shim prevents `400 Bad Request` responses and the cascading “Failed to stopMeasure loadDashboardScene” errors that previously appeared on the Metrics dashboard.
+    - **Operational note (Sprint 5):** Upstream Grafana 400/500 responses (including the lingering `loadDashboardScene` warning) are now captured server-side and exposed via `GET /admin/observability/grafana/warnings`. The frontend metrics page polls this endpoint and renders a callout whenever Grafana reports an error, so operators no longer need to open DevTools to see the warning.
     - **Internal plumbing:** `app/services/grafana.py` automatically rewrites `grafana.url` values that point to `localhost` / `127.0.0.1` so the backend can reach the in-cluster Grafana service (`GRAFANA_INTERNAL_HOST`, default `grafana:3000`). This keeps the user-facing URL friendly (e.g., https://localhost:3000) while ensuring health checks and proxy calls terminate on the container network.
 
 - **`POST /admin/network/port-scan`** (`network_admin.py`)
@@ -1365,7 +1368,7 @@ The frontend code is located in the `frontend/` directory.
 - **Client State:** **Zustand** is used for managing global client-side state, most importantly the authentication token and user profile information. This state is persisted across page loads, likely using `localStorage`.
 
 ### 4.4 Key Screens and Flows
-- **Login (`/login`):** A public page with a form to submit credentials. On success, it saves the JWT from the backend and redirects to the `/dashboard`.
+- **Login (`/login`):** A public page with a form to submit credentials. On success, it saves the JWT from the backend and redirects to the `/dashboard`. The screen now mirrors the tenantra.be aesthetic: a split hero with gradient glassmorphism, statistics cards, and rounded authentication form cards so the public experience matches the rest of the shell. Sprint 5 also retained the `Username`/`Password` placeholders and a `Login` CTA label so the Playwright helpers can continue to target the form fields without flaking.
 - **Dashboard (`/dashboard`):** The main landing page after login. It displays a high-level overview of the system's status, recent alerts, and compliance scores. It fetches data from multiple backend endpoints.
 - **Users (`/users`):** An admin-only page for creating, viewing, and managing users within the tenant. It interacts with the `/admin/users` API endpoints.
 - **Profile (`/profile`):** A page where users can view and edit their own profile information. It interacts with the `/users/me` API endpoints.
@@ -1382,7 +1385,8 @@ The frontend implements a custom Tenantra UI theme to ensure a cohesive and mode
     - **Header:** A translucent, blurred top bar with a Tenantra glyph, API health pill, and pill-shaped actions (matching the sticky marketing header).
     - **Sidebar:** A glass card with gradient active states (`tena-nav__link--active`) and uppercase section labels styled after the marketing site navigation.
     - **Cards & Panels:** Rounded 28–32px surfaces with long, subtle drop shadows (`--tena-shadow-card`) and a soft white/indigo gradient background.
-    - **Buttons:** Pill-shaped primary/outline/ghost buttons that share the marketing call-to-action styling (deep navy fill, white text, hover lift).
+- **Buttons:** Pill-shaped primary/outline/ghost buttons that share the marketing call-to-action styling (deep navy fill, white text, hover lift).
+- **Public Surfaces:** The marketing landing page (`Landing.jsx`) and login form now render inside the same gradient/glass aesthetic as the authenticated shell, including hero stats, emerald pills, and CTA buttons identical to tenantra.be.
 - **Iconography:** A set of custom SVG icons is used, located in `components/ui/Icon.jsx`, and inherits the updated color tokens.
 
 ## 5. Installation and Setup
