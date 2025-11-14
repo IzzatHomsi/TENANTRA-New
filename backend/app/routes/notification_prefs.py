@@ -19,35 +19,25 @@ from app.schemas.notification_prefs import (
     NotificationPrefsRead,
     NotificationPrefsUpsert,
 )
+from app.dependencies.tenancy import tenant_scope_dependency
 
 
 router = APIRouter(prefix="/notification-prefs", tags=["Notifications"])
 
 
-def _resolve_tenant(user: User, tenant_id: Optional[int]) -> int:
-    if user.tenant_id is not None:
-        if tenant_id and tenant_id != user.tenant_id:
-            raise HTTPException(status_code=403, detail="Forbidden tenant scope")
-        return user.tenant_id
-    if tenant_id is None:
-        raise HTTPException(status_code=400, detail="tenant_id required")
-    return tenant_id
-
-
 @router.get("", response_model=NotificationPrefsRead)
 def get_prefs(
-    tenant_id: Optional[int] = Query(None),
     user_id: Optional[int] = Query(None, description="If provided, return user-specific override if present."),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    resolved_tenant: int = Depends(tenant_scope_dependency()),
 ) -> NotificationPrefsRead:
-    resolved = _resolve_tenant(current_user, tenant_id)
     row = None
     if user_id is not None:
         row = (
             db.query(NotificationPreference)
             .filter(
-                NotificationPreference.tenant_id == resolved,
+                NotificationPreference.tenant_id == resolved_tenant,
                 NotificationPreference.user_id == user_id,
             )
             .first()
@@ -56,7 +46,7 @@ def get_prefs(
         row = (
             db.query(NotificationPreference)
             .filter(
-                NotificationPreference.tenant_id == resolved,
+                NotificationPreference.tenant_id == resolved_tenant,
                 NotificationPreference.user_id.is_(None),
             )
             .first()
@@ -65,7 +55,7 @@ def get_prefs(
         # Return sensible defaults without creating a row
         return NotificationPrefsRead(
             id=0,
-            tenant_id=resolved,
+            tenant_id=resolved_tenant,
             user_id=user_id,
             channels={"email": True, "webhook": False},
             events={
@@ -82,11 +72,10 @@ def get_prefs(
 @router.put("", response_model=NotificationPrefsRead)
 def upsert_prefs(
     payload: NotificationPrefsUpsert,
-    tenant_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    resolved_tenant: int = Depends(tenant_scope_dependency()),
 ) -> NotificationPrefsRead:
-    resolved = _resolve_tenant(current_user, tenant_id)
     # Only allow updating your own user overrides unless admin
     if payload.user_id is not None and current_user.role not in {"admin", "super_admin", "system_admin", "msp_admin"}:
         if payload.user_id != current_user.id:
@@ -95,7 +84,7 @@ def upsert_prefs(
     row = (
         db.query(NotificationPreference)
         .filter(
-            NotificationPreference.tenant_id == resolved,
+            NotificationPreference.tenant_id == resolved_tenant,
             (
                 (NotificationPreference.user_id == payload.user_id)
                 if payload.user_id is not None
@@ -106,7 +95,7 @@ def upsert_prefs(
     )
     if row is None:
         row = NotificationPreference(
-            tenant_id=resolved,
+            tenant_id=resolved_tenant,
             user_id=payload.user_id,
             channels=dict(payload.channels or {}),
             events=dict(payload.events or {}),
@@ -121,4 +110,3 @@ def upsert_prefs(
     db.commit()
     db.refresh(row)
     return NotificationPrefsRead.from_orm(row)
-

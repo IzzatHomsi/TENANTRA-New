@@ -31,12 +31,20 @@ export const deleteAlertRule = async (id) => {
   return res.data;
 };
 
-export const getNotificationSettings = async () => {
-  const res = await client.get("/alerts/settings", authConfig());
+export const getNotificationSettings = async (tenantId) => {
+  const config = { ...authConfig() };
+  if (tenantId != null) {
+    config.params = { tenant_id: tenantId };
+  }
+  const res = await client.get("/notification-prefs", config);
   return res.data;
 };
 
-export const updateNotificationSettings = async (settings) => {
-  const res = await client.put("/alerts/settings", settings, authConfig());
+export const updateNotificationSettings = async (settings, tenantId) => {
+  const config = { ...authConfig() };
+  if (tenantId != null) {
+    config.params = { tenant_id: tenantId };
+  }
+  const res = await client.put("/notification-prefs", settings, config);
   return res.data;
 };

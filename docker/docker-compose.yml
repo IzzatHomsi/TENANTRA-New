@@ -35,6 +35,40 @@ services:
       driver: json-file
     networks:
       - core
+  redis:
+    image: redis:7.2-alpine
+    container_name: ${CONTAINER_PREFIX:-TEN-S-}redis
+    command:
+      - sh
+      - -c
+      - |
+        exec redis-server --appendonly no --save '' --protected-mode yes --requirepass "$$(cat /run/secrets/redis_password)"
+    secrets:
+      - source: redis_password
+        target: redis_password
+        mode: 0400
+    read_only: true
+    volumes:
+      - tenantra_redis_data:/data
+    tmpfs:
+      - /tmp:size=32m,uid=999,gid=999,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./security/seccomp-default.json
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "redis-cli -a $$(cat /run/secrets/redis_password) ping | grep -q PONG"
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    logging:
+      driver: json-file
+    networks:
+      - core
 
   backend:
     user: appuser
@@ -64,6 +98,7 @@ services:
       - ./export_out:/app/export_out
     depends_on:
       - db
+      - redis
     read_only: true
     tmpfs:
       - /tmp:size=64m,uid=1000,gid=1000,mode=1777
@@ -107,6 +142,93 @@ services:
       driver: json-file
     networks:
       - core
+  celery_worker:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    container_name: ${CONTAINER_PREFIX:-TEN-S-}celery-worker
+    depends_on:
+      db:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    env_file:
+      - ../.env.${TENANTRA_ENV:-development}
+    environment:
+      REDIS_PASSWORD_FILE: /run/secrets/redis_password
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      POSTGRES_PASSWORD: ""
+    command:
+      - sh
+      - -c
+      - |
+        export POSTGRES_PASSWORD="$$(cat /run/secrets/db_password)";
+        export REDIS_PASSWORD="$$(cat /run/secrets/redis_password)";
+        export CELERY_BROKER_URL="redis://:$${REDIS_PASSWORD}@redis:6379/0";
+        export CELERY_RESULT_BACKEND="$${CELERY_BROKER_URL}";
+        exec celery -A app.celery_app:celery_app worker -l info
+    secrets:
+      - source: db_password
+        target: db_password
+        mode: 0400
+      - source: redis_password
+        target: redis_password
+        mode: 0400
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,uid=1000,gid=1000,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./security/seccomp-default.json
+    restart: unless-stopped
+    logging:
+      driver: json-file
+    networks:
+      - core
+    healthcheck:
+      test: ["CMD", "true"]
+
+  celery_beat:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    container_name: ${CONTAINER_PREFIX:-TEN-S-}celery-beat
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ../.env.${TENANTRA_ENV:-development}
+    environment:
+      REDIS_PASSWORD_FILE: /run/secrets/redis_password
+    command:
+      - sh
+      - -c
+      - |
+        export REDIS_PASSWORD="$$(cat /run/secrets/redis_password)";
+        export CELERY_BROKER_URL="redis://:$${REDIS_PASSWORD}@redis:6379/0";
+        export CELERY_RESULT_BACKEND="$${CELERY_BROKER_URL}";
+        exec celery -A app.celery_app:celery_app beat -l info -s /tmp/celerybeat-schedule
+    secrets:
+      - source: redis_password
+        target: redis_password
+        mode: 0400
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,uid=1000,gid=1000,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./security/seccomp-default.json
+    restart: unless-stopped
+    logging:
+      driver: json-file
+    networks:
+      - core
+    healthcheck:
+      test: ["CMD", "true"]
 
   adminer:
     user: root
@@ -134,6 +256,7 @@ services:
 
 volumes:
   tenantra_db_data:
+  tenantra_redis_data:
 
 networks:
   core:
@@ -148,3 +271,5 @@ networks:
 secrets:
   db_password:
     file: ../secrets/db_password.txt
+  redis_password:
+    file: ../secrets/redis_password.txt

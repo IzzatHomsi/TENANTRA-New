@@ -24,6 +24,15 @@ def _build_database_url() -> str:
     """
     # First honor explicit overrides
     explicit = os.getenv("DATABASE_URL") or os.getenv("DB_URL")
+    if explicit:
+        parsed = urlparse(explicit)
+        scheme = parsed.scheme
+        if scheme.startswith("postgresql") and "+" not in scheme:
+            scheme = "postgresql+psycopg"
+            explicit = urlunparse(
+                (scheme, parsed.netloc, parsed.path, parsed.params, parsed.query, parsed.fragment)
+            )
+        return explicit
 
     # Read core connection parameters from environment, falling back
     # to Tenantra's defaults.  These names mirror the variables used
@@ -70,13 +79,11 @@ def _build_database_url() -> str:
             # Fall back to constructing from parts when parsing fails
             pass
         # No password to enforce or parse failed; return explicit as-is
-        return explicit
-
-    # Build the DSN.  Use psycopg2 driver by default.
+    # Build the DSN.  Use psycopg (psycopg3) driver by default.
     if password:
-        return f"postgresql+psycopg2://{user}:{quote(password, safe='')}@{host}:{port}/{database}"
+        return f"postgresql+psycopg://{user}:{quote(password, safe='')}@{host}:{port}/{database}"
     else:
-        return f"postgresql+psycopg2://{user}@{host}:{port}/{database}"
+        return f"postgresql+psycopg://{user}@{host}:{port}/{database}"
 
 
 # Construct the database URL using the helper above.  SQLAlchemy will

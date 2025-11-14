@@ -55,6 +55,17 @@ POSTGRES_PORT = os.getenv("DB_PORT", "5432")
 # Read explicit URLs first if provided
 DATABASE_URL = os.getenv("DB_URL") or os.getenv("DATABASE_URL")
 
+
+def _ensure_psycopg_scheme(url: str) -> str:
+    if not url:
+        return url
+    parsed = urlparse(url)
+    scheme = parsed.scheme
+    if scheme.startswith("postgresql") and "+" not in scheme:
+        scheme = "postgresql+psycopg"
+        url = urlunparse((scheme, parsed.netloc, parsed.path, parsed.params, parsed.query, parsed.fragment))
+    return url
+
 # Prefer an in-process SQLite DB for unit tests unless explicitly overridden
 if (os.getenv("PYTEST_CURRENT_TEST") or os.getenv("TENANTRA_TEST_BOOTSTRAP")) and not DATABASE_URL:
     DATABASE_URL = "sqlite:///./test_api.db"
@@ -91,6 +102,8 @@ else:
             # fall back to assembling from parts
             DATABASE_URL = f"postgresql://{POSTGRES_USER}:{quote(POSTGRES_PASSWORD, safe='')}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
 
+DATABASE_URL = _ensure_psycopg_scheme(DATABASE_URL)
+
 # Emit a one-line debug to stdout about how DB connection was constructed (redacted)
 try:
     _host = POSTGRES_HOST
@@ -118,12 +131,12 @@ except Exception:
 # Create the SQLAlchemy engine and session factory.  The ``autocommit`` and
 # ``autoflush`` flags are kept consistent with the original code.
 if DATABASE_URL.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
-    # For in-memory sqlite across threads, StaticPool is recommended; for file-based it's also safe in tests
+    connect_args = {"check_same_thread": False, "timeout": 30}
+    # Use StaticPool for both file and in-memory SQLite during tests to avoid locking
     engine: Engine = create_engine(
         DATABASE_URL,
         connect_args=connect_args,
-        poolclass=StaticPool if ":memory:" in DATABASE_URL else None,
+        poolclass=StaticPool,
     )
 else:
     engine = create_engine(DATABASE_URL)
@@ -133,7 +146,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # ``app.models.base`` ensures that all models share the same
 # ``Base`` instance, avoiding multiple metadata collections and
 # migration discrepancies.  Do not call ``declarative_base`` here.
-from app.models.base import Base
+from app.db.base_class import Base
 
 def get_db():
     """Yield a SQLAlchemy session scoped to the current request or task.

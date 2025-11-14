@@ -11,7 +11,7 @@ from app.core.security import get_password_hash, verify_password
 from app.core.admin_passwords import resolve_admin_password
 from app.database import engine, SessionLocal
 from app.models.base import Base
-from app.models.module import Module
+from app.models.module import Module, ModuleStatus
 from app.models.notification_pref import NotificationPreference  # noqa: F401
 from app.models.role import Role
 from app.models.tenant import Tenant
@@ -92,14 +92,12 @@ def bootstrap_test_data() -> None:
                     {
                         "name": "cis_benchmark",
                         "category": "Security Compliance",
-                        "status": "active",
-                        "enabled": True,
+                        "status": ModuleStatus.ACTIVE,
                     },
                     {
                         "name": "pci_dss_check",
                         "category": "Security Compliance",
-                        "status": "active",
-                        "enabled": True,
+                        "status": ModuleStatus.ACTIVE,
                     },
                 ]
                 for m in mods:

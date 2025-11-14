@@ -10,7 +10,7 @@ class Agent(Base, TimestampMixin, ModelMixin):
     __tablename__ = "agents"
 
     id = Column(Integer, primary_key=True, index=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), index=True, nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
     name = Column(String, nullable=False)
     def _generate_token() -> str:
         return secrets.token_hex(16)

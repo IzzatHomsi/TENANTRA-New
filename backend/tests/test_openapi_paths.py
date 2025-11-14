@@ -15,5 +15,4 @@ def test_openapi_includes_notification_routes():
     assert resp.status_code == 200
     paths = resp.json().get("paths", {})
     assert _has_path(paths, "/notification-history"), "notification history path missing from OpenAPI"
-    assert _has_path(paths, "/notifications/settings"), "notification settings path missing from OpenAPI"
-
+    assert _has_path(paths, "/notification-prefs"), "notification preferences path missing from OpenAPI"

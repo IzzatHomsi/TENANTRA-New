@@ -24,10 +24,6 @@ try:
 except Exception:
     pass
 try:
-    from .notification_setting import NotificationSetting  # noqa: F401
-except Exception:
-    pass
-try:
     from .alert_rule import AlertRule  # noqa: F401
 except Exception:
     pass

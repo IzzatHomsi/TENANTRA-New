@@ -4,6 +4,8 @@
 
 from sqlalchemy.orm import DeclarativeBase
 
+
 class Base(DeclarativeBase):
-    # Acts as the global registry for all mapped classes.
-    pass
+    """Declarative base for all ORM models."""
+
+    __abstract__ = True

@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 
 from app.database import SessionLocal
 from app.main import app
-from app.models.module import Module
+from app.models.module import Module, ModuleStatus
 from .helpers import ADMIN_USERNAME, ADMIN_PASSWORD
 
 
@@ -25,8 +25,7 @@ def _create_module(slug: str, category: str = "Identity & Access Scanning", phas
             external_id=slug,
             category=category,
             phase=phase,
-            status="active",
-            enabled=True,
+            status=ModuleStatus.ACTIVE,
         )
         db.add(m)
         db.commit()

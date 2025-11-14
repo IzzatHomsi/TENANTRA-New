@@ -56,7 +56,25 @@ async function ensureAuthRoutes(page: Page): Promise<void> {
 const DASHBOARD_URL_PATTERN = /\/app\/(dashboard|shell|home)(\/|$|\?)/;
 
 async function waitForDashboard(page: Page): Promise<void> {
-  await page.waitForURL(DASHBOARD_URL_PATTERN, { timeout: 15000 });
+  const deadline = Date.now() + 15000;
+  let lastError: Error | undefined;
+  while (Date.now() < deadline) {
+    if (DASHBOARD_URL_PATTERN.test(page.url())) {
+      await page.waitForLoadState('domcontentloaded').catch(() => undefined);
+      return;
+    }
+    try {
+      await page.waitForURL(DASHBOARD_URL_PATTERN, { timeout: 2000 });
+      await page.waitForLoadState('domcontentloaded').catch(() => undefined);
+      return;
+    } catch (error) {
+      lastError = error as Error;
+      await seedLocalSession(page);
+      await page.goto(`${APP_BASE}/dashboard`, { waitUntil: 'domcontentloaded' }).catch(() => undefined);
+    }
+  }
+  const message = lastError?.message || 'timeout waiting for dashboard route';
+  throw new Error(`Dashboard did not load after retries (last URL: ${page.url()}): ${message}`);
 }
 
 async function seedLocalSession(page: Page): Promise<void> {

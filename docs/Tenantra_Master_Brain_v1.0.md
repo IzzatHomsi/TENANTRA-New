@@ -39,14 +39,14 @@ Each tenant’s data is fully isolated by schema and RBAC policy. The system sup
 ### 3.1 Backend Structure
 The backend code is located in the `backend/` directory.
 - **`app/`**: Contains the core application source code.
-    - **`main.py`**: The main application entrypoint with the FastAPI app factory (`create_app`). It initializes middleware, routers, and background workers.
+    - **`main.py`**: The FastAPI app factory (`create_app`). It initializes middleware, routers, telemetry hooks, and startup bootstrap (seed data + optional module import). Long-running jobs now live in Celery rather than background threads.
     - **`api/`**: (Implicitly structured via `routes/`) Contains the API endpoint definitions.
     - **`core/`**: Contains core logic for authentication (`auth.py`), security (`security.py`), and multi-tenancy (`tenants.py`).
     - **`models/`**: Defines the SQLAlchemy database models (e.g., `user.py`, `tenant.py`).
     - **`schemas/`**: Defines the Pydantic schemas used for API request/response validation and serialization.
     - **`services/`**: Contains business logic decoupled from the API layer.
     - **`routes/`**: Each file defines a `router` for a specific feature (e.g., `users_admin.py`, `alerts.py`). These are automatically discovered and included in `main.py`.
-    - **`worker/`**: Contains the logic for the background workers.
+    - **`tasks/`**: Celery task modules (scheduler + notifications). These are loaded by `app/celery_app.py` and executed by the worker/beat containers defined in Compose.
 - **`alembic/`**: Contains database migration scripts.
 - **`scripts/`**: Contains helper scripts, such as `db_seed.py`.
 - **`tests/`**: Contains `pytest` tests for the backend.
@@ -55,8 +55,8 @@ The backend code is located in the `backend/` directory.
 - **Auth & Identity (`app/core/auth.py`, `app/core/security.py`):** Handles JWT creation, decoding, password hashing, and provides FastAPI dependencies for authenticating users and checking roles.
 - **User Management (`app/routes/users_admin.py`, `app/routes/users_me.py`):** Exposes CRUD endpoints for managing users (admin) and allows users to manage their own profiles (me). Self-service routes reuse `get_current_user` so any token revoked via logout or password reset is honored uniformly. Touches the `User` model.
 - **Tenants & Plans (`app/routes/tenants_admin.py`):** Provides endpoints for managing tenants. Touches the `Tenant` model.
-- **Scan Scheduling & Execution (`app/routes/schedules.py`, `app/routes/module_runs.py`, `app/worker/module_scheduler.py`):** Manages the scheduling of scan modules and tracks their execution status. The `ModuleSchedulerWorker` is responsible for periodically checking for and dispatching scheduled jobs.
-- **Alerts & Notifications (`app/routes/alerts.py`, `app/routes/notifications.py`, `app/worker/notifications_worker.py`):** Manages alert definitions and notification delivery. The `NotificationsWorker` processes a queue to send out emails or other notifications asynchronously.
+- **Scan Scheduling & Execution (`app/routes/schedules.py`, `app/routes/module_runs.py`, `app/tasks/scheduler.py`):** Schedules scans and records execution status. `app/tasks/scheduler.py` is the Celery task that polls due schedules with `SELECT ... FOR UPDATE SKIP LOCKED` and dispatches runs through the module executor service.
+- **Alerts & Notifications (`app/routes/alerts.py`, `app/routes/notifications.py`, `app/tasks/notifications.py`):** Manages alert definitions and notification delivery. `app/tasks/notifications.py` is the Celery task that dequeues pending notifications and writes delivery logs.
 - **Audit Logging (`app/routes/audit_logs.py`):** Provides endpoints to query the immutable audit trail of actions performed in the system.
 
 ### 3.3 REST / API Endpoints
@@ -81,8 +81,7 @@ The backend exposes a wide range of RESTful endpoints. Most are prefixed with `/
     - `POSTGRES_USER`, `POSTGRES_DB`, `POSTGRES_PASSWORD_FILE`: Database connection details.
     - `SECRET_KEY`, `ALGORITHM`: Used for signing JWTs.
     - `CORS_ORIGINS`: A comma-separated list of allowed origins for CORS.
-    - `TENANTRA_ENABLE_..._WORKER`: Feature flags to enable or disable background workers.
-    - `TENANTRA_SCHEDULER_INTERVAL`: Sets the poll interval for the module scheduler.
+    - `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`, `TENANTRA_ENABLE_NOTIFICATIONS_WORKER`, `TENANTRA_ENABLE_MODULE_SCHEDULER`, `TENANTRA_SCHEDULER_INTERVAL`: Control the Celery worker/beat topology and cadence.
 
 ### 3.5 Core Module: Security, Authentication, and Authorization
 This module forms the security foundation of the Tenantra backend. It is responsible for password management, JWT-based access tokens, refresh token lifecycle, data encryption, and route-level protection.
@@ -101,24 +100,17 @@ This module forms the security foundation of the Tenantra backend. It is respons
 ##### **`app/core/secrets.py`**
 This file provides centralized access to application secrets, primarily the JWT secret key and the data encryption key. It ensures that secrets are loaded only once and cached for performance, while providing secure fallbacks.
 
-- **`get_jwt_secret() -> str`**
-    - **Purpose:** To securely retrieve the JWT secret key used for signing access tokens.
-    - **Logic:**
-        1. It first checks if the secret is already cached in the global `_JWT_SECRET` variable. If so, it returns the cached value immediately.
-        2. If not cached, it attempts to read the `JWT_SECRET_KEY` environment variable.
-        3. If the environment variable is not set, it generates a new, cryptographically secure URL-safe string using `secrets.token_urlsafe(32)` as a fallback for development or ephemeral environments.
-        4. The retrieved or generated secret is then stored in the `_JWT_SECRET` global variable for subsequent calls.
-    - **Returns:** The JWT secret key as a string.
-
 - **`get_enc_key() -> bytes`**
     - **Purpose:** To retrieve the key used for symmetric data encryption and decryption.
     - **Logic:**
-        1. Checks for a cached key in the global `_ENC_KEY_CACHE` variable.
-        2. If not cached, it attempts to read the `TENANTRA_ENC_KEY` environment variable.
-        3. If `TENANTRA_ENC_KEY` is not set, it falls back to using the `JWT_SECRET` environment variable.
-        4. If neither is set, it uses a hardcoded development key: `"tenantra-dev-enc-key-change-me"`. **This is a security risk in production if not overridden.**
-        5. It ensures the final key is encoded into bytes, caches it in `_ENC_KEY_CACHE`, and returns it.
+        1. Checks for a cached key in the global `_ENC_KEY_CACHE`.
+        2. If not cached, it reads the `TENANTRA_ENC_KEY` environment variable.
+        3. During pytest or explicit `TENANTRA_TEST_BOOTSTRAP` flows, it falls back to a deterministic non-secret test key so fixtures keep working.
+        4. In every other context it raises `RuntimeError` if the env var is unset or shorter than 32 bytes – there is no longer a hardcoded default or JWT-secret fallback.
+        5. The resolved key is cached (as bytes) for subsequent calls.
     - **Returns:** The encryption key as a bytes object.
+
+> JWT signing keys are now sourced exclusively via `app/core/security.load_jwt_secret()`. That helper refuses to start unless `JWT_SECRET` is populated (or pytest/test-bootstrap flags are set), which removes the previous silent fallback behavior.
 
 ---
 ##### **`app/core/security.py`**
@@ -1456,10 +1448,12 @@ Each tenant's data is isolated in the database using a separate schema for each 
 All user input is validated on both the frontend and the backend to prevent common security vulnerabilities such as Cross-Site Scripting (XSS) and SQL Injection.
 
 ### 9.5 Security Gaps
-During the documentation review, several potential security vulnerabilities were noted:
-- **Broken Access Control in `/assets` endpoint:** This endpoint leaks data across tenants.
-- **Broken Access Control in `/compliance/export.*` endpoints:** These endpoints leak data across tenants.
-- **Hardcoded development encryption key:** A hardcoded development encryption key in `app/core/secrets.py` could be used in production if not overridden.
+The previously documented gaps from Sprint 1 have been closed:
+- ✅ **Broken Access Control in `/assets`** – now enforced via the shared `tenant_scope_dependency` and the assets query always filters by the resolved tenant.
+- ✅ **Broken Access Control in `/compliance/export.*`** – both CSV and PDF exports require the same dependency and scope rows by tenant_id.
+- ✅ **Hardcoded development encryption key** – `get_enc_key()` now raises on startup whenever `TENANTRA_ENC_KEY` is missing outside of pytest contexts, eliminating the fallback key.
+
+Keep running `ops/policy_check.py` + `make validate` before every release so regressions are caught early.
 
 ## 10. Future Enhancements
 - **Advanced Analytics:** Integrate with more sophisticated analytics tools for deeper insights into security and compliance posture.

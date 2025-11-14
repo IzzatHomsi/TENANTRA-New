@@ -101,7 +101,7 @@ def get_audit_logs(
     }
 
 
-def _iter_csv(rows: list[AuditLog]):
+def _iter_csv(rows: List[Dict[str, Any]]):
     # CSV header
     header = ["timestamp", "user_id", "action", "result", "ip", "details"]
     yield ",".join(header) + "\n"
@@ -113,21 +113,18 @@ def _iter_csv(rows: list[AuditLog]):
             s = s.replace('"', '""')
             return f'"{s}"'
 
-        try:
-            details_value = getattr(r, "details", "")
-        except Exception:
-            details_value = ""
+        details_value = r.get("details", "")
         yield ",".join(
             [
                 esc(
-                    r.created_at.isoformat()
-                    if isinstance(getattr(r, "created_at", None), datetime)
-                    else ""
+                    r.get("created_at")
+                    if isinstance(r.get("created_at"), str)
+                    else r.get("timestamp", "")
                 ),
-                esc(r.user_id),
-                esc(r.action),
-                esc(r.result),
-                esc(getattr(r, "ip", "")),
+                esc(r.get("user_id")),
+                esc(r.get("action")),
+                esc(r.get("result")),
+                esc(r.get("ip", "")),
                 esc(details_value),
             ]
         ) + "\n"
@@ -161,6 +158,7 @@ def export_audit_logs(
         query = query.filter(AuditLog.result == result)
     query = query.order_by(AuditLog.created_at.desc())
     rows = query.all()
+    row_dicts = [_serialize_audit_log(row) for row in rows]
     try:
         log_audit_event(
             db,
@@ -175,13 +173,13 @@ def export_audit_logs(
                     "end_date": end_date,
                     "result": result,
                 },
-                "row_count": len(rows),
+                "row_count": len(row_dicts),
             },
         )
     except Exception:
         pass
     return StreamingResponse(
-        _iter_csv(rows),
+        _iter_csv(row_dicts),
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=audit_logs.csv"},
     )

@@ -1,21 +1,19 @@
 # backend/app/routes/assets.py
 # Read-only listing for assets (Phase 8 visibility support).
 
-from typing import Optional
-
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.core.auth import get_current_user
 from app.models.asset import Asset
+from app.dependencies.tenancy import tenant_scope_dependency
 
 router = APIRouter(prefix="/assets", tags=["Assets"])
 
 @router.get("", summary="List assets")
 def list_assets(
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user),
+    tenant_id: int = Depends(tenant_scope_dependency()),
 ):
     query = (
         db.query(Asset)
@@ -30,9 +28,7 @@ def list_assets(
         )
     )
 
-    tenant_id: Optional[int] = getattr(current_user, "tenant_id", None)
-    if tenant_id is not None:
-        query = query.filter(Asset.tenant_id == tenant_id)
+    query = query.filter(Asset.tenant_id == tenant_id)
 
     rows = query.order_by(Asset.id.asc()).limit(200).all()
     return [

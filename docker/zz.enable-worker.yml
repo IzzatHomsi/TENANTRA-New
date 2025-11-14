@@ -1,4 +1,0 @@
-services:
-  worker:
-    environment:
-      - TENANTRA_ENABLE_NOTIFICATIONS_WORKER=1

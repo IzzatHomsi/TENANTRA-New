@@ -1,14 +1,30 @@
 # backend/app/models/module.py
-from datetime import datetime
+from __future__ import annotations
 
-from sqlalchemy import Boolean, Column, DateTime, Integer, JSON, String, Text, UniqueConstraint
+from datetime import datetime
+from enum import Enum
+
+from sqlalchemy import Column, DateTime, Enum as SQLEnum, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from app.db.base_class import Base
+from app.db.json_compat import JSONCompatible
 from app.models.base import TimestampMixin, ModelMixin
 
 
-_DISABLED_STATUSES = {"disabled", "inactive", "retired", "deprecated"}
+class ModuleStatus(str, Enum):
+    DRAFT = "draft"
+    ACTIVE = "active"
+    DISABLED = "disabled"
+    DEPRECATED = "deprecated"
+    RETIRED = "retired"
+
+
+_DISABLED_STATUSES = {
+    ModuleStatus.DISABLED,
+    ModuleStatus.DEPRECATED,
+    ModuleStatus.RETIRED,
+}
 
 
 class Module(Base, TimestampMixin, ModelMixin):
@@ -21,7 +37,12 @@ class Module(Base, TimestampMixin, ModelMixin):
     phase = Column(Integer, nullable=True)
     impact_level = Column(String(50), nullable=True)
     path = Column(String(255), nullable=True)
-    status = Column(String(50), nullable=True)
+    status = Column(
+        SQLEnum(ModuleStatus, name="module_status"),
+        nullable=False,
+        default=ModuleStatus.ACTIVE.value,
+        server_default=ModuleStatus.ACTIVE.value,
+    )
     checksum = Column(String(128), nullable=True)
     description = Column(Text)
     purpose = Column(Text, nullable=True)
@@ -31,8 +52,7 @@ class Module(Base, TimestampMixin, ModelMixin):
     operating_systems = Column(String(255), nullable=True)
     application_target = Column(String(255), nullable=True)
     compliance_mapping = Column(Text, nullable=True)
-    parameter_schema = Column(JSON, nullable=True)
-    enabled = Column(Boolean, nullable=False, default=True)
+    parameter_schema = Column(JSONCompatible(), nullable=True)
     last_update = Column(DateTime, nullable=True)
 
     tenant_modules = relationship("TenantModule", back_populates="module")
@@ -45,5 +65,9 @@ class Module(Base, TimestampMixin, ModelMixin):
     @property
     def is_effectively_enabled(self) -> bool:
         """Return True when the module is enabled and not marked as disabled by status."""
-        status = (self.status or "").strip().lower()
-        return bool(self.enabled) and status not in _DISABLED_STATUSES
+        raw = self.status.value if isinstance(self.status, ModuleStatus) else self.status
+        try:
+            status = ModuleStatus(raw)
+        except Exception:
+            status = ModuleStatus.ACTIVE
+        return status not in _DISABLED_STATUSES

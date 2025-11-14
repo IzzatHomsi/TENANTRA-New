@@ -16,7 +16,7 @@ class User(Base, TimestampMixin, ModelMixin):
     password_hash = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=True)
     is_active = Column(Boolean, default=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"))
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
     role = Column(String(50), default="standard_user", nullable=False)
 
     # Relationships
@@ -26,13 +26,6 @@ class User(Base, TimestampMixin, ModelMixin):
     # Refresh tokens (inverse of RefreshToken.user)
     refresh_tokens = relationship(
         "RefreshToken",
-        back_populates="user",
-        cascade="all, delete-orphan",
-    )
-
-    # Notification settings (inverse of NotificationSetting.user)
-    notification_settings = relationship(
-        "NotificationSetting",
         back_populates="user",
         cascade="all, delete-orphan",
     )

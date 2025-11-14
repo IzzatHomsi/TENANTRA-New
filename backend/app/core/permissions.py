@@ -27,10 +27,19 @@ def require_admin(current_user: User = Depends(get_current_user)) -> User:
         raise HTTPException(status_code=403, detail="Admin role required")
     return current_user
 
-def require_tenant_scope(user_id: int, *, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> None:
-    """Simple tenant-scope check when acting on a user id (extend as needed)."""
-    u = db.query(User).filter(User.id == user_id).first()
-    if not u:
+def require_tenant_scope(
+    user_id: int,
+    *,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    """Ensure the acting user shares the same tenant as the target user."""
+    target = db.query(User).filter(User.id == user_id).first()
+    if not target:
         raise HTTPException(status_code=404, detail="User not found")
-    if current_user.role == ROLE_ADMIN and u.tenant_id != current_user.tenant_id:
+    actor_tenant = getattr(current_user, "tenant_id", None)
+    target_tenant = getattr(target, "tenant_id", None)
+    if actor_tenant is None:
+        return
+    if target_tenant != actor_tenant:
         raise HTTPException(status_code=403, detail="Tenant mismatch")

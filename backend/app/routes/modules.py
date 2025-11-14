@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
 from app.database import get_db
-from app.models.module import Module
+from app.models.module import Module, ModuleStatus
 from app.models.tenant_module import TenantModule
 from app.models.user import User
 from app.services.module_registry import (
@@ -24,6 +24,7 @@ def _serialize_module(module: Module, enabled: bool) -> Dict[str, object]:
     last_update = module.last_update.isoformat() if module.last_update else None
     schema = module.parameter_schema or get_parameter_schema_for_module(module)
     runner_available = get_runner_for_module(module) is not None
+    status = module.status.value if isinstance(module.status, ModuleStatus) else module.status
     return {
         "id": module.id,
         "external_id": module.external_id,
@@ -32,7 +33,7 @@ def _serialize_module(module: Module, enabled: bool) -> Dict[str, object]:
         "phase": module.phase,
         "impact_level": module.impact_level,
         "path": module.path,
-        "status": module.status,
+        "status": status,
         "checksum": module.checksum,
         "description": module.description,
         "purpose": module.purpose,
@@ -48,6 +49,27 @@ def _serialize_module(module: Module, enabled: bool) -> Dict[str, object]:
         "enabled_global": module.is_effectively_enabled,
         "last_update": last_update,
     }
+
+
+def _resolve_status(value: Optional[str]) -> ModuleStatus:
+    if value is None:
+        return ModuleStatus.ACTIVE
+    cleaned = str(value).strip().lower()
+    if not cleaned:
+        return ModuleStatus.ACTIVE
+    alias = {
+        "enabled": ModuleStatus.ACTIVE,
+        "inactive": ModuleStatus.DISABLED,
+        "disabled": ModuleStatus.DISABLED,
+        "deprecated": ModuleStatus.DEPRECATED,
+        "retired": ModuleStatus.RETIRED,
+    }
+    if cleaned in alias:
+        return alias[cleaned]
+    try:
+        return ModuleStatus(cleaned)
+    except ValueError:
+        return ModuleStatus.ACTIVE
 
 
 @router.get("/")
@@ -139,7 +161,7 @@ def create_module(
         phase=phase_value,
         impact_level=data.get("impact_level"),
         path=data.get("path"),
-        status=data.get("status"),
+        status=_resolve_status(data.get("status")),
         checksum=data.get("checksum"),
         description=data.get("description"),
         purpose=data.get("purpose"),
@@ -149,7 +171,6 @@ def create_module(
         operating_systems=data.get("operating_systems"),
         application_target=data.get("application_target"),
         compliance_mapping=data.get("compliance_mapping"),
-        enabled=bool(data.get("enabled", True)),
     )
 
     parameter_schema = data.get("parameter_schema")

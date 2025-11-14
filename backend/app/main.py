@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import logging.config
 import os
-from typing import Optional
+
 
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
@@ -35,9 +35,6 @@ from app.middleware.security_headers import SecurityHeadersMiddleware  # type: i
 from app.middleware.dynamic_cors import DynamicCORSMiddleware  # type: ignore
 from app.middleware.rate_limit import RateLimitMiddleware  # type: ignore
 from app.observability.metrics import request_metrics_middleware  # type: ignore
-from app.worker.notifications_worker import NotificationsWorker  # type: ignore
-from app.worker.module_scheduler import ModuleSchedulerWorker  # type: ignore
-from app.worker.dhcp_scope_refresh import DHCPScopeRefreshWorker  # type: ignore
 
 # Ensure all SQLAlchemy models are registered at import time so that string-based
 # relationship() declarations resolve properly during mapper configuration.
@@ -129,7 +126,6 @@ def create_app() -> FastAPI:
         "app.routes.tenant_example",
         "app.routes.notifications",
         "app.routes.notification_history",
-        "app.routes.notification_settings",
         "app.routes.notification_prefs",
         "app.routes.audit_logs",
         "app.routes.alerts",
@@ -169,69 +165,11 @@ def create_app() -> FastAPI:
     except Exception as exc:
         logger.info("Explicit include for scan_orchestration under /api failed: %s", exc)
 
-    # Background workers (opt-in)
-    worker: Optional[NotificationsWorker] = None
-    scheduler_worker: Optional[ModuleSchedulerWorker] = None
-    dhcp_worker: Optional[DHCPScopeRefreshWorker] = None
-
     @app.on_event("startup")
-    def _start_worker() -> None:
-        nonlocal worker, scheduler_worker, dhcp_worker
-        # Lightweight bootstrap for local/tests: create tables + seed admin if requested
-        # This is gated by TENANTRA_TEST_BOOTSTRAP to avoid affecting normal runs.
+    def _startup_tasks() -> None:
+        """Bootstrap seed data and optional module import at startup."""
         bootstrap_test_data()
         _maybe_import_modules()
-        notif_flag = os.getenv("TENANTRA_ENABLE_NOTIFICATIONS_WORKER", "0").strip().lower()
-        if notif_flag in {"1", "true", "yes", "on"}:
-            try:
-                worker = NotificationsWorker()
-                worker.start()
-                logger.info("Notifications worker started.")
-            except Exception:
-                logger.exception("Failed to start notifications worker.")
-        scheduler_flag = os.getenv("TENANTRA_ENABLE_MODULE_SCHEDULER", "0").strip().lower()
-        if scheduler_flag in {"1", "true", "yes", "on"}:
-            try:
-                interval = float(os.getenv("TENANTRA_SCHEDULER_INTERVAL", "30"))
-                scheduler_worker = ModuleSchedulerWorker(poll_interval=max(interval, 5.0))
-                scheduler_worker.start()
-                logger.info("Module scheduler worker started (interval=%ss).", scheduler_worker.poll_interval)
-            except Exception:
-                logger.exception("Failed to start module scheduler worker.")
-        dhcp_flag = os.getenv("TENANTRA_ENABLE_DHCP_REFRESH_WORKER", "0").strip().lower()
-        if dhcp_flag in {"1", "true", "yes", "on"}:
-            try:
-                interval = float(os.getenv("TENANTRA_DHCP_REFRESH_INTERVAL", "300"))
-                dhcp_worker = DHCPScopeRefreshWorker(poll_interval_seconds=max(interval, 60))
-                dhcp_worker.start()
-                logger.info("DHCP scope refresh worker started (interval=%ss).", dhcp_worker.poll_interval_seconds)
-            except Exception:
-                logger.exception("Failed to start DHCP scope refresh worker.")
-
-    @app.on_event("shutdown")
-    def _stop_worker() -> None:
-        nonlocal worker, scheduler_worker, dhcp_worker
-        if worker:
-            try:
-                worker.stop(timeout=5.0)
-            except Exception:
-                logger.exception("Error stopping notifications worker.")
-            finally:
-                worker = None
-        if scheduler_worker:
-            try:
-                scheduler_worker.stop(timeout=5.0)
-            except Exception:
-                logger.exception("Error stopping module scheduler worker.")
-            finally:
-                scheduler_worker = None
-        if dhcp_worker:
-            try:
-                dhcp_worker.stop(timeout=5.0)
-            except Exception:
-                logger.exception("Error stopping DHCP scope refresh worker.")
-            finally:
-                dhcp_worker = None
 
     def custom_openapi():
         if app.openapi_schema:

@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from app.database import SessionLocal
 from app.main import app
-from app.models.module import Module
+from app.models.module import Module, ModuleStatus
 from app.models.scan_module_result import ScanModuleResult
 from app.models.tenant_module import TenantModule
 from .helpers import ADMIN_USERNAME, ADMIN_PASSWORD
@@ -101,8 +101,7 @@ def test_run_networking_devices_module_success():
         module = Module(
             name=module_name,
             category="Networking Devices",
-            status="active",
-            enabled=True,
+            status=ModuleStatus.ACTIVE,
         )
         db.add(module)
         db.commit()
@@ -134,8 +133,7 @@ def test_run_networking_devices_module_failure():
         module = Module(
             name=module_name,
             category="Networking Devices",
-            status="active",
-            enabled=True,
+            status=ModuleStatus.ACTIVE,
         )
         db.add(module)
         db.commit()
@@ -166,8 +164,7 @@ def test_run_generic_module_success():
             name=module_name,
             category="Custom Category",
             phase=7,
-            status="active",
-            enabled=True,
+            status=ModuleStatus.ACTIVE,
             purpose="Validate custom controls",
         )
         db.add(module)
@@ -200,8 +197,7 @@ def test_run_network_perimeter_module_success():
         module = Module(
             name=module_name,
             category="Network & Perimeter Security",
-            status="active",
-            enabled=True,
+            status=ModuleStatus.ACTIVE,
         )
         db.add(module)
         db.commit()

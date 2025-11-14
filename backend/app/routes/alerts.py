@@ -1,28 +1,15 @@
-from typing import Dict, List, Optional
+from typing import Dict, List
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_admin_user
 from app.database import get_db
 from app.models.alert_rule import AlertRule
 from app.models.user import User
+from app.dependencies.tenancy import tenant_scope_dependency
 
 router = APIRouter(prefix="/alerts", tags=["Alerts"])
-
-
-def _resolve_tenant_scope(user: User, tenant_id: Optional[int]) -> int:
-    """
-    Ensure callers only operate within their tenant. Super admins (tenant_id is None)
-    must explicitly pass a tenant_id.
-    """
-    if user.tenant_id is not None:
-        if tenant_id and tenant_id != user.tenant_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden tenant scope")
-        return user.tenant_id
-    if tenant_id is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="tenant_id required for global administrators")
-    return tenant_id
 
 
 def _serialize(alert: AlertRule) -> Dict[str, object]:
@@ -40,11 +27,10 @@ def _serialize(alert: AlertRule) -> Dict[str, object]:
 
 @router.get("", response_model=List[Dict[str, object]])
 def list_alerts(
-    tenant_id: Optional[int] = Query(None, description="Tenant scope (required for global administrators)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_admin_user),
+    resolved_tenant: int = Depends(tenant_scope_dependency()),
 ) -> List[Dict[str, object]]:
-    resolved_tenant = _resolve_tenant_scope(current_user, tenant_id)
     rows = (
         db.query(AlertRule)
         .filter(AlertRule.tenant_id == resolved_tenant)
@@ -57,11 +43,10 @@ def list_alerts(
 @router.post("", response_model=Dict[str, object], status_code=status.HTTP_201_CREATED)
 def create_alert(
     alert: Dict[str, object],
-    tenant_id: Optional[int] = Query(None, description="Tenant scope (required for global administrators)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_admin_user),
+    resolved_tenant: int = Depends(tenant_scope_dependency()),
 ) -> Dict[str, object]:
-    resolved_tenant = _resolve_tenant_scope(current_user, tenant_id)
     new_alert = AlertRule(
         tenant_id=resolved_tenant,
         name=str(alert.get("name", "")).strip(),
@@ -81,11 +66,10 @@ def create_alert(
 def update_alert(
     alert_id: int,
     data: Dict[str, object],
-    tenant_id: Optional[int] = Query(None, description="Tenant scope (required for global administrators)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_admin_user),
+    resolved_tenant: int = Depends(tenant_scope_dependency()),
 ) -> Dict[str, object]:
-    resolved_tenant = _resolve_tenant_scope(current_user, tenant_id)
     alert = (
         db.query(AlertRule)
         .filter(AlertRule.id == alert_id, AlertRule.tenant_id == resolved_tenant)
@@ -106,11 +90,10 @@ def update_alert(
 @router.delete("/{alert_id}", response_model=Dict[str, object])
 def delete_alert(
     alert_id: int,
-    tenant_id: Optional[int] = Query(None, description="Tenant scope (required for global administrators)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_admin_user),
+    resolved_tenant: int = Depends(tenant_scope_dependency()),
 ) -> Dict[str, object]:
-    resolved_tenant = _resolve_tenant_scope(current_user, tenant_id)
     alert = (
         db.query(AlertRule)
         .filter(AlertRule.id == alert_id, AlertRule.tenant_id == resolved_tenant)

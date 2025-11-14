@@ -3,10 +3,11 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, JSON, Index
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, Index
 from sqlalchemy.orm import relationship
 
 from app.db.base_class import Base
+from app.db.json_compat import JSONCompatible
 
 
 class ProcessDriftEvent(Base):
@@ -24,8 +25,8 @@ class ProcessDriftEvent(Base):
     process_name: str = Column(String(255), nullable=False)
     pid: Optional[int] = Column(Integer, nullable=True)
     executable_path: Optional[str] = Column(Text, nullable=True)
-    old_value = Column(JSON, nullable=True)
-    new_value = Column(JSON, nullable=True)
+    old_value = Column(JSONCompatible(), nullable=True)
+    new_value = Column(JSONCompatible(), nullable=True)
     severity: str = Column(String(32), nullable=False, default="medium")
     details: Optional[str] = Column(Text, nullable=True)
     detected_at = Column(DateTime, default=datetime.utcnow, nullable=False)

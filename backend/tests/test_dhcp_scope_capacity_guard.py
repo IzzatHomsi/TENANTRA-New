@@ -1,4 +1,4 @@
-from app.models.module import Module
+from app.models.module import Module, ModuleStatus
 from app.services.module_runner import ModuleContext
 from app.services.modules.dhcp_scope_capacity_guard import DHCPScopeCapacityGuard
 
@@ -9,8 +9,7 @@ def _make_context(parameters):
         external_id="dhcp-scope-capacity-guard",
         category="Network Devices",
         phase=5,
-        status="active",
-        enabled=True,
+        status=ModuleStatus.ACTIVE,
     )
     return ModuleContext(module=module, tenant_id=None, agent_id=None, user_id=None, parameters=parameters)
 

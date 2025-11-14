@@ -27,7 +27,7 @@ def list_modules_admin(db: Session = Depends(get_db), user: User = Depends(get_a
     overrides = {r.module_id: r.enabled for r in db.query(TenantModule).filter(TenantModule.tenant_id == user.tenant_id).all()}
     out: List[Dict[str, object]] = []
     for m in modules:
-        base = bool(getattr(m, 'enabled', True)) if hasattr(m, 'enabled') else m.is_effectively_enabled
+        base = m.is_effectively_enabled
         eff = overrides.get(m.id)
         enabled = bool(eff) if eff is not None else base
         out.append(_serialize(m, enabled))
@@ -95,7 +95,6 @@ def seed_modules_from_csv(
                 category='Networking',
                 phase=1,
                 status='active',
-                enabled=True,
                 description='Quick TCP port reachability scan with banner/TLS capture.',
             )
             db.add(demo)
@@ -128,7 +127,6 @@ def create_port_scan_module(
         category='Networking',
         phase=1,
         status='active',
-        enabled=True,
         description='Quick TCP port reachability scan with banner/TLS capture.',
     )
     db.add(module)

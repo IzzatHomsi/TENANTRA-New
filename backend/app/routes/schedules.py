@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
@@ -74,12 +74,13 @@ def create_schedule(
 @router.delete(
     "/{schedule_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
 )
 def delete_schedule(
     schedule_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> None:
+) -> Response:
     _ensure_admin(current_user)
     schedule = db.query(ScheduledScan).filter(ScheduledScan.id == schedule_id).first()
     if schedule is None:
@@ -90,7 +91,7 @@ def delete_schedule(
 
     db.delete(schedule)
     db.commit()
-
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 def _ensure_admin(user: User) -> None:

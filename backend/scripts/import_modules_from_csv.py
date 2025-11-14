@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Dict, Iterable, Optional
 
 from app.database import SessionLocal
-from app.models.module import Module
+from app.models.module import Module, ModuleStatus
 from app.models.tenant import Tenant
 from app.models.tenant_module import TenantModule
 from app.services.module_metadata import get_parameter_schema_for_category
@@ -41,9 +41,6 @@ COLUMN_ALIASES: Dict[str, Iterable[str]] = {
 }
 
 MANDATORY_COLUMNS = {"module_name", "category"}
-
-_DISABLED_STATUSES = {"disabled", "inactive", "retired", "deprecated"}
-
 
 def _normalize(name: str) -> str:
     return name.strip().lower()
@@ -88,11 +85,19 @@ def _parse_last_update(value: Optional[str]) -> Optional[datetime]:
         return None
 
 
-def _status_to_bool(status: Optional[str]) -> bool:
-    status_value = (status or "").strip().lower()
-    if not status_value:
-        return True
-    return status_value not in _DISABLED_STATUSES
+def _normalize_status(status: Optional[str]) -> ModuleStatus:
+    normalized = (status or "").strip().lower()
+    mapping = {
+        "": ModuleStatus.ACTIVE,
+        "active": ModuleStatus.ACTIVE,
+        "enabled": ModuleStatus.ACTIVE,
+        "draft": ModuleStatus.DRAFT,
+        "inactive": ModuleStatus.DISABLED,
+        "disabled": ModuleStatus.DISABLED,
+        "deprecated": ModuleStatus.DEPRECATED,
+        "retired": ModuleStatus.RETIRED,
+    }
+    return mapping.get(normalized, ModuleStatus.ACTIVE)
 
 
 def _slugify(value: str) -> str:
@@ -210,7 +215,7 @@ def import_modules(csv_path: Path, dry_run: bool = False) -> Dict[str, int]:
                 status_column = resolved.get("status")
                 status_value = _trim(row.get(status_column)) if status_column else None
                 module.status = status_value or "active"
-                module.enabled = _status_to_bool(status_value)
+                module.status = _normalize_status(status_value)
 
                 last_update_column = resolved.get("last_update")
                 module.last_update = _parse_last_update(
@@ -255,7 +260,7 @@ def import_modules(csv_path: Path, dry_run: bool = False) -> Dict[str, int]:
                 module.checksum = _checksum_from_row(row)
 
                 session.flush()  # ensure module.id populated before tenant links
-                _ensure_tenant_links(session, module, module.enabled)
+                _ensure_tenant_links(session, module, module.is_effectively_enabled)
 
                 if created:
                     stats["created"] += 1
