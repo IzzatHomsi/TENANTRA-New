@@ -3,6 +3,7 @@ import { getApiBase } from "../utils/apiBase";
 import Card from "../components/ui/Card.jsx";
 import Button from "../components/ui/Button.jsx";
 import Table from "../components/ui/Table.jsx";
+import { useUIStore } from "../store/uiStore";
 
 const API_BASE = getApiBase();
 
@@ -18,12 +19,18 @@ export default function ComplianceMatrix() {
   const [error, setError] = useState("");
 
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const tenantId = useUIStore((state) => state.tenantId);
 
   const loadMatrix = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${API_BASE}/compliance-matrix/matrix`, { headers: authHeaders(token) });
+      const params = new URLSearchParams();
+      if (tenantId) {
+        params.set("tenant_id", tenantId);
+      }
+      const suffix = params.toString() ? `?${params.toString()}` : "";
+      const res = await fetch(`${API_BASE}/compliance-matrix/matrix${suffix}`, { headers: authHeaders(token) });
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
       }
@@ -34,7 +41,7 @@ export default function ComplianceMatrix() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [tenantId, token]);
 
   useEffect(() => {
     loadMatrix();

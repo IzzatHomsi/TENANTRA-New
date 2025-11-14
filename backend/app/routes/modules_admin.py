@@ -96,6 +96,7 @@ def seed_modules_from_csv(
                 phase=1,
                 status='active',
                 description='Quick TCP port reachability scan with banner/TLS capture.',
+                enabled=True,
             )
             db.add(demo)
             db.commit()
@@ -128,6 +129,7 @@ def create_port_scan_module(
         phase=1,
         status='active',
         description='Quick TCP port reachability scan with banner/TLS capture.',
+        enabled=True,
     )
     db.add(module)
     db.commit(); db.refresh(module)

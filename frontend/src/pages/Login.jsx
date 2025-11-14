@@ -39,8 +39,8 @@ export default function Login() {
     <div className="bg-neutral flex min-h-screen flex-col items-center justify-center">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold text-primary">tenantra</h1>
-          <p className="text-xl">Connect with friends and the world around you on Tenantra.</p>
+          <h1 className="text-5xl font-bold text-primary">Tenantra</h1>
+          <p className="text-xl text-secondary-text">Secure operations and compliance intelligence in one workspace.</p>
         </div>
         <div className="bg-surface p-8 rounded-lg shadow-lg">
           <form onSubmit={handleLogin}>
@@ -69,7 +69,7 @@ export default function Login() {
             </div>
             <button
               type="submit"
-              className="w-full rounded-md bg-primary px-4 py-3 text-lg font-bold text-white hover:bg-blue-600 disabled:opacity-60"
+              className="w-full rounded-md bg-primary px-4 py-3 text-lg font-bold text-white transition hover:opacity-90 disabled:opacity-60"
               disabled={submitting}
             >
               {submitting ? "Logging In..." : "Login"}
@@ -82,7 +82,11 @@ export default function Login() {
           </div>
           <hr className="my-6" />
           <div className="text-center">
-            <button className="rounded-md bg-green-500 px-6 py-3 text-lg font-bold text-white hover:bg-green-600">
+            <button
+              type="button"
+              onClick={() => navigate("/register")}
+              className="rounded-md bg-secondary px-6 py-3 text-lg font-bold text-white transition hover:opacity-90"
+            >
               Create New Account
             </button>
           </div>

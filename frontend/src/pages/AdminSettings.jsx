@@ -192,7 +192,7 @@ export default function AdminSettings() {
         <section className="rounded-xl border border-border-color bg-surface p-6 shadow">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-secondary-text">Current configuration</h2>
           <div className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
-            <div className="flex items-center gap-3 rounded-lg bg-gray-100 p-4">
+            <div className="flex items-center gap-3 rounded-lg bg-surface p-4 shadow-sm">
               <span
                 className="h-10 w-10 flex-shrink-0 rounded-full border border-border-color"
                 style={{ backgroundColor: primaryColor }}
@@ -203,23 +203,23 @@ export default function AdminSettings() {
                 <div className="text-secondary-text">{primaryColor}</div>
               </div>
             </div>
-            <div className="rounded-lg bg-gray-100 p-4 text-sm">
+            <div className="rounded-lg bg-surface p-4 text-sm shadow-sm">
               <div className="font-medium text-primary-text">Grafana URL</div>
               <div className="text-secondary-text break-all">
                 {grafanaUrl.startsWith("http") ? grafanaUrl : "Not configured"}
               </div>
             </div>
-            <div className="rounded-lg bg-gray-100 p-4 text-sm">
+            <div className="rounded-lg bg-surface p-4 text-sm shadow-sm">
               <div className="font-medium text-primary-text">Workers</div>
-              <div className={`font-medium ${workersEnabled ? "text-green-600" : "text-red-500"}`}>
+              <div className={`font-medium ${workersEnabled ? "text-success" : "text-danger"}`}>
                 {workersEnabled ? "Enabled" : "Disabled"}
               </div>
             </div>
-            <div className="rounded-lg bg-gray-100 p-4 text-sm">
+            <div className="rounded-lg bg-surface p-4 text-sm shadow-sm">
               <div className="font-medium text-primary-text">Last saved</div>
               <div className="text-secondary-text">{lastSavedAt ? new Date(lastSavedAt).toLocaleString() : "Not yet saved"}</div>
             </div>
-            <div className="rounded-lg bg-gray-100 p-4 text-sm">
+            <div className="rounded-lg bg-surface p-4 text-sm shadow-sm">
               <div className="font-medium text-primary-text">Grafana health</div>
               <div className="text-secondary-text">{lastHealthSummary}</div>
             </div>
@@ -264,7 +264,7 @@ export default function AdminSettings() {
         <div className="flex flex-col gap-3 rounded-xl border border-border-color bg-surface p-6 shadow sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm text-secondary-text">
             {saveStatus.message ? (
-              <span className={saveStatus.kind === "error" ? "text-red-500" : "text-green-600"}>{saveStatus.message}</span>
+              <span className={saveStatus.kind === "error" ? "text-danger" : "text-success"}>{saveStatus.message}</span>
             ) : (
               "Save applies updates across tenants instantly."
             )}

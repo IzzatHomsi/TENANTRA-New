@@ -113,7 +113,7 @@ export default function ScanOrchestration() {
                   <button
                     key={job.id}
                     onClick={() => handleJobSelection(job.id)}
-                    className={`w-full rounded-lg border p-4 text-left ${selectedJob === job.id ? "border-facebook-blue bg-blue-50" : "border-gray-200 bg-white"}`}>
+                    className={`w-full rounded-lg border p-4 text-left ${selectedJob === job.id ? "border-primary bg-blue-50" : "border-gray-200 bg-white"}`}>
                     <div className="font-semibold">{job.name}</div>
                     <div className="text-sm text-gray-500">{job.scan_type} • Priority {job.priority}</div>
                     <div className="text-xs text-gray-500">{job.status.toUpperCase()} • Created {job.created_at}</div>

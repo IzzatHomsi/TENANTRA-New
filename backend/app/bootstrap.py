@@ -93,11 +93,13 @@ def bootstrap_test_data() -> None:
                         "name": "cis_benchmark",
                         "category": "Security Compliance",
                         "status": ModuleStatus.ACTIVE,
+                        "enabled": True,
                     },
                     {
                         "name": "pci_dss_check",
                         "category": "Security Compliance",
                         "status": ModuleStatus.ACTIVE,
+                        "enabled": True,
                     },
                 ]
                 for m in mods:

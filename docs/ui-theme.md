@@ -1,6 +1,6 @@
-# Tenantra Frontend — Facebook-Inspired Theme Reference
+# Tenantra Frontend — UI Theme Reference
 
-This document captures the design tokens and layout patterns that drive the Facebook-style experience introduced across the Tenantra UI. Use these references when extending the interface or building new components so the look & feel stays cohesive.
+This document captures the design tokens and layout patterns that drive the social-dashboard experience introduced across the Tenantra UI. Use these references when extending the interface or building new components so the look & feel stays cohesive.
 
 ## Color System
 
@@ -14,12 +14,12 @@ This document captures the design tokens and layout patterns that drive the Face
 | `--tena-muted` | `#667085` (light) / `#CBD5E1` (dark) | Secondary text, helper copy |
 | `--tena-border` | `#E5E7EB` (light) / `#374151` (dark) | Dividers, control borders |
 
-Tailwind color aliases (`bg-facebook-gray`, `text-facebook-blue`, etc.) map directly to these CSS variables so utility classes and bespoke components stay in sync.
+Tailwind color aliases map directly to these CSS variables so utility classes and bespoke components stay in sync.
 
 ### Elevation & Effects
 
 - Cards and panels use a soft drop shadow (`0 1px 2px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.06)`).
-- Hover states subtly raise the card (`transform: translateY(-1px)`) to mimic Facebook’s motion.
+- Hover states subtly raise the card (`transform: translateY(-1px)`) to mimic the consumer social motion pattern.
 - Outline buttons use an inset border highlight (`rgba(24,119,242,0.2)`) and a translucent hover fill.
 
 ## Typography
@@ -51,14 +51,14 @@ Use these for padding/margins on custom layouts to match the sidebar/content rhy
 
 ### Header
 
-- `fb-header` provides a Facebook-style top bar: brand blue background, white icons, rounded search field, pill-shaped logout button.
+- `tena-header` provides the primary top bar: brand blue background, white icons, rounded search field, pill-shaped logout button.
 - Height: 56 px, horizontal padding uses `--space-4`.
 - Tenancy selector and user avatar sit on the right cluster.
 
 ### Sidebar
 
 - `sidebar` class delivers a dark slate background (`#0F172A`) with light text.
-- Active navigation items receive the primary blue background and white text, echoing Facebook’s active tab treatment.
+- Active navigation items receive the primary blue background and white text, echoing the rest of the workspace treatment.
 - Sections are grouped with uppercase labels (`tracking-wide`, muted color).
 
 ### Card
@@ -70,9 +70,9 @@ Use these for padding/margins on custom layouts to match the sidebar/content rhy
 
 | Variant | Class | Description |
 | --- | --- | --- |
-| Primary | `btn-primary` | Solid brand fill, white text, Facebook CTA styling |
+| Primary | `btn-primary` | Solid brand fill, white text, hero CTA styling |
 | Ghost | `btn-ghost` | Transparent background, subtle border for tertiary actions |
-| Outline | `btn-outline` | Facebook outline button – transparent background with blue border & hover tint |
+| Outline | `btn-outline` | Transparent background with blue border & hover tint |
 | Danger | `danger` (legacy) | High-contrast destructive action (`bg-red-600`) |
 
 The reusable Button component now supports polymorphic `as` rendering so links and router navigation inherit exact button styling.
@@ -96,4 +96,4 @@ While no static mockups are checked in, follow these structural guidelines:
 2. **Dashboard metrics**: arrange primary KPIs in a three-card grid (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`) with hero icon chips aligned left.
 3. **Forms**: wrap fields in `space-y-6`, align labels with `text-sm font-medium` and primary buttons at the bottom (`btn-primary`, full width when mobile).
 
-Align future design decisions with this document so the Facebook-inspired theme remains cohesive across modules.
+Align future design decisions with this document so the Tenantra workspace theme remains cohesive across modules.

@@ -46,6 +46,7 @@ def _serialize_module(module: Module, enabled: bool) -> Dict[str, object]:
         "parameter_schema": schema or {},
         "has_runner": runner_available,
         "enabled": enabled,
+        "default_enabled": bool(getattr(module, "enabled", False)),
         "enabled_global": module.is_effectively_enabled,
         "last_update": last_update,
     }
@@ -171,6 +172,7 @@ def create_module(
         operating_systems=data.get("operating_systems"),
         application_target=data.get("application_target"),
         compliance_mapping=data.get("compliance_mapping"),
+        enabled=bool(data.get("enabled", False)),
     )
 
     parameter_schema = data.get("parameter_schema")

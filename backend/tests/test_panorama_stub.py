@@ -25,6 +25,7 @@ def _create_module(slug: str) -> int:
             category="Networking Devices",
             phase=3,
             status=ModuleStatus.ACTIVE,
+            enabled=True,
         )
         db.add(m)
         db.commit()

@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import expression
 
 from app.db.base_class import Base
+from app.db.json_compat import JSONCompatible
 
 
 class ScanJob(Base):
@@ -23,11 +25,20 @@ class ScanJob(Base):
     status = Column(String(32), nullable=False, default="pending")
     created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
+    module_id = Column(Integer, ForeignKey("modules.id", ondelete="SET NULL"), nullable=True)
+    agent_id = Column(Integer, ForeignKey("agents.id", ondelete="SET NULL"), nullable=True)
+    parameters = Column(JSONCompatible(), nullable=True)
+    enabled = Column(Boolean, nullable=False, default=True, server_default=expression.true())
+    next_run_at = Column(DateTime, nullable=True)
+    last_run_at = Column(DateTime, nullable=True)
 
     tenant = relationship("Tenant", back_populates="scan_jobs")
     creator = relationship("User", backref="scan_jobs")
+    module = relationship("Module")
+    agent = relationship("Agent", backref="assigned_jobs")
     results = relationship("ScanResult", back_populates="job", cascade="all, delete-orphan")
 
     def as_dict(self) -> dict[str, object]:
@@ -42,8 +53,15 @@ class ScanJob(Base):
             "status": self.status,
             "created_by": self.created_by,
             "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "module_id": self.module_id,
+            "agent_id": self.agent_id,
+            "parameters": self.parameters,
+            "enabled": bool(self.enabled),
+            "next_run_at": self.next_run_at.isoformat() if self.next_run_at else None,
+            "last_run_at": self.last_run_at.isoformat() if self.last_run_at else None,
         }
 
 
@@ -76,4 +94,3 @@ class ScanResult(Base):
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
         }
-

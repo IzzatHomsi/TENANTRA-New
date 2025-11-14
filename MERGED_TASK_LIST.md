@@ -139,6 +139,8 @@ This document organizes all development tasks into focused sprints to provide a 
         1.  Refactor all authorization logic to use the FastAPI dependency injection system.
         2.  Create a set of standard, reusable dependencies in `core/permissions.py` (e.g., `require_admin`, `require_tenant_scope`).
         3.  Replace all manual and inconsistent checks (`_ensure_admin`, `_resolve_tenant`) with these standard dependencies.
+        4.  Refactor `get_admin_user` and `get_settings_user` in `backend/app/core/auth.py` to use `get_current_user` and eliminate duplicate code.
+        5.  Review and correct the authorization logic in `alerts.py`, `schedules.py`, and `scan_results.py` to ensure tenant users can manage their own resources.
     *   **Files to check:**
         *   `backend/app/routes/schedules.py`
         *   `backend/app/routes/scan_orchestration.py`
@@ -155,6 +157,17 @@ This document organizes all development tasks into focused sprints to provide a 
     *   **Files to check:**
         *   `backend/app/routes/agents.py`
         *   `backend/app/dependencies/` (new dependency file)
+
+*   **Task:** Harden Agent Token Storage and Validation.
+    *   **Issue:** Agent tokens are stored in plaintext in the database and validated with a direct string comparison, making them vulnerable to theft and timing attacks.
+    *   **Severity:** Critical
+    *   **Action:**
+        1.  When an agent token is created, store a hash of the token in the `agents.token` column instead of the raw token.
+        2.  In the `verify_agent_token` dependency, hash the incoming token from the `X-Agent-Token` header.
+        3.  Use a constant-time comparison function (e.g., `secrets.compare_digest`) to compare the hashed incoming token with the hashed token from the database.
+    *   **Files to check:**
+        *   `backend/app/dependencies/agents.py`
+        *   `backend/app/services/agent_enrollment.py`
 
 *   **Task:** Create a Secure Agent Self-Registration/Enrollment Flow.
     *   **Issue:** The current agent "enrollment" is an admin-only action. There is no secure workflow for a new agent instance to automatically enroll itself with the backend, making deployment manual and cumbersome.
@@ -185,6 +198,7 @@ This document organizes all development tasks into focused sprints to provide a 
 *   **Agent Security:**
     *   Attempt to access an agent-facing endpoint (e.g., for configuration) without a valid `X-Agent-Token`. Verify the request is denied.
     *   Use the new enrollment flow to generate a single-use token, have a new agent use it to enroll, and verify the agent receives a persistent API token.
+    *   Inspect the database to confirm that agent tokens are stored as hashes, not plaintext.
 
 ---
 
@@ -375,6 +389,16 @@ This document organizes all development tasks into focused sprints to provide a 
         *   `backend/app/routes/auth.py`
         *   `backend/app/routes/users.py`
 
+*   **Task:** Implement Tenant Update and Delete.
+    *   **Issue:** The application provides no way to update or delete tenants.
+    *   **Severity:** Medium
+    *   **Action:**
+        1.  Create a `PUT /admin/tenants/{tenant_id}` endpoint to update tenant details.
+        2.  Create a `DELETE /admin/tenants/{tenant_id}` endpoint to delete a tenant.
+        3.  Ensure that deleting a tenant cascades to delete all associated resources (users, agents, etc.).
+    *   **Files to check:**
+        *   `backend/app/routes/tenants_admin.py`
+
 ### P4.4: Unify and Complete Scan Scheduling
 *   **Task:** Consolidate `ScheduledScan` and `ScanJob` Models.
     *   **Issue:** The application has two conflicting and overlapping models for scheduling: `ScheduledScan` and `ScanJob`. The background worker only acts on `ScheduledScan`, meaning any schedule set on a `ScanJob` is ignored.
@@ -389,6 +413,14 @@ This document organizes all development tasks into focused sprints to provide a 
         *   `backend/app/routes/schedules.py`
         *   `backend/app/routes/scan_orchestration.py`
         *   `backend/app/worker/module_scheduler.py`
+
+*   **Task:** Implement Schedule Update.
+    *   **Issue:** The application provides no way to update an existing schedule.
+    *   **Severity:** Low
+    *   **Action:**
+        1.  Create a `PUT /schedules/{schedule_id}` endpoint to update an existing schedule.
+    *   **Files to check:**
+        *   `backend/app/routes/schedules.py`
 
 ### P4.5: Fix and Complete Agent/Module Logic
 *   **Task:** Fix Broken Module Assignment Logic.

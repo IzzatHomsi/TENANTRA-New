@@ -307,7 +307,7 @@ async function runScenario(device, headed = true) {
     await step('C3: offline banner appears', async () => { await context.route('**/*', (route) => route.abort()); await page.reload().catch(() => {}); await capture(page, path.join(deviceDir, 'C3-offline.png')); await context.unroute('**/*'); });
 
     // C14 + D15
-    await step('C14: logout clears token', async () => { await go('/app/dashboard'); const logoutBtn = page.locator('.fb-header__logout'); if (await logoutBtn.count()) { await logoutBtn.click(); } else { const byRole = page.getByRole('button', { name: /^Logout$/i }); if (await byRole.count()) await byRole.click(); else await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); }); } await page.waitForURL('**/login', { timeout: 15000 }); await capture(page, path.join(deviceDir, 'C14-logged-out.png')); });
+    await step('C14: logout clears token', async () => { await go('/app/dashboard'); const logoutBtn = page.locator('.tena-header__logout'); if (await logoutBtn.count()) { await logoutBtn.click(); } else { const byRole = page.getByRole('button', { name: /^Logout$/i }); if (await byRole.count()) await byRole.click(); else await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); }); } await page.waitForURL('**/login', { timeout: 15000 }); await capture(page, path.join(deviceDir, 'C14-logged-out.png')); });
     await step('D15: direct /app/users redirects to /login', async () => { await go('/app/users'); await page.waitForURL('**/login'); await capture(page, path.join(deviceDir, 'D15-guard-users.png')); });
 
   } finally {

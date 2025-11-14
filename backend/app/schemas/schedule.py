@@ -33,16 +33,16 @@ class ScheduleOut(BaseModel):
         return cls(
             id=obj.id,
             tenant_id=obj.tenant_id,
-            module_id=obj.module_id,
-            agent_id=obj.agent_id,
-            cron_expr=obj.cron_expr,
+            module_id=getattr(obj, "module_id", None),
+            agent_id=getattr(obj, "agent_id", None),
+            cron_expr=getattr(obj, "schedule", ""),
             status=obj.status,
-            enabled=bool(obj.enabled),
+            enabled=bool(getattr(obj, "enabled", True)),
             parameters=getattr(obj, "parameters", None),
-            last_run_at=obj.last_run_at,
-            next_run_at=obj.next_run_at,
+            last_run_at=getattr(obj, "last_run_at", None),
+            next_run_at=getattr(obj, "next_run_at", None),
             created_at=obj.created_at,
-            updated_at=obj.updated_at,
+            updated_at=getattr(obj, "updated_at", obj.created_at),
         )
 
     class Config:

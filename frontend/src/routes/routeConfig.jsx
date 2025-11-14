@@ -4,6 +4,7 @@ import { PrivateRoute } from "./PrivateRoute.jsx";
 
 const Landing = lazy(() => import("../pages/Landing.jsx"));
 const Login = lazy(() => import("../pages/Login.jsx"));
+const Register = lazy(() => import("../pages/Register.jsx"));
 const Dashboard = lazy(() => import("../pages/Dashboard.jsx"));
 const Users = lazy(() => import("../pages/Users.jsx"));
 const Profile = lazy(() => import("../pages/Profile.jsx"));
@@ -23,6 +24,7 @@ const CloudDiscovery = lazy(() => import("../pages/CloudDiscovery.jsx"));
 const Discovery = lazy(() => import("../pages/Discovery.jsx"));
 const Onboarding = lazy(() => import("../pages/Onboarding.jsx"));
 const FeatureFlags = lazy(() => import("../pages/FeatureFlags.jsx"));
+const AgentManagement = lazy(() => import("../pages/AgentManagement.jsx"));
 const AlertSettings = lazy(() => import("../pages/AlertSettings.jsx"));
 const ObservabilitySetup = lazy(() => import("../pages/ObservabilitySetup.jsx"));
 const Metrics = lazy(() => import("../pages/Metrics.jsx"));
@@ -40,6 +42,10 @@ export const routeConfig = [
   {
     path: "/login",
     element: <Login />,
+  },
+  {
+    path: "/register",
+    element: <Register />,
   },
   {
     path: "/",
@@ -105,6 +111,14 @@ export const routeConfig = [
         element: (
           <PrivateRoute requireAdmin>
             <AdminSettings />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "agent-management",
+        element: (
+          <PrivateRoute requireAdmin>
+            <AgentManagement />
           </PrivateRoute>
         ),
       },

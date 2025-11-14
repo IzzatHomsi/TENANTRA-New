@@ -11,7 +11,7 @@ export default function ModuleList({ modules, selectedId, onSelect }) {
         <button
           key={module.id}
           onClick={() => onSelect(module.id)}
-          className={`w-full rounded-lg border p-4 text-left ${selectedId === module.id ? "border-facebook-blue bg-blue-50" : "border-gray-200 bg-white"}`}>
+          className={`w-full rounded-lg border p-4 text-left ${selectedId === module.id ? "border-primary bg-blue-50" : "border-gray-200 bg-white"}`}>
           <div className="font-semibold">{module.name}</div>
           <div className="text-sm text-gray-500">
             {module.category || "Uncategorised"}

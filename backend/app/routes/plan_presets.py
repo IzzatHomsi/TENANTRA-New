@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.auth import get_admin_user
 from app.database import get_db
 from app.models.module import Module
-from app.models.scheduled_scan import ScheduledScan
+from app.models.scan_job import ScanJob
 from app.models.user import User
 from app.services.schedule_utils import compute_next_run
 
@@ -38,31 +38,36 @@ def create_networking_demo_plan(
         db.commit(); db.refresh(module)
 
     created = 0
-    # Curated schedules (every 30m, hourly)
     cron_list = ['*/30 * * * *', '0 * * * *']
     for cron in cron_list:
         existing = (
-            db.query(ScheduledScan)
+            db.query(ScanJob)
             .filter(
-                ScheduledScan.tenant_id == tenant_id,
-                ScheduledScan.module_id == module.id,
-                ScheduledScan.cron_expr == cron,
+                ScanJob.tenant_id == tenant_id,
+                ScanJob.module_id == module.id,
+                ScanJob.schedule == cron,
+                ScanJob.scan_type == "module",
             )
             .first()
         )
         if existing:
             continue
-        schedule = ScheduledScan(
+        job = ScanJob(
             tenant_id=tenant_id,
+            name=f"{module.name} schedule",
+            description="Networking plan preset",
+            scan_type="module",
+            priority="normal",
+            schedule=cron,
+            status="scheduled",
+            created_by=user.id,
             module_id=module.id,
             agent_id=None,
-            cron_expr=cron,
-            status='scheduled',
+            parameters=None,
             enabled=True,
             next_run_at=compute_next_run(cron),
         )
-        db.add(schedule)
+        db.add(job)
         created += 1
     db.commit()
     return {"created": created}
-

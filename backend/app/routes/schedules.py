@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.auth import get_current_user
 from app.database import get_db
 from app.models.module import Module
-from app.models.scheduled_scan import ScheduledScan
+from app.models.scan_job import ScanJob
 from app.models.user import User
 from app.schemas.schedule import ScheduleCreate, ScheduleOut
 from app.services.schedule_utils import compute_next_run
@@ -24,15 +24,15 @@ def list_schedules(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> List[ScheduleOut]:
-    query = db.query(ScheduledScan)
+    query = db.query(ScanJob).filter(ScanJob.scan_type == "module")
 
     if current_user.tenant_id:
-        query = query.filter(ScheduledScan.tenant_id == current_user.tenant_id)
+        query = query.filter(ScanJob.tenant_id == current_user.tenant_id)
 
     if module_id is not None:
-        query = query.filter(ScheduledScan.module_id == module_id)
+        query = query.filter(ScanJob.module_id == module_id)
 
-    rows = query.order_by(ScheduledScan.id.desc()).limit(200).all()
+    rows = query.order_by(ScanJob.id.desc()).limit(200).all()
     return [ScheduleOut.from_orm(row) for row in rows]
 
 
@@ -55,14 +55,19 @@ def create_schedule(
     if module is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Module not found")
 
-    schedule = ScheduledScan(
+    schedule = ScanJob(
         tenant_id=tenant_id,
+        name=f"{module.name} schedule",
+        description="Module execution schedule",
+        scan_type="module",
+        priority="normal",
+        schedule=payload.cron_expr,
+        status="scheduled",
+        created_by=current_user.id,
         module_id=module.id,
         agent_id=payload.agent_id,
-        cron_expr=payload.cron_expr,
-        status="scheduled",
-        enabled=True,
         parameters=payload.parameters or None,
+        enabled=True,
         next_run_at=compute_next_run(payload.cron_expr),
     )
     db.add(schedule)
@@ -82,7 +87,7 @@ def delete_schedule(
     current_user: User = Depends(get_current_user),
 ) -> Response:
     _ensure_admin(current_user)
-    schedule = db.query(ScheduledScan).filter(ScheduledScan.id == schedule_id).first()
+    schedule = db.query(ScanJob).filter(ScanJob.id == schedule_id, ScanJob.scan_type == "module").first()
     if schedule is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule not found")
 

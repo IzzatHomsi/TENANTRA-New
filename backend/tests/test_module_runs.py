@@ -102,6 +102,7 @@ def test_run_networking_devices_module_success():
             name=module_name,
             category="Networking Devices",
             status=ModuleStatus.ACTIVE,
+            enabled=True,
         )
         db.add(module)
         db.commit()
@@ -134,6 +135,7 @@ def test_run_networking_devices_module_failure():
             name=module_name,
             category="Networking Devices",
             status=ModuleStatus.ACTIVE,
+            enabled=True,
         )
         db.add(module)
         db.commit()
@@ -166,6 +168,7 @@ def test_run_generic_module_success():
             phase=7,
             status=ModuleStatus.ACTIVE,
             purpose="Validate custom controls",
+            enabled=True,
         )
         db.add(module)
         db.commit()
@@ -198,6 +201,7 @@ def test_run_network_perimeter_module_success():
             name=module_name,
             category="Network & Perimeter Security",
             status=ModuleStatus.ACTIVE,
+            enabled=True,
         )
         db.add(module)
         db.commit()

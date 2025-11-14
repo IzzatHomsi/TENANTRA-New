@@ -357,7 +357,7 @@ This section outlines the detailed execution plan, merging sprint backlogs and t
 
 - **Why:** Automated periodic scans.  
 - **How:**  
-  - `ScheduledScan` table  
+  - `scan_jobs` table (module scheduling unified here)  
   - Celery + Redis for periodic queues  
 - **Output:** Agents scan on defined schedules.
 

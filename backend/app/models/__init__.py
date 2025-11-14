@@ -40,10 +40,6 @@ try:
 except Exception:
     pass
 try:
-    from .scheduled_scan import ScheduledScan  # noqa: F401
-except Exception:
-    pass
-try:
     from .module import Module  # noqa: F401
     from .module_agent_mapping import ModuleAgentMapping  # noqa: F401
 except Exception:
@@ -84,10 +80,6 @@ except Exception:
     pass
 try:
     from .agent_enrollment_token import AgentEnrollmentToken  # noqa: F401
-except Exception:
-    pass
-try:
-    from .scan_job import ScanJob, ScanResult  # noqa: F401
 except Exception:
     pass
 try:

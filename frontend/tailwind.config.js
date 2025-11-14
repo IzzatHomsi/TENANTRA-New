@@ -9,6 +9,10 @@ module.exports = {
       colors: {
         primary: 'var(--tena-primary)',
         secondary: 'var(--tena-secondary)',
+        success: 'var(--tena-secondary)',
+        danger: 'var(--tena-danger)',
+        warning: 'var(--tena-warning)',
+        muted: 'var(--tena-muted)',
         neutral: 'var(--tena-neutral)',
         surface: 'var(--tena-surface)',
         'primary-text': 'var(--tena-text)',
@@ -109,12 +113,6 @@ module.exports = {
           700: 'var(--tena-warning)',
           800: 'var(--tena-warning)',
           900: 'var(--tena-warning)',
-        },
-        // Legacy mapping for older components
-        facebook: {
-          blue: 'var(--tena-primary)',
-          gray: 'var(--tena-neutral)',
-          white: 'var(--tena-surface)',
         },
       },
       fontFamily: {

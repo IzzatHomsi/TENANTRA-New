@@ -111,6 +111,7 @@ def _simplify_module_status() -> None:
                 type_=status_enum,
                 nullable=False,
                 server_default="active",
+                postgresql_using="status::module_status",
             )
             batch.drop_column("enabled")
 
@@ -146,6 +147,8 @@ def _recreate_fk(
     table: str, column: str, referred_table: str, ondelete: str
 ) -> None:
     inspector = _get_inspector()
+    if table not in inspector.get_table_names():
+        return
     fk_name = None
     for fk in inspector.get_foreign_keys(table):
         cols = fk.get("constrained_columns") or []

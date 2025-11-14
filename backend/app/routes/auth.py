@@ -1,13 +1,17 @@
 # backend/app/routes/auth.py
 # Authentication routes: robust /auth/login (form or JSON) and /auth/me
 
-from typing import Optional  # import Optional for fields that may be None
+from typing import Optional, Tuple  # import Optional for fields that may be None
 from datetime import datetime
 import os
+import secrets
+import logging
+import re
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Form, Response  # FastAPI primitives
 from fastapi.security import OAuth2PasswordBearer  # OAuth2 token extractor from Authorization header
 from sqlalchemy.orm import Session  # SQLAlchemy session type for DB work
+from sqlalchemy import func
 from pydantic import BaseModel, EmailStr, root_validator  # Pydantic models for request/response typing
 
 from app.database import get_db  # dependency that yields a DB session
@@ -24,11 +28,39 @@ from app.utils.audit import log_audit_event
 
 # Create a router; app mounts this under /api in main.py
 router = APIRouter()
+logger = logging.getLogger("tenantra.auth")
 
 # Extract Bearer tokens sent to protected endpoints (e.g., /auth/me)
 # tokenUrl informs OpenAPI docs where tokens are obtained.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 _TRUE_VALUES = {"1", "true", "yes", "on"}
+_SLUG_PATTERN = re.compile(r"[^a-z0-9]+")
+
+
+def _slugify_tenant(value: str) -> str:
+    cleaned = _SLUG_PATTERN.sub("-", value.lower()).strip("-")
+    return cleaned or f"tenant-{secrets.token_hex(3)}"
+
+
+def _unique_tenant_labels(db: Session, desired_name: str) -> Tuple[str, str]:
+    """
+    Return a unique (tenant_name, slug) tuple derived from ``desired_name``.
+    """
+    base_name = (desired_name or "").strip() or "New Tenant"
+    name_candidate = base_name
+    suffix = 1
+    while db.query(Tenant).filter(Tenant.name == name_candidate).first():
+        suffix += 1
+        name_candidate = f"{base_name} {suffix}"
+
+    slug_candidate = _slugify_tenant(name_candidate)
+    slug_value = slug_candidate
+    slug_suffix = 1
+    while db.query(Tenant).filter(Tenant.slug == slug_value).first():
+        slug_suffix += 1
+        slug_value = f"{slug_candidate}-{slug_suffix}"
+
+    return name_candidate, slug_value
 
 
 def _is_test_mode() -> bool:
@@ -87,7 +119,94 @@ class ResetPasswordPayload(BaseModel):
     token: str
     new_password: str
 
+
+class RegistrationRequest(BaseModel):
+    tenant_name: str
+    username: str
+    email: EmailStr
+    password: str
+
+
+class RegistrationResponse(BaseModel):
+    tenant_id: int
+    tenant_slug: str
+    user_id: int
+    requires_verification: bool = False
+
 # ---------- Routes ----------
+
+
+@router.post("/auth/register", response_model=RegistrationResponse, status_code=status.HTTP_201_CREATED)
+def register(
+    payload: RegistrationRequest,
+    db: Session = Depends(get_db),
+) -> RegistrationResponse:
+    username = (payload.username or "").strip()
+    if not username:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username is required")
+    tenant_name_input = (payload.tenant_name or "").strip()
+    email = (payload.email or "").strip().lower()
+
+    if db.query(User).filter(func.lower(User.username) == username.lower()).first():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username already exists")
+    if db.query(User).filter(func.lower(User.email) == email.lower()).first():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+
+    try:
+        validate_password_strength(payload.password)
+    except PasswordValidationError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+    tenant_name, tenant_slug = _unique_tenant_labels(db, tenant_name_input or username)
+
+    try:
+        tenant = Tenant(name=tenant_name, slug=tenant_slug, is_active=True)
+        db.add(tenant)
+        db.flush()
+
+        user = User(
+            username=username,
+            email=email,
+            password_hash=get_password_hash(payload.password),
+            role="admin",
+            tenant_id=tenant.id,
+            is_active=True,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as exc:
+        db.rollback()
+        logger.exception("Registration failed")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Registration failed") from exc
+
+    log_audit_event(
+        db,
+        user_id=user.id,
+        action="auth.register",
+        result="success",
+        details={"tenant_id": tenant.id},
+    )
+
+    message = (
+        f"Hi {username},\n\n"
+        f"Your tenant '{tenant_name}' is ready. You can sign in at /login with the credentials you just created."
+    )
+    try:
+        send_email(email, "Welcome to Tenantra", message)
+    except Exception:
+        logger.warning("Failed to send registration confirmation e-mail to %s", email)
+
+    return RegistrationResponse(
+        tenant_id=tenant.id,
+        tenant_slug=tenant.slug,
+        user_id=user.id,
+        requires_verification=False,
+    )
+
 
 @router.post("/auth/login", response_model=TokenOut)
 async def login(

@@ -26,12 +26,11 @@ const NAV_TEMPLATE = [
       { to: toRoute("/dashboard"), label: "Dashboard", exact: true },
       { to: toRoute("/metrics"), label: "Metrics" },
       { to: toRoute("/discovery"), label: "Discovery" },
-      { to: toRoute("/profile"), label: "My Profile" },
       { to: toRoute("/notifications"), label: "Notifications" },
       { to: toRoute("/notification-history"), label: "Notification History", featureKey: "notificationHistory" },
       { to: toRoute("/alert-settings"), label: "Alert Settings", adminOnly: true, featureKey: "alertSettings" },
       { to: toRoute("/audit-logs"), label: "Audit Logs", adminOnly: true, featureKey: "auditLogs" },
-      { to: toRoute("/feature-flags"), label: "Feature Flags", adminOnly: true, featureKey: "featureFlags" },
+      { to: toRoute("/agent-management"), label: "Agent Management", adminOnly: true },
     ],
   },
   {
@@ -154,30 +153,35 @@ export default function Shell() {
     })();
   }, [location.pathname, navigate]);
 
-  // Micro debug widget: optional polling enabled via localStorage('tena_debug_me_poll')==='1'
-  const [meStatus, setMeStatus] = useState(null);
-  const [meLastAt, setMeLastAt] = useState("");
+  // API connection indicator (always visible)
+  const [apiStatus, setApiStatus] = useState({ state: "checking", lastChecked: "" });
   useEffect(() => {
+    let cancelled = false;
     let timer;
     async function probe() {
       try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-        if (!token) { setMeStatus(null); return; }
-        const r = await fetch(`${getApiBase()}/auth/me`, { headers: { 'Authorization': `Bearer ${token}` } });
-        setMeStatus(r.status);
-        setMeLastAt(new Date().toLocaleTimeString());
+        const res = await fetch(`${getApiBase()}/health`, { cache: "no-store" });
+        if (cancelled) return;
+        setApiStatus({
+          state: res.ok ? "online" : "degraded",
+          lastChecked: new Date().toLocaleTimeString(),
+        });
       } catch {
-        setMeStatus(-1);
-        setMeLastAt(new Date().toLocaleTimeString());
+        if (cancelled) return;
+        setApiStatus({
+          state: "offline",
+          lastChecked: new Date().toLocaleTimeString(),
+        });
       }
     }
-    try {
-      const enabled = typeof window !== 'undefined' && localStorage.getItem('tena_debug_me_poll') === '1';
-      if (!enabled) return;
-    } catch {}
     probe();
-    timer = setInterval(probe, 5000);
-    return () => { if (timer) clearInterval(timer); };
+    timer = window.setInterval(probe, 15000);
+    return () => {
+      cancelled = true;
+      if (timer) {
+        clearInterval(timer);
+      }
+    };
   }, []);
 
   const dismissExtensionWarning = useCallback(() => {
@@ -386,6 +390,21 @@ export default function Shell() {
       .join(" / ");
   }, [flattenedNav, location.pathname]);
 
+  const apiLabelMap = {
+    online: "Online",
+    degraded: "Degraded",
+    offline: "Offline",
+    checking: "Checking…",
+  };
+  const apiColorMap = {
+    online: "var(--tena-secondary)",
+    degraded: "var(--tena-warning)",
+    offline: "var(--tena-danger)",
+    checking: "var(--tena-muted)",
+  };
+  const apiStatusLabel = apiLabelMap[apiStatus.state] || apiLabelMap.checking;
+  const apiIndicatorColor = apiColorMap[apiStatus.state] || apiColorMap.checking;
+
   function handleLogout() {
     signOut();
     navigate("/login", { replace: true });
@@ -418,12 +437,12 @@ export default function Shell() {
         </div>
       )}
       {/* Top bar */}
-      <header className="fb-header sticky top-0 z-10">
+      <header className="tena-header sticky top-0 z-10">
         <div className="mx-auto max-w-7xl flex items-center justify-between" style={{ paddingLeft: 'var(--space-4)', paddingRight: 'var(--space-4)', height: 56 }}>
           <div className="flex items-center gap-3">
             <button
               type="button"
-              className="fb-header__iconbtn inline-flex h-9 w-9 items-center justify-center rounded-md border lg:hidden"
+              className="tena-header__iconbtn inline-flex h-9 w-9 items-center justify-center rounded-md border lg:hidden"
               onClick={() => setSidebarOpen((v) => !v)}
               aria-label="Toggle navigation"
             >
@@ -464,17 +483,21 @@ export default function Shell() {
               <div className="text-sm font-medium">{user?.username || "user"}</div>
               <div className="text-xs text-secondary-text" style={{ opacity: 0.85 }}>{role || "role"}</div>
             </div>
-            {/* Micro debug indicator for /auth/me */}
-            <div title={`/auth/me ${meStatus ?? ''} @ ${meLastAt || ''}`} className="flex items-center gap-1">
-              <span className={`inline-block h-2.5 w-2.5 rounded-full ${meStatus===200?'bg-secondary':(meStatus==null?'bg-neutral':'bg-red-500')}`} />
-              <span className="hidden md:inline text-[10px] text-secondary-text">{meStatus ?? '?'}{meLastAt?` • ${meLastAt}`:''}</span>
+            <div className="flex items-center gap-2 rounded-full border border-border-color px-2 py-1 text-[11px] text-primary-text" title={`API status • ${apiStatusLabel}${apiStatus.lastChecked ? ` @ ${apiStatus.lastChecked}` : ""}`}>
+              <span
+                aria-hidden="true"
+                className="inline-block h-2 w-2 rounded-full"
+                style={{ backgroundColor: apiIndicatorColor }}
+              />
+              <span className="hidden sm:inline">API</span>
+              <span className="font-semibold">{apiStatusLabel}</span>
             </div>
             <div className="avatar" title={user?.username || ''}>{(user?.username||'U').toString().charAt(0).toUpperCase()}</div>
             <div className="relative">
             <button
               type="button"
               onClick={() => setSettingsOpen((v) => !v)}
-              className="fb-header__iconbtn inline-flex h-9 w-9 items-center justify-center rounded-md border"
+              className="tena-header__iconbtn inline-flex h-9 w-9 items-center justify-center rounded-md border"
               title="System settings"
               aria-haspopup="menu"
               aria-expanded={settingsOpen}
@@ -524,7 +547,7 @@ export default function Shell() {
             <button
               type="button"
               onClick={handleLogout}
-              className="fb-header__logout inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium hover:opacity-90"
+              className="tena-header__logout inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium hover:opacity-90"
             >
               Logout
             </button>

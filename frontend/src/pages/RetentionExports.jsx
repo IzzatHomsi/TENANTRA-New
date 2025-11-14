@@ -3,6 +3,7 @@ import { getApiBase } from "../utils/apiBase";
 import Card from "../components/ui/Card.jsx";
 import Button from "../components/ui/Button.jsx";
 import Table from "../components/ui/Table.jsx";
+import { useUIStore } from "../store/uiStore";
 
 const API_BASE = getApiBase();
 
@@ -11,8 +12,14 @@ const authHeaders = (token) => ({
   Authorization: `Bearer ${token}`,
 });
 
-const fetchRetentionData = async (token, endpoint, options = {}) => {
-  const res = await fetch(`${API_BASE}${endpoint}`, { headers: authHeaders(token), ...options });
+const withTenantQuery = (endpoint, tenantId) => {
+  if (!tenantId) return endpoint;
+  const joiner = endpoint.includes("?") ? "&" : "?";
+  return `${endpoint}${joiner}tenant_id=${encodeURIComponent(tenantId)}`;
+};
+
+const fetchRetentionData = async (token, tenantId, endpoint, options = {}) => {
+  const res = await fetch(`${API_BASE}${withTenantQuery(endpoint, tenantId)}`, { headers: authHeaders(token), ...options });
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}`);
   }
@@ -33,6 +40,7 @@ export default function RetentionExports() {
   const [exportFormats, setExportFormats] = useState("csv,json");
 
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const tenantId = useUIStore((state) => state.tenantId);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -40,8 +48,8 @@ export default function RetentionExports() {
     setError("");
     try {
       const [policyResp, exportResp] = await Promise.all([
-        fetchRetentionData(token, "/retention/policy"),
-        fetchRetentionData(token, "/retention/exports"),
+        fetchRetentionData(token, tenantId, "/retention/policy"),
+        fetchRetentionData(token, tenantId, "/retention/exports"),
       ]);
       setPolicy(policyResp);
       setRetentionDays(policyResp?.retention_days ?? 90);
@@ -53,7 +61,7 @@ export default function RetentionExports() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [tenantId, token]);
 
   useEffect(() => {
     loadData();
@@ -69,7 +77,7 @@ export default function RetentionExports() {
         archive_storage: archive,
         export_formats: formats.split(",").map((f) => f.trim()).filter(Boolean),
       };
-      const resp = await fetchRetentionData(token, "/retention/policy", { method: "PUT", body: JSON.stringify(update) });
+      const resp = await fetchRetentionData(token, tenantId, "/retention/policy", { method: "PUT", body: JSON.stringify(update) });
       setPolicy(resp);
       setMessage("Retention policy updated.");
     } catch (err) {
@@ -85,7 +93,7 @@ export default function RetentionExports() {
     setError("");
     try {
       const formatsList = exportFormats.split(",").map((f) => f.trim()).filter(Boolean);
-      const resp = await fetchRetentionData(token, "/retention/exports", { method: "POST", body: JSON.stringify({ export_type: exportType, formats: formatsList }) });
+      const resp = await fetchRetentionData(token, tenantId, "/retention/exports", { method: "POST", body: JSON.stringify({ export_type: exportType, formats: formatsList }) });
       setExports((prev) => [resp, ...prev]);
       setMessage("Export queued and completed. Download via storage URI.");
     } catch (err) {

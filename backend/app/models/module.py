@@ -4,7 +4,8 @@ from __future__ import annotations
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import Column, DateTime, Enum as SQLEnum, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Column, DateTime, Enum as SQLEnum, Integer, String, Text, UniqueConstraint
+from sqlalchemy.sql import expression
 from sqlalchemy.orm import relationship
 
 from app.db.base_class import Base
@@ -38,7 +39,11 @@ class Module(Base, TimestampMixin, ModelMixin):
     impact_level = Column(String(50), nullable=True)
     path = Column(String(255), nullable=True)
     status = Column(
-        SQLEnum(ModuleStatus, name="module_status"),
+        SQLEnum(
+            ModuleStatus,
+            name="module_status",
+            values_callable=lambda enum_cls: [member.value for member in enum_cls],
+        ),
         nullable=False,
         default=ModuleStatus.ACTIVE.value,
         server_default=ModuleStatus.ACTIVE.value,
@@ -54,10 +59,10 @@ class Module(Base, TimestampMixin, ModelMixin):
     compliance_mapping = Column(Text, nullable=True)
     parameter_schema = Column(JSONCompatible(), nullable=True)
     last_update = Column(DateTime, nullable=True)
+    enabled = Column(Boolean, nullable=False, default=False, server_default=expression.false())
 
     tenant_modules = relationship("TenantModule", back_populates="module")
     scan_results = relationship("ScanModuleResult", back_populates="module", cascade="all, delete-orphan")
-    scheduled_scans = relationship("ScheduledScan", back_populates="module", passive_deletes=True)
     __table_args__ = (
         UniqueConstraint("name", name="uq_module_name"),
     )
@@ -70,4 +75,6 @@ class Module(Base, TimestampMixin, ModelMixin):
             status = ModuleStatus(raw)
         except Exception:
             status = ModuleStatus.ACTIVE
-        return status not in _DISABLED_STATUSES
+        base_flag = getattr(self, "enabled", None)
+        base_enabled = True if base_flag is None else bool(base_flag)
+        return base_enabled and status not in _DISABLED_STATUSES

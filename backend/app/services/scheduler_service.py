@@ -10,7 +10,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db_session
-from app.models.scheduled_scan import ScheduledScan
+from app.models.scan_job import ScanJob
 from app.observability.metrics import record_scheduler_run
 from app.services.module_executor import ModuleRunnerNotFound, execute_module
 from app.services.schedule_utils import compute_next_run
@@ -18,18 +18,19 @@ from app.services.schedule_utils import compute_next_run
 logger = logging.getLogger("tenantra.scheduler")
 
 
-def _fetch_due_schedules(session: Session, limit: int) -> List[ScheduledScan]:
+def _fetch_due_jobs(session: Session, limit: int) -> List[ScanJob]:
     now = datetime.utcnow()
     query = (
-        session.query(ScheduledScan)
-        .filter(ScheduledScan.enabled.is_(True))
+        session.query(ScanJob)
+        .filter(ScanJob.scan_type == "module")
+        .filter(ScanJob.enabled.is_(True))
         .filter(
             or_(
-                ScheduledScan.next_run_at == None,  # noqa: E711
-                ScheduledScan.next_run_at <= now,
+                ScanJob.next_run_at == None,  # noqa: E711
+                ScanJob.next_run_at <= now,
             )
         )
-        .order_by(ScheduledScan.next_run_at.asc())
+        .order_by(ScanJob.next_run_at.asc())
         .limit(limit)
     )
     try:
@@ -40,56 +41,58 @@ def _fetch_due_schedules(session: Session, limit: int) -> List[ScheduledScan]:
     return query.all()
 
 
-def _execute_schedule(session: Session, schedule: ScheduledScan) -> None:
-    module = schedule.module
+def _execute_job(session: Session, job: ScanJob) -> None:
+    module = job.module
     if module is None:
-        schedule.status = "missing_module"
-        schedule.enabled = False
-        schedule.next_run_at = compute_next_run(schedule.cron_expr)
+        job.status = "missing_module"
+        job.enabled = False
+        job.next_run_at = compute_next_run(job.schedule)
         return
 
     try:
-        params = getattr(schedule, "parameters", None) or {}
+        params = getattr(job, "parameters", None) or {}
         record = execute_module(
             db=session,
             module=module,
-            tenant_id=schedule.tenant_id,
-            agent_id=schedule.agent_id,
+            tenant_id=job.tenant_id,
+            agent_id=job.agent_id,
             user_id=None,
             parameters=params,
         )
-        schedule.status = record.status
-        schedule.last_run_at = record.recorded_at
-        record_scheduler_run(schedule.status)
+        job.status = record.status
+        job.last_run_at = record.recorded_at
+        job.started_at = record.recorded_at
+        job.completed_at = record.recorded_at
+        record_scheduler_run(job.status)
     except ModuleRunnerNotFound:
-        logger.warning("Schedule %s disabled: no runner for module %s", schedule.id, module.name)
-        schedule.status = "no_runner"
-        schedule.enabled = False
+        logger.warning("Job %s disabled: no runner for module %s", job.id, module.name)
+        job.status = "no_runner"
+        job.enabled = False
         try:
-            record_scheduler_run(schedule.status)
+            record_scheduler_run(job.status)
         except Exception:
             pass
     except Exception:
         logger.exception("Scheduled execution failed for module %s", getattr(module, "name", "unknown"))
-        schedule.status = "error"
+        job.status = "error"
         try:
-            record_scheduler_run(schedule.status)
+            record_scheduler_run(job.status)
         except Exception:
             pass
     finally:
-        schedule.next_run_at = compute_next_run(schedule.cron_expr, reference=datetime.utcnow())
-        schedule.updated_at = datetime.utcnow()
+        job.next_run_at = compute_next_run(job.schedule, reference=datetime.utcnow())
+        job.updated_at = datetime.utcnow()
 
 
 def process_due_schedules(batch_size: int = 25) -> int:
     """Process due schedules in a single transaction."""
     processed = 0
     with get_db_session() as session:
-        schedules = _fetch_due_schedules(session, batch_size)
-        if not schedules:
+        jobs = _fetch_due_jobs(session, batch_size)
+        if not jobs:
             return 0
-        for schedule in schedules:
-            _execute_schedule(session, schedule)
+        for job in jobs:
+            _execute_job(session, job)
             processed += 1
         session.commit()
     return processed

@@ -26,6 +26,7 @@ def _create_module(slug: str, category: str = "Identity & Access Scanning", phas
             category=category,
             phase=phase,
             status=ModuleStatus.ACTIVE,
+            enabled=True,
         )
         db.add(m)
         db.commit()

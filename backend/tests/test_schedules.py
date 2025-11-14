@@ -2,7 +2,7 @@ from fastapi.testclient import TestClient
 
 from app.database import SessionLocal
 from app.main import app
-from app.models.scheduled_scan import ScheduledScan
+from app.models.scan_job import ScanJob
 from .helpers import ADMIN_USERNAME, ADMIN_PASSWORD
 
 client = TestClient(app)
@@ -43,6 +43,6 @@ def test_create_and_delete_schedule():
 
     cleanup = SessionLocal()
     try:
-        assert cleanup.query(ScheduledScan).filter(ScheduledScan.id == schedule_id).first() is None
+        assert cleanup.query(ScanJob).filter(ScanJob.id == schedule_id).first() is None
     finally:
         cleanup.close()

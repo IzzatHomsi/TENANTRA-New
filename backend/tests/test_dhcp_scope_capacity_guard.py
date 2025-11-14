@@ -10,6 +10,7 @@ def _make_context(parameters):
         category="Network Devices",
         phase=5,
         status=ModuleStatus.ACTIVE,
+        enabled=True,
     )
     return ModuleContext(module=module, tenant_id=None, agent_id=None, user_id=None, parameters=parameters)
 
