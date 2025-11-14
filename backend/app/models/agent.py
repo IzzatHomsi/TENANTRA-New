@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from sqlalchemy.sql import expression
 import secrets
 from app.db.base_class import Base
 from app.models.base import TimestampMixin, ModelMixin
@@ -12,6 +12,7 @@ class Agent(Base, TimestampMixin, ModelMixin):
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
     name = Column(String, nullable=False)
+
     def _generate_token() -> str:
         return secrets.token_hex(16)
 
@@ -20,6 +21,7 @@ class Agent(Base, TimestampMixin, ModelMixin):
     os = Column(String, nullable=True)
     version = Column(String, nullable=True)
     status = Column(String, default="active")
+    is_active = Column(Boolean, nullable=False, default=True, server_default=expression.true())
     last_seen_at = Column(DateTime, nullable=True)
 
     logs = relationship("AgentLog", back_populates="agent")

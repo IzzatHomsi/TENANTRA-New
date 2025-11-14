@@ -31,6 +31,11 @@ def bootstrap_test_data() -> None:
             # For test bootstrap we create the full schema to satisfy tests
             # across modules without requiring Alembic migrations.
             try:
+                # Ensure all model modules are imported so Base.metadata knows every table/column
+                import app.models  # noqa: F401
+            except Exception:
+                logger.debug("Unable to import app.models during bootstrap", exc_info=True)
+            try:
                 Base.metadata.create_all(bind=engine)
             except Exception:
                 # Fallback: if create_all raises, try conditional create
