@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, patch
 
 import httpx
+import json
 from fastapi.testclient import TestClient
 
 from app.database import SessionLocal
@@ -10,6 +11,7 @@ from app.main import app
 from app.models.app_setting import AppSetting
 from app.models.audit_log import AuditLog
 from app.routes import grafana_proxy as grafana_proxy_module
+from app.services import grafana as grafana_service
 from app.core.crypto import encrypt_data
 from app.core.secrets import get_enc_key
 from .helpers import ADMIN_USERNAME, ADMIN_PASSWORD
@@ -165,4 +167,35 @@ def test_grafana_proxy_uses_stored_credentials(mock_request: AsyncMock):
     finally:
         _restore_setting("grafana.basic.password", previous_password)
         _restore_setting("grafana.basic.username", previous_user)
+        _restore_setting("grafana.url", previous_url)
+
+
+def test_grafana_proxy_normalizes_numeric_ranges():
+    body = (
+        b'{"from":1699999999000,"to":1700000009000,"range":{"from":1699999999000,"to":1700000009000},'
+        b'"queries":[{"range":{"from":1699999999000,"to":1700000009000},'
+        b'"model":{"range":{"from":1699999999000,"to":1700000009000}}}]}'
+    )
+    normalized = grafana_proxy_module._normalize_grafana_body(
+        "api/ds/query",
+        {"content-type": "application/json"},
+        body,
+    )
+    assert normalized != body
+    payload = json.loads(normalized)
+    assert isinstance(payload["from"], str)
+    assert isinstance(payload["range"]["from"], str)
+    assert isinstance(payload["queries"][0]["range"]["to"], str)
+
+
+def test_get_base_url_rewrites_localhost(monkeypatch):
+    previous_url = _ensure_setting("grafana.url", "https://localhost:3000")
+    db = SessionLocal()
+    try:
+        monkeypatch.setenv("GRAFANA_INTERNAL_HOST", "grafana")
+        monkeypatch.setenv("GRAFANA_INTERNAL_PORT", "3000")
+        base = grafana_service.get_base_url(db)
+        assert base == "http://grafana:3000"
+    finally:
+        db.close()
         _restore_setting("grafana.url", previous_url)

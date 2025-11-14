@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import time
 from collections import deque
-from typing import Deque, Dict, Optional, Tuple
 from contextlib import nullcontext
+from typing import Deque, Dict, Optional, Tuple
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -160,6 +161,59 @@ def _build_upstream(base: str, tail: str, query: str) -> str:
     return upstream
 
 
+def _stringify_time_fields(container: Dict[str, object]) -> bool:
+    """Ensure Grafana time fields are serialized as strings."""
+    changed = False
+    for key in ("from", "to"):
+        value = container.get(key)
+        if isinstance(value, (int, float)):
+            container[key] = str(int(value))
+            changed = True
+    return changed
+
+
+def _normalize_grafana_body(tail: str, headers: Dict[str, str], body: bytes) -> bytes:
+    """Grafana expects time fields as strings; convert numbers before proxying."""
+    if not body or not tail.startswith("api/ds/query"):
+        return body
+    content_type = headers.get("content-type", "")
+    if "json" not in content_type.lower():
+        return body
+    try:
+        payload = json.loads(body)
+    except (TypeError, json.JSONDecodeError):
+        return body
+    if not isinstance(payload, dict):
+        return body
+
+    changed = False
+    # Handle top-level or range wrapper fields that might be numbers.
+    if _stringify_time_fields(payload):
+        changed = True
+    range_block = payload.get("range")
+    if isinstance(range_block, dict) and _stringify_time_fields(range_block):
+        changed = True
+
+    queries = payload.get("queries")
+    if isinstance(queries, list):
+        for entry in queries:
+            if not isinstance(entry, dict):
+                continue
+            entry_range = entry.get("range")
+            if isinstance(entry_range, dict) and _stringify_time_fields(entry_range):
+                changed = True
+            model = entry.get("model")
+            if isinstance(model, dict):
+                model_range = model.get("range")
+                if isinstance(model_range, dict) and _stringify_time_fields(model_range):
+                    changed = True
+
+    if not changed:
+        return body
+    serialized = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    return serialized
+
+
 async def _proxy(db: Session, request: Request, tail: str, user: User) -> Response:
     with _span("grafana.proxy") as span:
         base = get_base_url(db, tenant_id=user.tenant_id)
@@ -232,8 +286,10 @@ async def _proxy(db: Session, request: Request, tail: str, user: User) -> Respon
                 pass
 
         body = await request.body()
-        body_bytes = body
-        if len(body) > max_body_bytes:
+        body_bytes = _normalize_grafana_body(tail, request.headers, body)
+        if body_bytes != body:
+            headers["content-length"] = str(len(body_bytes))
+        if len(body_bytes) > max_body_bytes:
             log_audit_event(
                 db,
                 user_id=user.id,

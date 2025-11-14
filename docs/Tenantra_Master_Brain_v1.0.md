@@ -1178,6 +1178,8 @@ This section covers a diverse set of endpoints for managing core application con
         1.  Reads the Grafana URL and credentials from `AppSettings`.
         2.  Makes an HTTP request to Grafana's `/api/health` endpoint.
         3.  Implements a circuit breaker pattern to avoid overwhelming a failing service. If health checks fail repeatedly, the circuit "opens" and subsequent requests will fail immediately for a configured timeout period.
+    - **Operational note (Sprint 4):** The Grafana reverse proxy (`app/routes/grafana_proxy.py`) now inspects `POST /grafana/api/ds/query` payloads and coerces any numeric `from`/`to` fields (including nested `range` objects) into strings before forwarding the request upstream. Grafana 10 tightened its JSON schema and rejects numeric timestamps, so this shim prevents `400 Bad Request` responses and the cascading “Failed to stopMeasure loadDashboardScene” errors that previously appeared on the Metrics dashboard.
+    - **Internal plumbing:** `app/services/grafana.py` automatically rewrites `grafana.url` values that point to `localhost` / `127.0.0.1` so the backend can reach the in-cluster Grafana service (`GRAFANA_INTERNAL_HOST`, default `grafana:3000`). This keeps the user-facing URL friendly (e.g., https://localhost:3000) while ensuring health checks and proxy calls terminate on the container network.
 
 - **`POST /admin/network/port-scan`** (`network_admin.py`)
     - **Purpose:** To allow an admin to run an ad-hoc port scan.
