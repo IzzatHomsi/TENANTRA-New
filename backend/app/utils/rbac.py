@@ -3,10 +3,25 @@
 # IMPORTANT: No starlette Request types in the dependency signature to avoid
 # Pydantic response-model confusion in some FastAPI/Pydantic combos.
 
-from typing import Iterable, List, Sequence, Union, Any
+from typing import Iterable, List, Sequence, Set, Union, Any
 from fastapi import Depends, HTTPException, status
 from app.core.auth import get_current_user
-from app.core.rbac import has_any_role
+
+
+def _norm_role_set(values: Iterable[str]) -> Set[str]:
+    normalized: Set[str] = set()
+    for value in values or []:
+        if value is None:
+            continue
+        normalized.add(str(value).strip().lower().replace(" ", "_"))
+    return normalized
+
+
+def has_any_role(user_roles: Iterable[str], allowed: Iterable[str]) -> bool:
+    """
+    Returns True if any of the user's roles intersects the allowed list.
+    """
+    return bool(_norm_role_set(user_roles) & _norm_role_set(allowed))
 
 
 def _normalize_roles(roles: Union[str, Iterable[str], None], extra: Iterable[str]) -> List[str]:

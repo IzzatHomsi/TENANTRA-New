@@ -328,31 +328,20 @@ This file implements the core logic for isolating tenant data, both in the datab
     - **Returns:** A `TenantScope` object containing the user's tenant ID and slug, or `None` if the user has no tenant.
 
 ---
-##### **`app/core/rbac.py`**
-This file provides generic, reusable functions for role-based access control logic that are not tied to the FastAPI framework.
-
-- **`_norm_roles(values: Iterable[str]) -> set`**
-    - **Purpose:** A private helper to normalize a list of role strings for consistent comparison.
-    - **Logic:**
-        1. Iterates through the input `values`.
-        2. For each value, it converts it to a string, strips whitespace, converts to lowercase, and replaces spaces with underscores.
-    - **Returns:** A set of normalized role strings.
+##### **`app/utils/rbac.py`**
+All RBAC helpers now live in this module (the legacy `app/core/rbac.py` duplication was removed during Sprint 5 cleanup).
 
 - **`has_any_role(user_roles: Iterable[str], allowed: Iterable[str]) -> bool`**
-    - **Purpose:** To check if a user has at least one of the required roles.
+    - **Purpose:** Pure helper to check whether a user has at least one allowed role.
     - **Logic:**
-        1. Normalizes both the user's roles and the allowed roles using `_norm_roles()`.
-        2. Performs a set intersection (`&`) between the two sets.
-        3. Returns `True` if the intersection is not empty (i.e., there is at least one match).
+        1. Normalizes both collections into lowercase, underscore-separated role slugs.
+        2. Performs a set intersection (`&`) and returns `True` when there is at least one shared role.
     - **Returns:** `True` if the user has a permitted role, `False` otherwise.
 
-- **`require_any_role(user_roles: Iterable[str], allowed: Iterable[str]) -> None`**
-    - **Purpose:** To enforce that a user has one of the allowed roles, raising a `ValueError` if they do not.
-    - **Logic:** Calls `has_any_role()` and raises a `ValueError` with a descriptive message if the check fails. This is intended for use in business logic layers where an `HTTPException` might not be appropriate.
-    - **Throws:** `ValueError` if the role check fails.
-
-- **`app/utils/rbac.py` bridge**
-    - Provides the FastAPI-friendly `role_required()` dependency. It now normalizes both `user.role` (single string) and any attached `user.roles` collections/objects before calling `has_any_role()`, which fixed the `'User' object is not iterable` crashes that previously hit `/modules/mapping` and other admin routes.
+- **`role_required(roles: Union[str, Iterable[str], None], *extra_roles: str, require_all: bool = False)`**
+    - **Purpose:** FastAPI dependency factory that enforces RBAC on routes.
+    - **Logic:** Normalizes incoming role arguments, extracts `user.role`, `user.roles`, and any legacy fields, then calls `has_any_role()` (or checks every role when `require_all=True`). Raises `HTTPException` 401/403 on failure.
+    - **Usage:** `@router.get(..., dependencies=[Depends(role_required("admin"))])`
 
 ---
 ##### **`app/core/permissions.py`**
