@@ -22,11 +22,10 @@ from app.schemas.notification_prefs import (
 from app.dependencies.tenancy import tenant_scope_dependency
 
 
-router = APIRouter(prefix="/notification-prefs", tags=["Notifications"])
+router = APIRouter(tags=["Notifications"])
 
 
-@router.get("", response_model=NotificationPrefsRead)
-def get_prefs(
+def _fetch_prefs(
     user_id: Optional[int] = Query(None, description="If provided, return user-specific override if present."),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -69,8 +68,7 @@ def get_prefs(
     return NotificationPrefsRead.from_orm(row)
 
 
-@router.put("", response_model=NotificationPrefsRead)
-def upsert_prefs(
+def _upsert_prefs(
     payload: NotificationPrefsUpsert,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -110,3 +108,43 @@ def upsert_prefs(
     db.commit()
     db.refresh(row)
     return NotificationPrefsRead.from_orm(row)
+
+
+@router.get("/notification-prefs", response_model=NotificationPrefsRead)
+def get_prefs(
+    user_id: Optional[int] = Query(None, description="If provided, return user-specific override if present."),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    resolved_tenant: int = Depends(tenant_scope_dependency()),
+) -> NotificationPrefsRead:
+    return _fetch_prefs(user_id, db, current_user, resolved_tenant)
+
+
+@router.put("/notification-prefs", response_model=NotificationPrefsRead)
+def upsert_prefs(
+    payload: NotificationPrefsUpsert,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    resolved_tenant: int = Depends(tenant_scope_dependency()),
+) -> NotificationPrefsRead:
+    return _upsert_prefs(payload, db, current_user, resolved_tenant)
+
+
+@router.get("/notifications/settings", response_model=NotificationPrefsRead)
+def get_notification_settings(
+    user_id: Optional[int] = Query(None, description="If provided, return user-specific override if present."),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    resolved_tenant: int = Depends(tenant_scope_dependency()),
+) -> NotificationPrefsRead:
+    return _fetch_prefs(user_id, db, current_user, resolved_tenant)
+
+
+@router.put("/notifications/settings", response_model=NotificationPrefsRead)
+def update_notification_settings(
+    payload: NotificationPrefsUpsert,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    resolved_tenant: int = Depends(tenant_scope_dependency()),
+) -> NotificationPrefsRead:
+    return _upsert_prefs(payload, db, current_user, resolved_tenant)

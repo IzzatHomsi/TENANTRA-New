@@ -21,8 +21,7 @@ from app.models.user import User  # ORM model for users table
 from app.core.security import verify_password, create_access_token, decode_access_token  # crypto helpers
 from app.core.auth import get_current_user
 from app.core.security import get_password_hash
-from app.services import password_reset as password_reset_service, token_blocklist
-from app.utils.email import send_email
+from app.services import email_verification, password_reset as password_reset_service, token_blocklist, email_service
 from app.utils.password import validate_password_strength, PasswordValidationError
 from app.utils.audit import log_audit_event
 
@@ -92,6 +91,7 @@ class UserOut(BaseModel):
     email: Optional[str] = None  # email (may be None for some seeds)
     is_active: bool           # active flag
     role: Optional[str] = None  # <-- ROLE INCLUDED so RBAC gating works client-side
+    email_verified: bool = True
 
     class Config:
         # If later you return ORM objects directly, this lets Pydantic read attributes.
@@ -120,6 +120,10 @@ class ResetPasswordPayload(BaseModel):
     new_password: str
 
 
+class VerifyEmailPayload(BaseModel):
+    token: str
+
+
 class RegistrationRequest(BaseModel):
     tenant_name: str
     username: str
@@ -132,6 +136,7 @@ class RegistrationResponse(BaseModel):
     tenant_slug: str
     user_id: int
     requires_verification: bool = False
+    test_verification_token: Optional[str] = None
 
 # ---------- Routes ----------
 
@@ -139,6 +144,7 @@ class RegistrationResponse(BaseModel):
 @router.post("/auth/register", response_model=RegistrationResponse, status_code=status.HTTP_201_CREATED)
 def register(
     payload: RegistrationRequest,
+    request: Request,
     db: Session = Depends(get_db),
 ) -> RegistrationResponse:
     username = (payload.username or "").strip()
@@ -183,6 +189,12 @@ def register(
         logger.exception("Registration failed")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Registration failed") from exc
 
+    verification_token = email_verification.issue_verification_token(
+        db,
+        user,
+        user_agent=request.headers.get("user-agent"),
+        ip=request.client.host if request.client else None,
+    )
     log_audit_event(
         db,
         user_id=user.id,
@@ -190,21 +202,17 @@ def register(
         result="success",
         details={"tenant_id": tenant.id},
     )
-
-    message = (
-        f"Hi {username},\n\n"
-        f"Your tenant '{tenant_name}' is ready. You can sign in at /login with the credentials you just created."
-    )
     try:
-        send_email(email, "Welcome to Tenantra", message)
+        email_service.send_verification_email(user, verification_token)
     except Exception:
-        logger.warning("Failed to send registration confirmation e-mail to %s", email)
+        logger.warning("Failed to send verification email to %s", email)
 
     return RegistrationResponse(
         tenant_id=tenant.id,
         tenant_slug=tenant.slug,
         user_id=user.id,
-        requires_verification=False,
+        requires_verification=True,
+        test_verification_token=verification_token if _is_test_mode() else None,
     )
 
 
@@ -251,6 +259,11 @@ async def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password",
         )
+    if not user.email_verified_at:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email verification required",
+        )
 
     # Create a short-lived access token using user id as subject (sub)
     access_token = create_access_token(data={"sub": str(user.id)})
@@ -265,6 +278,7 @@ async def login(
             email=getattr(user, "email", None),
             is_active=bool(getattr(user, "is_active", True)),
             role=getattr(user, "role", None),
+            email_verified=bool(getattr(user, "email_verified_at", None)),
         ),
     )
 
@@ -322,12 +336,10 @@ def forgot_password(
             result="success",
             ip=request.client.host if request.client else None,
         )
-        if user.email:
-            send_email(
-                user.email,
-                "Tenantra password reset",
-                f"Use this token to reset your password: {raw_token}",
-            )
+        try:
+            email_service.send_password_reset_email(user, raw_token)
+        except Exception:
+            logger.warning("Failed to send password reset email to %s", user.email)
         if _is_test_mode():
             response["reset_token"] = raw_token
     return response
@@ -340,6 +352,7 @@ def get_current_user_me(current_user: User = Depends(get_current_user)) -> UserO
         email=getattr(current_user, "email", None),
         is_active=bool(getattr(current_user, "is_active", True)),
         role=getattr(current_user, "role", None),
+        email_verified=bool(getattr(current_user, "email_verified_at", None)),
     )
 
 
@@ -378,3 +391,39 @@ def reset_password(
         result="success",
     )
     return {"status": "ok"}
+
+
+@router.post("/auth/verify-email", status_code=status.HTTP_200_OK)
+def verify_email(
+    payload: VerifyEmailPayload,
+    db: Session = Depends(get_db),
+):
+    try:
+        token_record = email_verification.use_verification_token(db, payload.token)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification token.")
+
+    user = db.query(User).filter(User.id == token_record.user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+    if user.email_verified_at:
+        return {"status": "already_verified"}
+
+    user.email_verified_at = datetime.utcnow()
+    user.is_active = True
+    db.add(user)
+    db.commit()
+
+    log_audit_event(
+        db,
+        user_id=user.id,
+        action="auth.email_verified",
+        result="success",
+    )
+    try:
+        email_service.send_welcome_email(user)
+    except Exception:
+        logger.warning("Failed to send welcome email to %s", user.email)
+
+    return {"status": "verified"}

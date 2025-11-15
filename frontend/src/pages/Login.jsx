@@ -131,7 +131,11 @@ export default function Login() {
               </button>
             </form>
             <div className="mt-6 flex items-center justify-between text-sm text-slate-600">
-              <button type="button" className="font-semibold text-[var(--tena-primary)] hover:underline">
+              <button
+                type="button"
+                className="font-semibold text-[var(--tena-primary)] hover:underline"
+                onClick={() => navigate("/forgot-password")}
+              >
                 Forgot password?
               </button>
               <button type="button" onClick={() => navigate("/register")} className="font-semibold text-[var(--tena-secondary)] hover:underline">

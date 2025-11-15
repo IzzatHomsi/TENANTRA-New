@@ -9,6 +9,7 @@ SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASS = os.getenv("SMTP_PASS", "")
 SMTP_FROM = os.getenv("SMTP_FROM", SMTP_USER or "no-reply@tenantra.local")
 SMTP_TLS = os.getenv("SMTP_TLS", "true").lower() in ("1","true","yes")
+SMTP_TIMEOUT = float(os.getenv("SMTP_TIMEOUT", "5"))
 
 class EmailError(Exception):
     pass
@@ -22,7 +23,7 @@ def _deliver_message(msg: EmailMessage, *, raise_on_error: bool = False) -> bool
                 raise EmailError("SMTP_HOST not configured")
             return False
 
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=SMTP_TIMEOUT) as server:
             if SMTP_TLS:
                 server.starttls()
             if SMTP_USER:

@@ -69,6 +69,7 @@ class Tenant(Base, TimestampMixin, ModelMixin):
 
     # Relationships
     users = relationship("User", back_populates="tenant", cascade="all, delete-orphan")
+    join_requests = relationship("TenantJoinRequest", back_populates="tenant", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="tenant", cascade="all, delete-orphan")
     tenant_modules = relationship("TenantModule", back_populates="tenant", cascade="all, delete-orphan")
     compliance_results = relationship("ComplianceResult", back_populates="tenant", cascade="all, delete-orphan")

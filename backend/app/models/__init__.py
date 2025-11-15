@@ -13,6 +13,7 @@ from .user import User  # noqa: F401
 from .role import Role  # noqa: F401
 from .tenant import Tenant  # noqa: F401
 from .audit_log import AuditLog  # noqa: F401
+from .tenant_join_request import TenantJoinRequest  # noqa: F401
 
 # Phase 3-8 & platform models (extend this list to match your repo)
 try:
@@ -76,6 +77,7 @@ except Exception:
 try:
     from .password_reset_token import PasswordResetToken  # noqa: F401
     from .revoked_token import RevokedToken  # noqa: F401
+    from .email_verification_token import EmailVerificationToken  # noqa: F401
 except Exception:
     pass
 try:
@@ -111,5 +113,6 @@ __all__ = [
     "Role",
     "Tenant",
     "AuditLog",
+    "TenantJoinRequest",
     # The rest are imported dynamically above if present.
 ]

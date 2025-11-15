@@ -30,6 +30,7 @@ const NAV_TEMPLATE = [
       { to: toRoute("/notification-history"), label: "Notification History", featureKey: "notificationHistory" },
       { to: toRoute("/alert-settings"), label: "Alert Settings", adminOnly: true, featureKey: "alertSettings" },
       { to: toRoute("/audit-logs"), label: "Audit Logs", adminOnly: true, featureKey: "auditLogs" },
+      { to: toRoute("/join-requests"), label: "Join Requests", adminOnly: true },
       { to: toRoute("/agent-management"), label: "Agent Management", adminOnly: true },
     ],
   },

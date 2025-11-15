@@ -137,6 +137,7 @@ def create_app() -> FastAPI:
         "app.routes.scan_results",
         "app.routes.logs",
         "app.routes.metrics",
+        "app.routes.tenant_join_requests",
         # support CTA + settings/admin/public mounted at app level
         "app.routes.support",
         "app.routes.app_settings",

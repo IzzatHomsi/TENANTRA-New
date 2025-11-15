@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>New tenant join request</title>
+    <style>
+      body { font-family: "Segoe UI", Tahoma, sans-serif; color: #0f172a; background: #f8fafc; }
+      .card { max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 16px; padding: 28px; box-shadow: 0 18px 35px rgba(15, 23, 42, 0.1); }
+      .meta { margin: 0; padding: 0; list-style: none; }
+      .meta li { margin-bottom: 6px; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h3>New join request for {{ tenant_name }}</h3>
+      <ul class="meta">
+        <li><strong>Name:</strong> {{ full_name }}</li>
+        <li><strong>Email:</strong> {{ email }}</li>
+      </ul>
+      <p><strong>Message:</strong></p>
+      <p>{{ message }}</p>
+      <p>Review and approve/deny this request from the Admin › Join Requests view.</p>
+    </div>
+  </body>
+</html>

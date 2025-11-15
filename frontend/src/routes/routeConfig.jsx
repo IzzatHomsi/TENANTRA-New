@@ -5,6 +5,9 @@ import { PrivateRoute } from "./PrivateRoute.jsx";
 const Landing = lazy(() => import("../pages/Landing.jsx"));
 const Login = lazy(() => import("../pages/Login.jsx"));
 const Register = lazy(() => import("../pages/Register.jsx"));
+const ForgotPassword = lazy(() => import("../pages/ForgotPassword.jsx"));
+const ResetPassword = lazy(() => import("../pages/ResetPassword.jsx"));
+const VerifyEmail = lazy(() => import("../pages/VerifyEmail.jsx"));
 const Dashboard = lazy(() => import("../pages/Dashboard.jsx"));
 const Users = lazy(() => import("../pages/Users.jsx"));
 const Profile = lazy(() => import("../pages/Profile.jsx"));
@@ -33,6 +36,7 @@ const AuditLogs = lazy(() => import("../pages/AuditLogs.jsx"));
 const Search = lazy(() => import("../pages/Search.jsx"));
 const ShellLayout = lazy(() => import("../layouts/Shell.jsx"));
 const AdminSettings = lazy(() => import("../pages/AdminSettings.jsx"));
+const JoinRequests = lazy(() => import("../pages/JoinRequests.jsx"));
 
 export const routeConfig = [
   {
@@ -46,6 +50,18 @@ export const routeConfig = [
   {
     path: "/register",
     element: <Register />,
+  },
+  {
+    path: "/forgot-password",
+    element: <ForgotPassword />,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPassword />,
+  },
+  {
+    path: "/verify-email",
+    element: <VerifyEmail />,
   },
   {
     path: "/",
@@ -111,6 +127,14 @@ export const routeConfig = [
         element: (
           <PrivateRoute requireAdmin>
             <AdminSettings />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "join-requests",
+        element: (
+          <PrivateRoute requireAdmin>
+            <JoinRequests />
           </PrivateRoute>
         ),
       },

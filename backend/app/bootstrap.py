@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+from datetime import datetime
 
 from sqlalchemy import inspect
 from sqlalchemy.exc import SQLAlchemyError
@@ -81,6 +82,7 @@ def bootstrap_test_data() -> None:
                         tenant_id=1,
                         is_active=True,
                     )
+                    admin_user.email_verified_at = datetime.utcnow()
                     db.add(admin_user)
                     db.commit()
                 else:
@@ -97,6 +99,9 @@ def bootstrap_test_data() -> None:
                         changed = True
                     if admin_user.tenant_id != 1:
                         admin_user.tenant_id = 1
+                        changed = True
+                    if not admin_user.email_verified_at:
+                        admin_user.email_verified_at = datetime.utcnow()
                         changed = True
                     if changed:
                         db.commit()

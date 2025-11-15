@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from app.db import Base
 from app.models.base import TimestampMixin, ModelMixin
@@ -16,6 +16,7 @@ class User(Base, TimestampMixin, ModelMixin):
     password_hash = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=True)
     is_active = Column(Boolean, default=True)
+    email_verified_at = Column(DateTime, nullable=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True)
     role = Column(String(50), default="standard_user", nullable=False)
 
