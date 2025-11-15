@@ -9,11 +9,12 @@ from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import relationship
 
 from app.db.base_class import Base
+from app.models.base import ModelMixin, TimestampMixin
 
 
 
 
-class NotificationPreference(Base):
+class NotificationPreference(Base, TimestampMixin, ModelMixin):
     """Per-tenant and optional per-user notification preferences.
 
     When user_id is NULL, the row defines tenant-wide defaults.
@@ -30,9 +31,6 @@ class NotificationPreference(Base):
     channels = Column(MutableDict.as_mutable(JSONB), nullable=False, default=dict)  # e.g., {"email": true, "webhook": false}
     events = Column(MutableDict.as_mutable(JSONB), nullable=False, default=dict)    # e.g., {"scan_failed": true, ...}
     digest = Column(String(32), nullable=False, default="immediate")  # immediate|hourly|daily
-
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     tenant = relationship("Tenant")
     user = relationship("User")

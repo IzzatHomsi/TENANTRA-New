@@ -1,8 +1,9 @@
 from sqlalchemy import Column, Integer, Boolean, ForeignKey, UniqueConstraint
 from app.db.base_class import Base
+from app.models.base import ModelMixin
 
 
-class ModuleAgentMapping(Base):
+class ModuleAgentMapping(Base, ModelMixin):
     __tablename__ = "module_agent_mapping"
 
     id = Column(Integer, primary_key=True, index=True)

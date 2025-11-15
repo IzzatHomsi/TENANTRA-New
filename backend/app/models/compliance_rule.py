@@ -6,9 +6,10 @@ from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import backref, relationship
 
 from app.db.base_class import Base
+from app.models.base import TimestampMixin, ModelMixin
 
 
-class ComplianceRule(Base):
+class ComplianceRule(Base, TimestampMixin, ModelMixin):
     """Represents a Tenantra control that maps to one or more frameworks."""
 
     __tablename__ = "compliance_rules"
@@ -19,8 +20,6 @@ class ComplianceRule(Base):
     description = Column(Text, nullable=True)
     category = Column(String(128), nullable=True)
     service_area = Column(String(128), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     frameworks = relationship(
         "ComplianceFramework",
@@ -40,17 +39,16 @@ class ComplianceRule(Base):
         }
 
 
-class ComplianceRuleFramework(Base):
+class ComplianceRuleFramework(Base, TimestampMixin, ModelMixin):
     """Association table linking compliance rules to frameworks with metadata."""
 
     __tablename__ = "compliance_rule_frameworks"
 
     id = Column(Integer, primary_key=True, index=True)
-    rule_id = Column(Integer, ForeignKey("compliance_rules.id", ondelete="CASCADE"), nullable=False)
-    framework_id = Column(Integer, ForeignKey("compliance_frameworks.id", ondelete="CASCADE"), nullable=False)
+    rule_id = Column(Integer, ForeignKey("compliance_rules.id", ondelete="CASCADE"), nullable=False, index=True)
+    framework_id = Column(Integer, ForeignKey("compliance_frameworks.id", ondelete="CASCADE"), nullable=False, index=True)
     reference = Column(String(128), nullable=True)
     notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     rule = relationship(
         "ComplianceRule",

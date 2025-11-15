@@ -45,9 +45,8 @@ def list_schedules(
 def create_schedule(
     payload: ScheduleCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ) -> ScheduleOut:
-    _ensure_admin(current_user)
     tenant_id = payload.tenant_id or current_user.tenant_id
     if tenant_id is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="tenant_id is required for scheduling")
@@ -85,9 +84,8 @@ def create_schedule(
 def delete_schedule(
     schedule_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ) -> Response:
-    _ensure_admin(current_user)
     schedule = db.query(ScanJob).filter(ScanJob.id == schedule_id, ScanJob.scan_type == "module").first()
     if schedule is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule not found")
@@ -98,15 +96,3 @@ def delete_schedule(
     db.delete(schedule)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-def _ensure_admin(user: User) -> None:
-    role_value = getattr(user, "role", None)
-    if role_value is None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient role")
-    if isinstance(role_value, (list, tuple, set)):
-        roles = {str(r).strip().lower() for r in role_value}
-    else:
-        roles = {str(role_value).strip().lower()}
-    if not roles & {"admin", "super_admin"}:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient role")

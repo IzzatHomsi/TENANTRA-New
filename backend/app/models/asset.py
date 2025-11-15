@@ -2,9 +2,10 @@ from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
-from app.db.base_class import Base              # ✅ CHANGED: unified Base
+from app.db.base_class import Base
+from app.models.base import TimestampMixin, ModelMixin
 
-class Asset(Base):
+class Asset(Base, TimestampMixin, ModelMixin):
     __tablename__ = "assets"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -15,8 +16,6 @@ class Asset(Base):
     os = Column(String(100), nullable=True)
     hostname = Column(String(255), nullable=True)
     last_seen = Column(DateTime, default=datetime.utcnow)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     tenant = relationship("Tenant", back_populates="assets")
     scan_results = relationship("ScanResult", back_populates="asset", cascade="all, delete-orphan")

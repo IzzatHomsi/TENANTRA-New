@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, UniqueConstraint
 from app.db.base_class import Base
-from datetime import datetime  # ✅ FIXED
+from app.models.base import TimestampMixin, ModelMixin
 
-class FileScanResult(Base):
+class FileScanResult(Base, TimestampMixin, ModelMixin):
     __tablename__ = "file_scan_results"
 
     id = Column(Integer, primary_key=True, index=True)

@@ -6,16 +6,17 @@ from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from app.db.base_class import Base
+from app.models.base import TimestampMixin, ModelMixin
 
 
-class TaskSnapshot(Base):
+class TaskSnapshot(Base, TimestampMixin, ModelMixin):
     """Represents a scheduled task or cron entry at a specific point in time."""
 
     __tablename__ = "task_snapshots"
 
     id = Column(Integer, primary_key=True, index=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
-    agent_id = Column(Integer, ForeignKey("agents.id", ondelete="CASCADE"), nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    agent_id = Column(Integer, ForeignKey("agents.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(255), nullable=False)
     task_type = Column(String(64), nullable=False)
     schedule = Column(String(255), nullable=True)
@@ -24,8 +25,6 @@ class TaskSnapshot(Base):
     next_run_time = Column(DateTime, nullable=True)
     status = Column(String(64), nullable=True)
     collected_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     tenant = relationship("Tenant", back_populates="task_snapshots")
     agent = relationship("Agent", back_populates="task_snapshots")

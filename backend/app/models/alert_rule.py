@@ -4,9 +4,10 @@ from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from app.db.base_class import Base
+from app.models.base import TimestampMixin, ModelMixin
 
 
-class AlertRule(Base):
+class AlertRule(Base, TimestampMixin, ModelMixin):
     __tablename__ = "alert_rules"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -15,8 +16,6 @@ class AlertRule(Base):
     condition = Column(String, nullable=False)
     threshold = Column(String, nullable=True)
     enabled = Column(Boolean, nullable=False, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     tenant = relationship("Tenant", back_populates="alert_rules", lazy="joined")
 
     def __repr__(self):

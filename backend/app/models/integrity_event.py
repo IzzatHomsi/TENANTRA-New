@@ -15,8 +15,8 @@ class IntegrityEvent(Base, TimestampMixin, ModelMixin):
     __tablename__ = "integrity_events"
 
     id = Column(Integer, primary_key=True, index=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
-    agent_id = Column(Integer, ForeignKey("agents.id", ondelete="CASCADE"), nullable=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    agent_id = Column(Integer, ForeignKey("agents.id", ondelete="CASCADE"), nullable=True, index=True)
     event_type = Column(String(64), nullable=False)
     severity = Column(String(32), nullable=False, default="medium")
     title = Column(String(255), nullable=False)

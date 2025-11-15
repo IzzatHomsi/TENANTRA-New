@@ -1,20 +1,19 @@
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, UniqueConstraint
-from app.db.json_compat import JSONCompatible
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 
 from app.db.base_class import Base
+from app.models.base import TimestampMixin, ModelMixin
 
 
-class AppSetting(Base):
+class AppSetting(Base, TimestampMixin, ModelMixin):
     __tablename__ = "app_settings"
 
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True)
     key = Column(String(255), nullable=False)
-    value = Column(JSONCompatible(), nullable=True)
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    value = Column(JSONB, nullable=True)
 
     tenant = relationship("Tenant")
 

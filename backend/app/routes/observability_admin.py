@@ -14,6 +14,7 @@ from app.database import get_db
 from app.models.user import User
 from app.observability.metrics import record_grafana_health, record_grafana_misconfig
 from app.services.grafana import get_base_url, get_credentials
+from app.services.grafana_warnings import list_grafana_warnings
 
 router = APIRouter(prefix="/admin/observability", tags=["Admin Observability"])
 logger = logging.getLogger(__name__)
@@ -242,6 +243,13 @@ async def grafana_dashboard(uid: str, db: Session = Depends(get_db), _: User = D
         return {"url": url, "status": response.status_code, "ok": response.is_success}
     except httpx.HTTPError as e:
         raise HTTPException(status_code=502, detail=str(e))
+
+
+@router.get("/grafana/warnings", response_model=dict)
+async def grafana_warnings(limit: int = 20, _: User = Depends(get_admin_user)) -> dict:
+    """Expose recent Grafana proxy warnings so UI surfaces loadDashboardScene issues."""
+    items = list_grafana_warnings(max(limit, 0))
+    return {"items": items}
 
 
 @router.get("/grafana/datasource/{uid}", response_model=dict)

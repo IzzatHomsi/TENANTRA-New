@@ -6,9 +6,10 @@ from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from app.db.base_class import Base
+from app.models.base import TimestampMixin, ModelMixin
 
 
-class IOCFeed(Base):
+class IOCFeed(Base, TimestampMixin, ModelMixin):
     """Threat intelligence feed metadata and ingestion status."""
 
     __tablename__ = "ioc_feeds"
@@ -22,8 +23,6 @@ class IOCFeed(Base):
     api_key_name = Column(String(128), nullable=True)
     enabled = Column(Boolean, nullable=False, default=True)
     last_synced_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     hits = relationship("IOCHit", back_populates="feed", cascade="all, delete-orphan")
 

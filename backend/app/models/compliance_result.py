@@ -9,7 +9,7 @@ class ComplianceResult(Base, TimestampMixin, ModelMixin):
     __tablename__ = "compliance_results"
 
     id = Column(Integer, primary_key=True, index=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
     module = Column(String(100), nullable=False)
     status = Column(String(50), nullable=False)
     recorded_at = Column(DateTime, nullable=False)

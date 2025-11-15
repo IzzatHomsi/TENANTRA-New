@@ -142,6 +142,9 @@ else:
     engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# Register PostgreSQL type fallbacks (e.g., JSONB -> JSON under SQLite)
+import app.db.jsonb_compat  # noqa: F401
+
 # Base class for declarative models.  Importing from
 # ``app.models.base`` ensures that all models share the same
 # ``Base`` instance, avoiding multiple metadata collections and

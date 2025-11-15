@@ -58,6 +58,8 @@ def consume_enrollment_token(db: Session, raw_token: str) -> AgentEnrollmentToke
     return token
 
 
+from app.core.security import get_password_hash
+
 def create_agent_with_token(
     db: Session,
     *,
@@ -68,7 +70,7 @@ def create_agent_with_token(
     agent = Agent(
         tenant_id=tenant_id,
         name=name,
-        token=agent_token,
+        token=get_password_hash(agent_token),
         status="active",
     )
     db.add(agent)

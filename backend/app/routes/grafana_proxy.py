@@ -20,6 +20,7 @@ from app.models.app_setting import AppSetting
 from app.models.user import User
 from app.utils.audit import log_audit_event
 from app.services.grafana import get_base_url, get_credentials
+from app.services.grafana_warnings import record_grafana_warning
 
 
 router = APIRouter()
@@ -319,16 +320,35 @@ async def _proxy(db: Session, request: Request, tail: str, user: User) -> Respon
             if span is not None:
                 span.set_attribute("http.status_code", status_code)
                 span.set_attribute("tenantra.grafana.proxy.ok", ok)
+            if not ok:
+                try:
+                    record_grafana_warning(
+                        status=status_code,
+                        path=proxy_path,
+                        method=request.method,
+                        message=response.reason_phrase,
+                        body=response.text if response.text else None,
+                    )
+                except Exception:
+                    logger.debug("Unable to record Grafana warning", exc_info=True)
             return Response(content=response.content, status_code=status_code, headers=response_headers)
         except httpx.TimeoutException:
             status_code = status.HTTP_504_GATEWAY_TIMEOUT
             error_detail = "Grafana upstream request timed out"
+            try:
+                record_grafana_warning(status=status_code, path=proxy_path, method=request.method, message=error_detail, body=None)
+            except Exception:
+                logger.debug("Unable to record Grafana warning", exc_info=True)
             if span is not None:
                 span.record_exception(httpx.TimeoutException(error_detail))
             raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=error_detail)
         except httpx.HTTPError as exc:
             status_code = status.HTTP_502_BAD_GATEWAY
             error_detail = str(exc)
+            try:
+                record_grafana_warning(status=status_code, path=proxy_path, method=request.method, message=error_detail, body=None)
+            except Exception:
+                logger.debug("Unable to record Grafana warning", exc_info=True)
             if span is not None:
                 span.record_exception(exc)
             raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=error_detail)

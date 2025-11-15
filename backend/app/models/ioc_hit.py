@@ -6,16 +6,17 @@ from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from app.db.base_class import Base
+from app.models.base import TimestampMixin, ModelMixin
 
 
-class IOCHit(Base):
+class IOCHit(Base, TimestampMixin, ModelMixin):
     """Association of a tenant asset/entity with an indicator of compromise."""
 
     __tablename__ = "ioc_hits"
 
     id = Column(Integer, primary_key=True, index=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
-    feed_id = Column(Integer, ForeignKey("ioc_feeds.id", ondelete="CASCADE"), nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    feed_id = Column(Integer, ForeignKey("ioc_feeds.id", ondelete="CASCADE"), nullable=False, index=True)
     indicator_type = Column(String(64), nullable=False)
     indicator_value = Column(String(512), nullable=False)
     entity_type = Column(String(64), nullable=False)
@@ -23,7 +24,6 @@ class IOCHit(Base):
     severity = Column(String(32), nullable=False, default="medium")
     context = Column(Text, nullable=True)
     detected_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     feed = relationship("IOCFeed", back_populates="hits")
     tenant = relationship("Tenant", back_populates="ioc_hits")

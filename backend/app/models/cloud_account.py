@@ -6,21 +6,20 @@ from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from app.db.base_class import Base
+from app.models.base import TimestampMixin, ModelMixin
 
 
-class CloudAccount(Base):
+class CloudAccount(Base, TimestampMixin, ModelMixin):
     """Represents a cloud connector configured for a tenant."""
 
     __tablename__ = "cloud_accounts"
 
     id = Column(Integer, primary_key=True, index=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
     provider = Column(String(32), nullable=False)
     account_identifier = Column(String(255), nullable=False)
     status = Column(String(32), nullable=False, default="pending")
     last_synced_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     credential_reference = Column(String(255), nullable=True)
     notes = Column(Text, nullable=True)
 
@@ -40,13 +39,13 @@ class CloudAccount(Base):
         }
 
 
-class CloudAsset(Base):
+class CloudAsset(Base, TimestampMixin, ModelMixin):
     """Discovered asset belonging to a cloud account."""
 
     __tablename__ = "cloud_assets"
 
     id = Column(Integer, primary_key=True, index=True)
-    account_id = Column(Integer, ForeignKey("cloud_accounts.id", ondelete="CASCADE"), nullable=False)
+    account_id = Column(Integer, ForeignKey("cloud_accounts.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(255), nullable=False)
     asset_type = Column(String(128), nullable=False)
     region = Column(String(64), nullable=True)

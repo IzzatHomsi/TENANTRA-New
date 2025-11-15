@@ -1,6 +1,5 @@
 """Agent API endpoints."""
 
-import secrets
 from typing import Dict, List, Optional
 from datetime import datetime
 import json
@@ -56,12 +55,12 @@ def enroll_agent(
         raise HTTPException(status_code=400, detail="Admin must belong to a tenant")
     if not name or not name.strip():
         raise HTTPException(status_code=400, detail="Agent name is required")
-    token = secrets.token_hex(16)
-    agent = Agent(name=name.strip(), token=token, tenant_id=current_user.tenant_id)
-    db.add(agent)
-    db.commit()
-    db.refresh(agent)
-    return {"agent_id": agent.id, "token": agent.token}
+    agent, token = agent_enrollment.create_agent_with_token(
+        db,
+        tenant_id=current_user.tenant_id,
+        name=name.strip(),
+    )
+    return {"agent_id": agent.id, "token": token}
 
 
 @router.post("/enrollment-tokens", status_code=201)

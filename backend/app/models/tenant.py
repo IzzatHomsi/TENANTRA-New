@@ -5,6 +5,11 @@ from sqlalchemy.orm import relationship
 from app.db.base_class import Base
 from app.models.base import TimestampMixin, ModelMixin
 from app.models.asset import Asset
+from app.models.user import User
+from app.models.notification import Notification
+from app.models.tenant_module import TenantModule
+from app.models.compliance_result import ComplianceResult
+from app.models.agent import Agent
 # Ensure dependent classes are imported so string-based relationship targets resolve
 from app.models.process_snapshot import ProcessSnapshot
 from app.models.process_baseline import ProcessBaseline
@@ -14,6 +19,15 @@ from app.models.boot_config import BootConfig
 from app.models.integrity_event import IntegrityEvent
 from app.models.service_snapshot import ServiceSnapshot
 from app.models.task_snapshot import TaskSnapshot
+from app.models.retention_policy import TenantRetentionPolicy
+from app.models.data_export import DataExportJob
+from app.models.compliance_report import ComplianceReport
+from app.models.billing_plan import Invoice, UsageLog
+from app.models.ioc_hit import IOCHit
+from app.models.scan_job import ScanJob
+from app.models.notification_log import NotificationLog
+from app.models.cloud_account import CloudAccount
+from app.models.alert_rule import AlertRule
 
 
 class Tenant(Base, TimestampMixin, ModelMixin):
@@ -71,6 +85,7 @@ class Tenant(Base, TimestampMixin, ModelMixin):
     ioc_hits = relationship("IOCHit", back_populates="tenant", cascade="all, delete-orphan")
     retention_policy = relationship("TenantRetentionPolicy", back_populates="tenant", uselist=False, cascade="all, delete-orphan")
     data_exports = relationship("DataExportJob", back_populates="tenant", cascade="all, delete-orphan")
+    compliance_reports = relationship("ComplianceReport", back_populates="tenant", cascade="all, delete-orphan")
     invoices = relationship("Invoice", back_populates="tenant", cascade="all, delete-orphan")
     usage_logs = relationship("UsageLog", back_populates="tenant", cascade="all, delete-orphan")
     scan_jobs = relationship("ScanJob", back_populates="tenant", cascade="all, delete-orphan")

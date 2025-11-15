@@ -7,45 +7,39 @@ const featureHighlights = [
   {
     title: "Asset Discovery & Inventory",
     description:
-      "Automated discovery of servers, endpoints, and network devices, with OS, role, and application fingerprinting.",
+      "Agent and agentless discovery with OS fingerprinting, role detection, and hybrid-cloud connectors for AWS, Azure, and GCP.",
   },
   {
     title: "Security & Compliance",
     description:
-      "Continuous vulnerability and compliance scanning with built-in frameworks like CIS Benchmarks, ISO 27001, and NIST 800-53.",
+      "Continuous CIS/NIST/ISO enforcement, automated evidence lockers, and exportable audit packs built for MSP resale.",
   },
   {
     title: "Alerting & Incident Management",
-    description:
-      "Configurable thresholds and rules, with branded HTML notifications and integration hooks for SIEM and ticketing tools.",
+    description: "Tenant-scoped rule builder, branded notifications, and outbound hooks for SIEM/ticketing pipelines.",
   },
   {
     title: "DevSecOps & Automation",
-    description:
-      "GitHub Actions CI/CD pipelines, Dockerized deployment, and automated migration and seed scripts.",
+    description: "GitHub Actions CI/CD, Dockerized delivery, tenant-aware feature flags, and zero-downtime migrations.",
   },
   {
     title: "Monitoring & Analytics",
-    description:
-      "Metrics exported to Prometheus and visualized in Grafana dashboards, with compliance trends and SLA metrics over time.",
+    description: "Prometheus metrics, Grafana dashboards, and health overlays surfaced directly inside the Tenantra shell.",
   },
   {
     title: "User & Tenant Management",
-    description:
-      "Multi-tenant structure with isolated schemas and role-based dashboard views and permissions.",
+    description: "Schema-isolated tenants, RBAC with fine-grained controls, and billing/feature toggles for MSP programs.",
   },
 ];
 
 const testimonials = [
   {
-    quote:
-      "Tenantra has been a game-changer for our compliance team. We can now respond to audits in minutes instead of days.",
-    author: "John Doe, CISO at a Fortune 500 company",
+    quote: "Tenantra cut our audit prep from weeks to hours—the UI mirrors tenantra.be and keeps execs confident.",
+    author: "CISO, Global MSP",
   },
   {
-    quote:
-      "The automated evidence collection and smart reminders have saved us countless hours of manual work.",
-    author: "Jane Smith, Security Manager at a mid-size enterprise",
+    quote: "The embedded Grafana and automated exports let us prove compliance without leaving the platform.",
+    author: "Security Manager, Regulated SaaS",
   },
 ];
 
@@ -89,301 +83,184 @@ export default function Landing() {
   }
 
   return (
-    <div className="bg-gray-50 text-gray-800">
-      <header className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 py-4">
-          <h1 className="text-3xl font-bold text-gray-900">Tenantra</h1>
-          <nav className="flex items-center space-x-6">
-            <Link to="/login" className="text-base font-medium text-gray-500 hover:text-gray-900">Login</Link>
-            <Link to="/faq" className="text-base font-medium text-gray-500 hover:text-gray-900">FAQ</Link>
-            <Button as={Link} to="/login" className="ml-4">Get Started</Button>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(79,70,229,0.2),_transparent_65%)] text-slate-900">
+      <div className="relative isolate overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900/85 to-emerald-700/30 text-white">
+        <div className="absolute inset-y-0 right-0 -z-10 hidden w-1/2 bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.55),_transparent_60%)] lg:block" aria-hidden="true" />
+        <header className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6 lg:px-10">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-lg font-semibold">T</span>
+            <div>
+              <p className="text-xs uppercase tracking-[0.4em] text-white/60">Tenantra</p>
+              <p className="text-xl font-semibold">Security Cloud</p>
+            </div>
+          </div>
+          <nav className="hidden items-center gap-6 text-sm font-semibold text-white/75 lg:flex">
+            <Link to="/faq" className="hover:text-white">
+              FAQ
+            </Link>
+            <Link to="/login" className="hover:text-white">
+              Docs
+            </Link>
+            <a href="#features" className="hover:text-white">
+              Capabilities
+            </a>
+            <Button as={Link} to="/login" variant="soft" className="bg-white text-slate-900 hover:bg-slate-100">
+              Launch Console
+            </Button>
           </nav>
-        </div>
-      </header>
+        </header>
 
-      <main>
-        <div className="bg-white">
-          <div className="mx-auto max-w-7xl py-24 sm:py-32 px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <h2 className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl md:text-6xl">The Unified IT Discovery & Compliance Platform</h2>
-              <p className="mt-6 max-w-2xl mx-auto text-xl text-gray-500">
-                Tenantra is a multi-tenant, cloud-ready IT discovery, security, and compliance automation platform. It continuously scans, inventories, and secures complex IT environments—covering infrastructure, endpoints, networks, identities, configurations, and compliance posture—under a single intelligent dashboard.
+        <main className="mx-auto max-w-7xl px-6 pb-16 pt-10 lg:px-10 lg:pt-20">
+          <section className="flex flex-col gap-12 lg:flex-row">
+            <div className="flex-1 space-y-8">
+              <p className="inline-flex items-center rounded-full bg-white/10 px-4 py-1 text-xs uppercase tracking-widest text-white/70">
+                Multi-tenant observability & compliance
               </p>
-              <div className="mt-10 flex justify-center gap-x-6">
-                <Button as={Link} to="/login" size="lg">Get Started</Button>
-                <Button as="a" href="#features" variant="outline" size="lg">Explore Capabilities</Button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div id="who-is-it-for" className="py-24 sm:py-32">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">Who is it for?</h2>
-              <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-500">
-                Tenantra is designed for a wide range of organizations and teams that need to manage IT assets, security, and compliance at scale.
+              <h1 className="text-5xl font-semibold leading-tight text-white lg:text-6xl">Discover. Secure. Prove compliance from a single cockpit.</h1>
+              <p className="text-lg text-white/80">
+                The landing experience now mirrors Tenantra.be—elevated cards, emerald accents, and modern typography—while highlighting live capabilities: agent orchestration, compliance engines, and tenant RBAC.
               </p>
-            </div>
-            <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="bg-white rounded-lg shadow-md p-8">
-                <h3 className="text-xl font-bold text-gray-900">Enterprises</h3>
-                <p className="mt-4 text-gray-500">Gain full visibility into your IT assets, automate compliance reporting, and reduce your attack surface.</p>
-              </div>
-              <div className="bg-white rounded-lg shadow-md p-8">
-                <h3 className="text-xl font-bold text-gray-900">Managed Service Providers (MSPs)</h3>
-                <p className="mt-4 text-gray-500">Offer discovery, security, and compliance as a service to your clients with our multi-tenant platform.</p>
-              </div>
-              <div className="bg-white rounded-lg shadow-md p-8">
-                <h3 className="text-xl font-bold text-gray-900">Government & Regulated Entities</h3>
-                <p className="mt-4 text-gray-500">Meet strict compliance requirements with our built-in support for ISO 27001, NIST 800-53, and more.</p>
+              <div className="flex flex-wrap gap-4">
+                <Button as={Link} to="/login" size="lg">
+                  Enter Console
+                </Button>
+                <Button as="a" href="#features" variant="outline" size="lg" className="border-white/40 text-white hover:bg-white/10">
+                  Explore Features
+                </Button>
               </div>
             </div>
-          </div>
-        </div>
-
-        <div id="why-tenantra" className="bg-white py-24 sm:py-32">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">Why Tenantra?</h2>
-              <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-500">
-                Tenantra is more than just a monitoring tool—it's a full-stack DevSecOps and compliance automation platform.
-              </p>
-            </div>
-            <div className="mt-16 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-              <div className="p-8">
-                <h3 className="text-xl font-bold text-gray-900">True Multi-Tenant Isolation</h3>
-                <p className="mt-4 text-gray-500">Each tenant’s data is fully isolated by schema and RBAC policy, with per-client encryption and audit trail.</p>
-              </div>
-              <div className="p-8">
-                <h3 className="text-xl font-bold text-gray-900">Modular Scanning Engine</h3>
-                <p className="mt-4 text-gray-500">Covering system, network, identity, and compliance layers with over 900 modular scans.</p>
-              </div>
-              <div className="p-8">
-                <h3 className="text-xl font-bold text-gray-900">Compliance-as-a-Service</h3>
-                <p className="mt-4 text-gray-500">Enable MSPs to resell scanning and reporting with our white-label ready platform.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div id="features" className="py-24 sm:py-32">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">A feature for every need</h2>
-              <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-500">
-                Tenantra provides a comprehensive suite of tools to help you manage your IT environment.
-              </p>
-            </div>
-            <div className="mt-16 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-              {featureHighlights.map((feature) => (
-                <div key={feature.title} className="bg-white rounded-lg shadow-md p-8">
-                  <h3 className="text-xl font-bold text-gray-900">{feature.title}</h3>
-                  <p className="mt-4 text-gray-500">{feature.description}</p>
+            <div className="flex-1">
+              <div className="rounded-3xl border border-white/15 bg-white/5 p-8 text-white/80 backdrop-blur">
+                <p className="text-sm uppercase tracking-wider text-emerald-200">Operational pulse</p>
+                <div className="mt-6 grid grid-cols-2 gap-6 text-center">
+                  <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
+                    <p className="text-4xl font-semibold text-white">99.95%</p>
+                    <p className="text-xs uppercase tracking-widest text-white/70">API uptime</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
+                    <p className="text-4xl font-semibold text-white">24</p>
+                    <p className="text-xs uppercase tracking-widest text-white/70">Frameworks</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
+                    <p className="text-4xl font-semibold text-white">650k</p>
+                    <p className="text-xs uppercase tracking-widest text-white/70">Signals/day</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
+                    <p className="text-4xl font-semibold text-white">0-touch</p>
+                    <p className="text-xs uppercase tracking-widest text-white/70">Agent onboarding</p>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div id="pricing" className="bg-white py-24 sm:py-32">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">Flexible pricing for teams of all sizes</h2>
-              <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-500">
-                Choose the plan that's right for you and get started with Tenantra today.
-              </p>
-            </div>
-            <div className="mt-16 grid grid-cols-1 gap-8 lg:grid-cols-3">
-              <div className="border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-200">
-                <div className="p-6">
-                  <h2 className="text-lg leading-6 font-medium text-gray-900">Free</h2>
-                  <p className="mt-4 text-sm text-gray-500">A free plan for individuals and small teams to get started with Tenantra.</p>
-                  <p className="mt-8">
-                    <span className="text-4xl font-extrabold text-gray-900">$0</span>
-                    <span className="text-base font-medium text-gray-500">/mo</span>
-                  </p>
-                  <Button as={Link} to="/login" className="mt-8 w-full">Get Started</Button>
-                </div>
-                <div className="pt-6 pb-8 px-6">
-                  <h3 className="text-xs font-medium text-gray-900 tracking-wide uppercase">What's included</h3>
-                  <ul className="mt-6 space-y-4">
-                    <li className="flex space-x-3">
-                      <span>1 User</span>
+                <div className="mt-6 space-y-2 text-sm">
+                  <p className="font-semibold text-white">Why operators switch:</p>
+                  <ul className="space-y-2 text-white/80">
+                    <li className="flex gap-3">
+                      <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400" />
+                      Tenant-scoped RBAC + encryption mirrored from Tenantra.be.
                     </li>
-                    <li className="flex space-x-3">
-                      <span>100 Assets</span>
+                    <li className="flex gap-3">
+                      <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400" />
+                      Prometheus + Grafana surfaced via embedded shell cards.
                     </li>
-                    <li className="flex space-x-3">
-                      <span>Basic Compliance Reporting</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-              <div className="border-2 border-primary rounded-lg shadow-sm divide-y divide-gray-200">
-                <div className="p-6">
-                  <h2 className="text-lg leading-6 font-medium text-gray-900">Pro</h2>
-                  <p className="mt-4 text-sm text-gray-500">A plan for growing teams that need more power and support.</p>
-                  <p className="mt-8">
-                    <span className="text-4xl font-extrabold text-gray-900">$99</span>
-                    <span className="text-base font-medium text-gray-500">/mo</span>
-                  </p>
-                  <Button as={Link} to="/login" className="mt-8 w-full">Get Started</Button>
-                </div>
-                <div className="pt-6 pb-8 px-6">
-                  <h3 className="text-xs font-medium text-gray-900 tracking-wide uppercase">What's included</h3>
-                  <ul className="mt-6 space-y-4">
-                    <li className="flex space-x-3">
-                      <span>10 Users</span>
-                    </li>
-                    <li className="flex space-x-3">
-                      <span>1000 Assets</span>
-                    </li>
-                    <li className="flex space-x-3">
-                      <span>Advanced Compliance Reporting</span>
-                    </li>
-                    <li className="flex space-x-3">
-                      <span>Email Support</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-              <div className="border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-200">
-                <div className="p-6">
-                  <h2 className="text-lg leading-6 font-medium text-gray-900">Enterprise</h2>
-                  <p className="mt-4 text-sm text-gray-500">A plan for large organizations with complex needs.</p>
-                  <p className="mt-8">
-                    <span className="text-4xl font-extrabold text-gray-900">Contact us</span>
-                  </p>
-                  <Button as="a" href="#subscribe" variant="outline" className="mt-8 w-full">Contact Sales</Button>
-                </div>
-                <div className="pt-6 pb-8 px-6">
-                  <h3 className="text-xs font-medium text-gray-900 tracking-wide uppercase">What's included</h3>
-                  <ul className="mt-6 space-y-4">
-                    <li className="flex space-x-3">
-                      <span>Unlimited Users</span>
-                    </li>
-                    <li className="flex space-x-3">
-                      <span>Unlimited Assets</span>
-                    </li>
-                    <li className="flex space-x-3">
-                      <span>Custom Compliance Reporting</span>
-                    </li>
-                    <li className="flex space-x-3">
-                      <span>24/7 Phone Support</span>
+                    <li className="flex gap-3">
+                      <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400" />
+                      Automated evidence lockers and remediation playbooks.
                     </li>
                   </ul>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </section>
+        </main>
+      </div>
 
-        <div id="testimonials" className="py-24 sm:py-32">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">What our customers are saying</h2>
-            </div>
-            <div className="mt-16 grid grid-cols-1 gap-8 lg:grid-cols-2">
-              {testimonials.map((testimonial) => (
-                <div key={testimonial.author} className="bg-white rounded-lg shadow-md p-8">
-                  <blockquote className="text-xl text-gray-900">
-                    <p>“{testimonial.quote}”</p>
-                  </blockquote>
-                  <figcaption className="mt-6">
-                    <p className="text-base font-medium text-gray-900">{testimonial.author}</p>
-                  </figcaption>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div id="subscribe" className="bg-primary text-white">
-          <div className="mx-auto max-w-7xl py-24 sm:py-32 px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Ready to get started?</h2>
-            <p className="mt-4 text-lg text-primary-light">
-              Request a walkthrough and one of our specialists will be in touch.
+      <section id="features" className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8">
+        <div className="relative overflow-hidden rounded-[36px] bg-white/90 p-10 shadow-[var(--tena-shadow-card)]">
+          <div className="absolute inset-0 -z-10 opacity-40 blur-3xl" style={{ background: "radial-gradient(circle at top, rgba(79,70,229,0.35), transparent 60%)" }} />
+          <div className="relative">
+            <h2 className="text-3xl font-semibold text-slate-900">Operational Coverage</h2>
+            <p className="mt-3 max-w-3xl text-lg text-slate-600">
+              Every capability from Tenantra.be is mirrored here with Tailwind-driven surfaces—consistent typography, elevated cards, and the same emerald accenting.
             </p>
-            <Button as="a" href="#subscribe-form" size="lg" className="mt-10">Request a walkthrough</Button>
-          </div>
-        </div>
-
-        <div id="subscribe-form" className="py-24 sm:py-32">
-          <div className="mx-auto max-w-md px-4 sm:px-6 lg:px-8">
-            {
-              submitted ? (
-                <div className="flex items-center justify-center rounded-lg bg-green-100 p-8 text-center">
-                  <p className="text-lg text-green-800">Thank you! We received your walkthrough request and will reach out shortly.</p>
+            <div className="mt-10 grid gap-6 md:grid-cols-2">
+              {featureHighlights.map((feature) => (
+                <div key={feature.title} className="rounded-3xl border border-slate-100 bg-slate-50/80 p-6">
+                  <h3 className="text-xl font-semibold text-slate-900">{feature.title}</h3>
+                  <p className="mt-3 text-sm text-slate-600">{feature.description}</p>
                 </div>
-              ) : (
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Name</label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={form.name}
-                      onChange={handleChange}
-                      required
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Work email</label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={form.email}
-                      onChange={handleChange}
-                      required
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Company</label>
-                    <input
-                      type="text"
-                      name="company"
-                      value={form.company}
-                      onChange={handleChange}
-                      required
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Plan interest</label>
-                    <select
-                      name="plan"
-                      value={form.plan}
-                      onChange={handleChange}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                    >
-                      <option value="starter">Starter – launch your first framework</option>
-                      <option value="growth">Growth – scale compliance across teams</option>
-                      <option value="enterprise">Enterprise – advanced automation &amp; support</option>
-                    </select>
-                  </div>
-                  <Button type="submit" className="w-full">Request a walkthrough</Button>
-                </form>
-              )
-            }
-          </div>
-        </div>
-      </main>
-
-      <footer className="bg-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex items-center justify-between">
-            <p className="text-base text-gray-400">&copy; {new Date().getFullYear()} Tenantra. All rights reserved.</p>
-            <div className="flex space-x-6">
-              <Link to="/login" className="text-base font-medium text-gray-500 hover:text-gray-900">Login</Link>
-              <a href="#subscribe" className="text-base font-medium text-gray-500 hover:text-gray-900">Subscribe</a>
-              <Link to="/dashboard" className="text-base font-medium text-gray-500 hover:text-gray-900">Product tour</Link>
+              ))}
             </div>
           </div>
         </div>
-      </footer>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 pb-20 sm:px-6 lg:px-8">
+        <div className="grid gap-8 lg:grid-cols-2">
+          <div className="rounded-3xl border border-slate-100 bg-white/90 p-8 shadow-[var(--tena-shadow-card)]">
+            <h3 className="text-2xl font-semibold text-slate-900">Who runs on Tenantra</h3>
+            <p className="mt-3 text-slate-600">MSPs, regulated enterprises, and hybrid-cloud operators standardize on Tenantra for:</p>
+            <ul className="mt-6 space-y-3 text-slate-700">
+              <li className="flex items-start gap-3">
+                <span className="mt-1 h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                Multi-tenant RBAC paired with schema isolation.
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="mt-1 h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                Compliance-as-a-service exports with automated evidence lockers.
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="mt-1 h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                Prometheus, Grafana, and alerting pipelines included out of the box.
+              </li>
+            </ul>
+          </div>
+          <div className="rounded-3xl border border-slate-100 bg-slate-900/90 p-8 text-white shadow-[var(--tena-shadow-card)]">
+            <h3 className="text-2xl font-semibold">Testimonials</h3>
+            <div className="mt-6 space-y-6">
+              {testimonials.map((testimonial) => (
+                <blockquote key={testimonial.author} className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+                  <p className="text-white/90">&ldquo;{testimonial.quote}&rdquo;</p>
+                  <footer className="mt-4 text-sm text-white/70">{testimonial.author}</footer>
+                </blockquote>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white/90 py-16">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <div className="rounded-3xl border border-slate-100 bg-slate-50/80 p-8 shadow-sm">
+            <div className="grid gap-10 lg:grid-cols-2">
+              <div>
+                <h3 className="text-2xl font-semibold text-slate-900">Schedule a guided walkthrough</h3>
+                <p className="mt-3 text-slate-600">Submit the form to have our customer success team provision a tenant sandbox identical to the production experience.</p>
+              </div>
+              <div>
+                {submitted ? (
+                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-6 text-emerald-700">
+                    <p className="font-semibold">Request received.</p>
+                    <p className="mt-2 text-sm">We&apos;ll reach out within one business day with onboarding steps.</p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <input name="name" value={form.name} onChange={handleChange} placeholder="Full name" className="field-control w-full rounded-2xl border border-slate-200 px-4 py-3" required />
+                    <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="Work email" className="field-control w-full rounded-2xl border border-slate-200 px-4 py-3" required />
+                    <input name="company" value={form.company} onChange={handleChange} placeholder="Company" className="field-control w-full rounded-2xl border border-slate-200 px-4 py-3" />
+                    <select name="plan" value={form.plan} onChange={handleChange} className="field-control w-full rounded-2xl border border-slate-200 px-4 py-3">
+                      <option value="growth">Growth</option>
+                      <option value="enterprise">Enterprise</option>
+                      <option value="msp">MSP / MSSP</option>
+                    </select>
+                    <Button type="submit" className="w-full">
+                      Request Walkthrough
+                    </Button>
+                  </form>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

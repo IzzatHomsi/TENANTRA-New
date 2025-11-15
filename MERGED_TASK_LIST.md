@@ -11,6 +11,7 @@ This document organizes all development tasks into focused sprints to provide a 
 **Goal:** Address all critical security vulnerabilities and fix major application-breaking bugs to stabilize the platform. This sprint is foundational for all future work.
 
 ### P1.1: Secure Application Secrets & Credentials
+**Status: Completed**
 
 *   **Task:** Remove hardcoded development encryption key and insecure fallback.
     *   **Issue:** A hardcoded development encryption key is used as a fallback in `backend/app/core/secrets.py`. If the `TENANTRA_ENC_KEY` and `JWT_SECRET` environment variables are not set, this insecure key could be used in a production environment.
@@ -50,6 +51,7 @@ This document organizes all development tasks into focused sprints to provide a 
         *   `backend/dev_server.py`
 
 ### P1.2: Fix Critical 500 Errors
+**Status: Completed**
 
 *   **Task:** Resolve Audit Log 500 error.
     *   **Issue:** The "Audit Logs" page and the "Audits" tab in Admin Settings both show a 500 Internal Server Error.
@@ -73,6 +75,7 @@ This document organizes all development tasks into focused sprints to provide a 
         *   Relevant Alembic migration files.
 
 ### P1.3: Patch Access Control & Insecure Logic
+**Status: Completed**
 
 *   **Task:** Fix broken access control in data export endpoints.
     *   **Issue:** The `/assets` and `/compliance/export.*` endpoints do not implement tenant-based filtering, allowing users to potentially access data from other tenants.
@@ -99,6 +102,7 @@ This document organizes all development tasks into focused sprints to provide a 
         *   `docker/docker-compose.override.expose.yml`
 
 ### P1.4: Fix Critical Auth & Authorization Gaps
+**Status: Completed**
 *   **Task:** Unify Current User Object to Prevent Stale Permissions.
     *   **Issue:** The application uses two different "current user" objects. The main `get_current_user` dependency creates a user object from the JWT payload without consulting the database. This means changes to a user's role or status in the database are not reflected until their token expires.
     *   **Severity:** Critical
@@ -147,6 +151,7 @@ This document organizes all development tasks into focused sprints to provide a 
         *   All files in `backend/app/routes/`
 
 ### P1.5: Secure Agent Communication Channel
+**Status: Completed**
 *   **Task:** Implement Agent-Side Authentication.
     *   **Issue:** Agents are issued tokens upon creation, but there are no agent-facing endpoints that require or validate these tokens. This means there is no agent authentication, allowing any unauthenticated party to potentially interact with agent-related APIs.
     *   **Severity:** Critical
@@ -463,7 +468,7 @@ This document organizes all development tasks into focused sprints to provide a 
 *   **Scheduling & Agent Logic:**
     *   Verify that scan scheduling is now handled by a single, unified data model and that schedules created in the UI are correctly executed by the backend.
     *   Test the module assignment precedence: specifically assign a module to an agent and verify it runs, then remove the specific assignment and enable it for the tenant, and verify it still runs.
-    *   Simulate an agent submitting scan results to the new `POST /agents/results` endpoint. Verify that the data is saved correctly and associated with the correct agent and tenant.
+    *   Simulate an agent submitting scan results to the new `POST /agents/results` endpoint. Verify that the data is saved correctly and associated with the correct agent and its tenant.
 
 ---
 

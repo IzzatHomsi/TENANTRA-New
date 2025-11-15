@@ -6,16 +6,17 @@ from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from app.db.base_class import Base
+from app.models.base import TimestampMixin, ModelMixin
 
 
-class NotificationLog(Base):
+class NotificationLog(Base, TimestampMixin, ModelMixin):
     """Historical record of notifications delivered to users/tenants."""
 
     __tablename__ = "notification_logs"
 
     id = Column(Integer, primary_key=True, index=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
-    notification_id = Column(Integer, ForeignKey("notifications.id", ondelete="SET NULL"), nullable=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    notification_id = Column(Integer, ForeignKey("notifications.id", ondelete="SET NULL"), nullable=True, index=True)
     channel = Column(String(64), nullable=False)
     recipient = Column(String(255), nullable=False)
     subject = Column(String(255), nullable=True)

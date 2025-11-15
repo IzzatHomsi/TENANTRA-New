@@ -202,4 +202,30 @@ def test_get_base_url_rewrites_localhost(monkeypatch):
         assert base == "http://grafana:3000"
     finally:
         db.close()
+    _restore_setting("grafana.url", previous_url)
+
+
+@patch("app.routes.grafana_proxy.httpx.AsyncClient.request", new_callable=AsyncMock)
+def test_grafana_warning_endpoint_exposes_load_dashboard_scene(mock_request: AsyncMock):
+    headers = _login_admin()
+    previous_url = _ensure_setting("grafana.url", "http://grafana:3000")
+    try:
+        response = httpx.Response(
+            status_code=400,
+            request=httpx.Request("POST", "http://grafana:3000/api/ds/query?ds_type=prometheus"),
+            content=b'{"message":"loadDashboardScene missing mark","status":"error"}',
+        )
+        mock_request.return_value = response
+
+        resp = client.post("/grafana/api/ds/query", headers=headers, json={"queries": []})
+        assert resp.status_code == 400
+
+        warnings_resp = client.get("/api/admin/observability/grafana/warnings", headers=headers)
+        assert warnings_resp.status_code == 200
+        payload = warnings_resp.json()
+        assert payload["items"]
+        assert payload["items"][0]["status"] == 400
+        assert payload["items"][0]["path"].startswith("/grafana")
+    finally:
+        _restore_setting("grafana.url", previous_url)
         _restore_setting("grafana.url", previous_url)

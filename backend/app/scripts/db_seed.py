@@ -35,7 +35,9 @@ def ensure_default_tenant(db):
     return t
 
 def ensure_admin(db):
-    password = DEFAULT_ADMIN_PASS or resolve_admin_password()
+    password = os.getenv("TENANTRA_ADMIN_PASSWORD")
+    if not password:
+        raise RuntimeError("TENANTRA_ADMIN_PASSWORD environment variable not set.")
     u = db.query(User).filter(User.username == DEFAULT_ADMIN_USER).first()
     if u:
         # Backfill missing tenant_id or role if needed

@@ -1,5 +1,7 @@
 Edge dev nginx image
 
+**SECURITY WARNING:** The `docker-compose.override.expose.yml` file is intended for local development and exposes the backend service on all network interfaces (`0.0.0.0`). Do not use this file in production or on any machine with a public IP address, as it can lead to unauthorized access to your backend service. For more secure alternatives, consider using a reverse proxy like Nginx or restricting access to specific IP addresses.
+
 Why we bake the edge nginx image for local Windows dev
 
 - Bind-mounts on Windows (especially for nginx configs) commonly cause issues with permission/line-ending differences, file locking, and path quoting when Docker Desktop translates Windows host paths into container mounts.

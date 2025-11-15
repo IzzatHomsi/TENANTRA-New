@@ -4,9 +4,10 @@ from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Index
 from sqlalchemy.orm import relationship
 
 from app.db.base_class import Base
+from app.models.base import TimestampMixin, ModelMixin
 
 
-class RevokedToken(Base):
+class RevokedToken(Base, TimestampMixin, ModelMixin):
     __tablename__ = "revoked_tokens"
 
     id = Column(Integer, primary_key=True)

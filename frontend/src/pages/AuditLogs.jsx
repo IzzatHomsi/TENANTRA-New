@@ -88,6 +88,30 @@ export default function AuditLogs() {
     }
   };
 
+  const renderDetails = useCallback((details) => {
+    if (!details) {
+      return "-";
+    }
+    if (typeof details === "string") {
+      return details;
+    }
+    if (Array.isArray(details.changes) && details.changes.length > 0) {
+      return (
+        <div className="space-y-1">
+          {details.changes.map((change, idx) => (
+            <div key={`${change.key || idx}-${idx}`} className="text-xs">
+              <div className="font-semibold text-gray-800">{change.key || "unknown"}</div>
+              <div className="text-gray-600">
+                {String(change.previous ?? "—")} → {String(change.current ?? "—")}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return <pre className="max-w-xs whitespace-pre-wrap break-words text-gray-700">{JSON.stringify(details, null, 2)}</pre>;
+  }, []);
+
   const pageCount = useMemo(() => Math.max(1, Math.ceil(total / filters.pageSize)), [total, filters.pageSize]);
 
   return (
@@ -185,9 +209,9 @@ export default function AuditLogs() {
                     <td className="whitespace-nowrap px-6 py-4">{log.timestamp}</td>
                     <td className="whitespace-nowrap px-6 py-4">{log.user_id ?? "-"}</td>
                     <td className="whitespace-nowrap px-6 py-4">{log.action}</td>
-                    <td className="whitespace-nowrap px-6 py-4">{log.result}</td>
+                    <td className="whitespace-nowrap px-6 py-4 capitalize">{log.result}</td>
                     <td className="whitespace-nowrap px-6 py-4">{log.ip || "-"}</td>
-                    <td className="whitespace-nowrap px-6 py-4 text-xs text-gray-700">{log.details || "-"}</td>
+                    <td className="whitespace-pre-wrap break-words px-6 py-4 text-xs text-gray-700">{renderDetails(log.details)}</td>
                   </tr>
                 ))
               )}

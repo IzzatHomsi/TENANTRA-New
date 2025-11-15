@@ -10,10 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
 from app.database import get_db
-from app.models.agent import Agent
-from app.models.asset import Asset
-from app.models.scan_job import ScanJob, ScanResult
-from app.models.user import User
+from app.dependencies.tenancy import tenant_scope_dependency
 from app.schemas.scan import (
     ScanJobCreate,
     ScanJobRead,
@@ -25,24 +22,12 @@ from app.schemas.scan import (
 router = APIRouter(prefix="/scan-orchestration", tags=["Scan Orchestration"])
 
 
-def _resolve_tenant(user: User, tenant_id: Optional[int]) -> int:
-    if user.tenant_id is not None:
-        if tenant_id and tenant_id != user.tenant_id:
-            raise HTTPException(status_code=403, detail="Forbidden tenant scope")
-        return user.tenant_id
-    if tenant_id is None:
-        raise HTTPException(status_code=400, detail="tenant_id required")
-    return tenant_id
-
-
 @router.get("/jobs", response_model=List[ScanJobRead])
 def list_jobs(
     status: Optional[str] = Query(None),
-    tenant_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    resolved_tenant: int = Depends(tenant_scope_dependency(require_admin=True)),
 ) -> List[ScanJobRead]:
-    resolved_tenant = _resolve_tenant(current_user, tenant_id)
     query = db.query(ScanJob).filter(ScanJob.tenant_id == resolved_tenant)
     if status:
         query = query.filter(ScanJob.status == status)
@@ -53,11 +38,10 @@ def list_jobs(
 @router.post("/jobs", response_model=ScanJobRead, status_code=201)
 def create_job(
     payload: ScanJobCreate,
-    tenant_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    resolved_tenant: int = Depends(tenant_scope_dependency(require_admin=True)),
 ) -> ScanJobRead:
-    resolved_tenant = _resolve_tenant(current_user, tenant_id)
     job = ScanJob(
         tenant_id=resolved_tenant,
         name=payload.name,
@@ -78,11 +62,9 @@ def create_job(
 @router.get("/jobs/{job_id}", response_model=ScanJobWithResults)
 def get_job(
     job_id: int = Path(...),
-    tenant_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    resolved_tenant: int = Depends(tenant_scope_dependency()),
 ) -> ScanJobWithResults:
-    resolved_tenant = _resolve_tenant(current_user, tenant_id)
     job = (
         db.query(ScanJob)
         .filter(ScanJob.id == job_id, ScanJob.tenant_id == resolved_tenant)
@@ -100,11 +82,9 @@ def get_job(
 def add_result(
     job_id: int = Path(...),
     payload: ScanResultCreate = Body(...),
-    tenant_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    resolved_tenant: int = Depends(tenant_scope_dependency()),
 ) -> ScanResultRead:
-    resolved_tenant = _resolve_tenant(current_user, tenant_id)
     job = (
         db.query(ScanJob)
         .filter(ScanJob.id == job_id, ScanJob.tenant_id == resolved_tenant)

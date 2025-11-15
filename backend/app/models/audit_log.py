@@ -34,14 +34,15 @@ class AuditLog(Base, TimestampMixin, ModelMixin):
     user = relationship("User", back_populates="audit_logs")
 
     @property
-    def details(self) -> Optional[str]:
+    def details(self) -> Optional[Dict[str, Any]]:
         if not self.details_enc:
             return None
         try:
-            return decrypt_data(self.details_enc, get_enc_key())
-        except Exception:  # pragma: no cover - legacy payload safeguard
-            logger.debug("Failed to decrypt audit log %s; returning raw payload", self.id, exc_info=True)
-            return self.details_enc
+            decrypted = decrypt_data(self.details_enc, get_enc_key())
+            return json.loads(decrypted) if decrypted else None
+        except Exception:
+            logger.warning("Failed to decrypt and parse audit log details for log_id=%s", self.id, exc_info=True)
+            return None
 
     @details.setter
     def details(self, value: Optional[str]) -> None:

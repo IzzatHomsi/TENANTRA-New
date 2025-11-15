@@ -550,6 +550,11 @@ def upsert_global_settings(
         updates = validated.to_updates()
         updated_rows, changes = _apply_updates(db, tenant_id=None, updates=updates)
         if changes:
+            change_entries = [
+                {"key": key, "previous": old, "current": new}
+                for key, old, new in changes
+            ]
+            flat_lookup = {entry["key"]: {"previous": entry["previous"], "current": entry["current"]} for entry in change_entries}
             log_audit_event(
                 db,
                 user_id=current_user.id,
@@ -558,10 +563,8 @@ def upsert_global_settings(
                 ip=None,
                 details={
                     "scope": "global",
-                    "changes": [
-                        {"key": key, "previous": old, "current": new}
-                        for key, old, new in changes
-                    ],
+                    "changes": change_entries,
+                    **flat_lookup,
                 },
             )
         _invalidate_cache()
@@ -617,6 +620,11 @@ def upsert_tenant_settings(
         updates = validated.to_updates()
         updated_rows, changes = _apply_updates(db, tenant_id=user.tenant_id, updates=updates)
         if changes:
+            change_entries = [
+                {"key": key, "previous": old, "current": new}
+                for key, old, new in changes
+            ]
+            flat_lookup = {entry["key"]: {"previous": entry["previous"], "current": entry["current"]} for entry in change_entries}
             log_audit_event(
                 db,
                 user_id=user.id,
@@ -626,10 +634,8 @@ def upsert_tenant_settings(
                 details={
                     "scope": "tenant",
                     "tenant_id": user.tenant_id,
-                    "changes": [
-                        {"key": key, "previous": old, "current": new}
-                        for key, old, new in changes
-                    ],
+                    "changes": change_entries,
+                    **flat_lookup,
                 },
             )
         _invalidate_cache(user.tenant_id)

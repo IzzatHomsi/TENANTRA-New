@@ -46,7 +46,7 @@ logger = logging.getLogger("tenantra.main")
 
 def _maybe_import_modules() -> None:
     """Optionally import modules from the backlog CSV on startup."""
-    flag = os.getenv("TENANTRA_AUTO_IMPORT_MODULES", os.getenv("TENANTRA_IMPORT_MODULES", "1")).strip().lower()
+    flag = os.getenv("TENANTRA_AUTO_IMPORT_MODULES", os.getenv("TENANTRA_IMPORT_MODULES", "0")).strip().lower()
     if flag not in {"1", "true", "yes", "on"}:
         logger.info("Auto module import disabled (TENANTRA_AUTO_IMPORT_MODULES=%s).", flag)
         return
@@ -149,6 +149,8 @@ def create_app() -> FastAPI:
         "app.routes.plan_presets",
         "app.routes.features",
         "app.routes.telemetry",
+        "app.api.v1.endpoints.data_export",
+        "app.api.v1.endpoints.compliance_report",
     ]
 
     for mod in ROUTE_MODULES:

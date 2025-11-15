@@ -7,30 +7,29 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import expression
 
 from app.db.base_class import Base
-from app.db.json_compat import JSONCompatible
+from app.models.base import TimestampMixin, ModelMixin
+from sqlalchemy.dialects.postgresql import JSONB
 
 
-class ScanJob(Base):
+class ScanJob(Base, TimestampMixin, ModelMixin):
     """Represents a scheduled or on-demand scan orchestration job."""
 
     __tablename__ = "scan_jobs"
 
     id = Column(Integer, primary_key=True, index=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     scan_type = Column(String(64), nullable=False)
     priority = Column(String(32), nullable=False, default="normal")
     schedule = Column(String(128), nullable=True)
     status = Column(String(32), nullable=False, default="pending")
-    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
-    module_id = Column(Integer, ForeignKey("modules.id", ondelete="SET NULL"), nullable=True)
-    agent_id = Column(Integer, ForeignKey("agents.id", ondelete="SET NULL"), nullable=True)
-    parameters = Column(JSONCompatible(), nullable=True)
+    module_id = Column(Integer, ForeignKey("modules.id", ondelete="SET NULL"), nullable=True, index=True)
+    agent_id = Column(Integer, ForeignKey("agents.id", ondelete="SET NULL"), nullable=True, index=True)
+    parameters = Column(JSONB, nullable=True)
     enabled = Column(Boolean, nullable=False, default=True, server_default=expression.true())
     next_run_at = Column(DateTime, nullable=True)
     last_run_at = Column(DateTime, nullable=True)
@@ -65,15 +64,15 @@ class ScanJob(Base):
         }
 
 
-class ScanResult(Base):
+class ScanResult(Base, TimestampMixin, ModelMixin):
     """Individual scan execution result for a specific agent or asset."""
 
     __tablename__ = "scan_results_v2"
 
     id = Column(Integer, primary_key=True, index=True)
-    job_id = Column(Integer, ForeignKey("scan_jobs.id", ondelete="CASCADE"), nullable=False)
-    agent_id = Column(Integer, ForeignKey("agents.id", ondelete="CASCADE"), nullable=True)
-    asset_id = Column(Integer, ForeignKey("assets.id", ondelete="SET NULL"), nullable=True)
+    job_id = Column(Integer, ForeignKey("scan_jobs.id", ondelete="CASCADE"), nullable=False, index=True)
+    agent_id = Column(Integer, ForeignKey("agents.id", ondelete="CASCADE"), nullable=True, index=True)
+    asset_id = Column(Integer, ForeignKey("assets.id", ondelete="SET NULL"), nullable=True, index=True)
     status = Column(String(32), nullable=False, default="queued")
     details = Column(Text, nullable=True)
     started_at = Column(DateTime, nullable=True)

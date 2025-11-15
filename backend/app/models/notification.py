@@ -13,8 +13,8 @@ class Notification(Base, TimestampMixin, ModelMixin):
     __tablename__ = "notifications"
 
     id = Column(Integer, primary_key=True, index=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
-    recipient_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    recipient_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     recipient_email = Column(String(255), nullable=False)
     title = Column(String, nullable=False)
     message = Column(String, nullable=False)

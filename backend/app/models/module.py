@@ -10,7 +10,6 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import expression
 
 from app.db.base_class import Base
-from app.db.json_compat import JSONCompatible
 from app.models.base import TimestampMixin, ModelMixin
 
 

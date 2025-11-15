@@ -1,9 +1,10 @@
 from datetime import datetime
 from sqlalchemy import Column, Integer, Text, Boolean, DateTime, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.orm import relationship
-from app.db.base_class import Base              # ✅ CHANGED: unified Base
+from app.db.base_class import Base
+from app.models.base import TimestampMixin, ModelMixin
 
-class TenantCORSOrigin(Base):
+class TenantCORSOrigin(Base, TimestampMixin, ModelMixin):
     __tablename__ = "tenant_cors_origins"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -11,7 +12,6 @@ class TenantCORSOrigin(Base):
     origin = Column(Text, nullable=False)
     enabled = Column(Boolean, nullable=False, default=True)
     is_global = Column(Boolean, nullable=False, default=False)
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
     tenant = relationship("Tenant")
 

@@ -6,9 +6,10 @@ from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Tex
 from sqlalchemy.orm import relationship
 
 from app.db.base_class import Base
+from app.models.base import TimestampMixin, ModelMixin
 
 
-class BillingPlan(Base):
+class BillingPlan(Base, TimestampMixin, ModelMixin):
     """Defines available billing plans for MSP tenants."""
 
     __tablename__ = "billing_plans"
@@ -20,8 +21,6 @@ class BillingPlan(Base):
     currency = Column(String(16), nullable=False, default="USD")
     base_rate = Column(Float, nullable=False, default=0.0)
     overage_rate = Column(Float, nullable=False, default=0.0)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     invoices = relationship("Invoice", back_populates="plan")
 
@@ -37,13 +36,13 @@ class BillingPlan(Base):
         }
 
 
-class UsageLog(Base):
+class UsageLog(Base, TimestampMixin, ModelMixin):
     """Usage metrics recorded per tenant for billing purposes."""
 
     __tablename__ = "usage_logs"
 
     id = Column(Integer, primary_key=True, index=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
     metric = Column(String(128), nullable=False)
     quantity = Column(Float, nullable=False)
     recorded_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -64,14 +63,14 @@ class UsageLog(Base):
         }
 
 
-class Invoice(Base):
+class Invoice(Base, TimestampMixin, ModelMixin):
     """Invoices generated for tenants."""
 
     __tablename__ = "invoices"
 
     id = Column(Integer, primary_key=True, index=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
-    plan_id = Column(Integer, ForeignKey("billing_plans.id", ondelete="SET NULL"), nullable=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    plan_id = Column(Integer, ForeignKey("billing_plans.id", ondelete="SET NULL"), nullable=True, index=True)
     period_start = Column(DateTime, nullable=False)
     period_end = Column(DateTime, nullable=False)
     amount = Column(Float, nullable=False)

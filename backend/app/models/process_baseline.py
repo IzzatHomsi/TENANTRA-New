@@ -7,9 +7,10 @@ from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, Bool
 from sqlalchemy.orm import relationship
 
 from app.db.base_class import Base
+from app.models.base import TimestampMixin, ModelMixin
 
 
-class ProcessBaseline(Base):
+class ProcessBaseline(Base, TimestampMixin, ModelMixin):
     """Expected process inventory for a tenant/agent baseline."""
 
     __tablename__ = "process_baselines"
@@ -24,16 +25,14 @@ class ProcessBaseline(Base):
     )
 
     id: int = Column(Integer, primary_key=True, index=True)
-    tenant_id: int = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
-    agent_id: Optional[int] = Column(Integer, ForeignKey("agents.id", ondelete="CASCADE"), nullable=True)
+    tenant_id: int = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    agent_id: Optional[int] = Column(Integer, ForeignKey("agents.id", ondelete="CASCADE"), nullable=True, index=True)
     process_name: str = Column(String(255), nullable=False)
     executable_path: Optional[str] = Column(Text, nullable=True)
     expected_hash: Optional[str] = Column(String(128), nullable=True)
     expected_user: Optional[str] = Column(String(255), nullable=True)
     is_critical: bool = Column(Boolean, nullable=False, default=False)
     notes: Optional[str] = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     tenant = relationship("Tenant", back_populates="process_baselines")
     agent = relationship("Agent", back_populates="process_baselines")

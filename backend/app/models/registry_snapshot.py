@@ -25,8 +25,8 @@ class RegistrySnapshot(Base, TimestampMixin, ModelMixin):
     )
 
     id = Column(Integer, primary_key=True, index=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
-    agent_id = Column(Integer, ForeignKey("agents.id", ondelete="CASCADE"), nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    agent_id = Column(Integer, ForeignKey("agents.id", ondelete="CASCADE"), nullable=False, index=True)
     hive = Column(String(128), nullable=False)
     key_path = Column(String(512), nullable=False)
     value_name = Column(String(256), nullable=True)
