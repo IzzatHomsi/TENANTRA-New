@@ -83,6 +83,7 @@ The backend exposes a wide range of RESTful endpoints. Most are prefixed with `/
     - `SECRET_KEY`, `ALGORITHM`: Used for signing JWTs.
     - `CORS_ORIGINS`: A comma-separated list of allowed origins for CORS.
     - `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`, `TENANTRA_ENABLE_NOTIFICATIONS_WORKER`, `TENANTRA_ENABLE_MODULE_SCHEDULER`, `TENANTRA_SCHEDULER_INTERVAL`: Control the Celery worker/beat topology and cadence.
+    - `TENANTRA_PUBLIC_APP_URL`: The base URL used inside transactional e-mails (password resets, verification links, join-request approvals). Defaults to `http://localhost:5173` for developer builds. Pair it with `TENANTRA_VERIFY_TOKEN_HOURS` to adjust how long verification links remain valid (48 hours by default).
 
 ### 3.5 Core Module: Security, Authentication, and Authorization
 This module forms the security foundation of the Tenantra backend. It is responsible for password management, JWT-based access tokens, refresh token lifecycle, data encryption, and route-level protection.
@@ -275,8 +276,19 @@ This file provides generic data encryption utilities using a modern, authenticat
         3. Derives the decryption key from the input `key` using the same SHA-256 hashing process.
         4. Initializes `AESGCM` with the derived key.
         5. Decrypts the ciphertext using the extracted nonce. AES-GCM automatically verifies the integrity of the data. If it was tampered with, the decryption will fail.
-    - **Returns:** The original plaintext string.
-    - **Throws:** A `cryptography.exceptions.InvalidTag` error if decryption fails (due to a wrong key or tampered data).
+- **Returns:** The original plaintext string.
+- **Throws:** A `cryptography.exceptions.InvalidTag` error if decryption fails (due to a wrong key or tampered data).
+
+##### **`app/services/email_service.py`**
+Centralized email helper used by the auth flows and tenant join request workflow.
+
+- **Templates:** HTML templates live in `backend/app/email_templates/` (password reset, verify email, welcome, join request notification/decision). Each helper renders the template via Jinja2 and falls back to plain text if templating fails.
+- **Frontend URL builder:** `_build_frontend_url()` uses the `TENANTRA_PUBLIC_APP_URL` environment variable to construct links for `/reset-password` and `/verify-email`, ensuring emails point to the correct tenant-facing host.
+- **Consumers:**
+    - `send_password_reset_email`, `send_verification_email`, and `send_welcome_email` power the `/auth/forgot-password` and `/auth/verify-email` flows.
+    - `notify_join_request_submitted` fan-outs notifications to tenant admins when someone requests access.
+    - `notify_join_request_decision` sends an approval/denial summary back to the requestor once an admin acts on it.
+    - `acknowledge_join_request` now sends a confirmation back to the requester (via `backend/app/email_templates/join_request_acknowledgement.html`) so the UI message “Your request has been submitted...” is backed by an actual delivery channel.
 
 ### 3.6 Core Module: Tenancy, Permissions, and RBAC
 This module handles multi-tenancy, defines user roles, and provides helpers for controlling access to resources based on tenant scope and role.
@@ -496,6 +508,7 @@ This section provides a detailed breakdown of the core SQLAlchemy models that de
         - `password_hash` (String, Not Null): The user's hashed password (using bcrypt).
         - `email` (String, Unique): The user's email address.
         - `is_active` (Boolean, Default: `True`): A flag to enable or disable the user's account.
+        - `email_verified_at` (DateTime, Nullable): Timestamp set once the `/auth/verify-email` flow succeeds. Login now requires this field to be non-null.
         - `tenant_id` (Integer, Foreign Key to `tenants.id`): The ID of the tenant this user belongs to. This is the critical link for multi-tenancy.
         - `role` (String, Not Null, Default: `"standard_user"`): The user's role within the application (e.g., "admin", "standard_user").
     - **Relationships:**
@@ -583,6 +596,7 @@ This section details the authentication endpoints located in `backend/app/routes
         - `email` (Optional[str]): The user's email.
         - `is_active` (bool): The user's active status.
         - `role` (Optional[str]): The user's role. This is critical for the frontend to perform its own role-based access control on UI elements.
+        - `email_verified` (bool): Indicates whether the email verification workflow has been completed; login now returns a 403 if this flag is `False`.
 
 - **`TokenOut(BaseModel)`**
     - **Purpose:** Defines the successful response body for a login request.
@@ -605,8 +619,8 @@ This section details the authentication endpoints located in `backend/app/routes
         4.  It queries the database for a `User` with a matching `username`.
         5.  It then calls `verify_password()` to securely check the provided password against the stored `password_hash`.
         6.  **Security Note:** If the user is not found or the password does not match, it returns a generic 401 Unauthorized error. This prevents attackers from determining whether a username is valid or not (user enumeration).
-        7.  If authentication is successful, it calls `create_access_token()`, passing the user's ID as the `sub` claim in the payload.
-        8.  Finally, it constructs and returns a `TokenOut` response containing the access token and the user's profile information.
+        7.  If authentication is successful **and** the account has `email_verified_at` populated, it calls `create_access_token()`. Accounts that skip verification now receive a 403 response explaining that activation is pending.
+        8.  Finally, it constructs and returns a `TokenOut` response containing the access token and the user's profile information (including `email_verified`).
 
 #### 3.9.4 Endpoint: `OPTIONS /auth/login`
 
@@ -629,7 +643,7 @@ This section details the authentication endpoints located in `backend/app/routes
         1.  Ensures the username and email are unique, then enforces password-strength requirements via `validate_password_strength`.
         2.  Generates a unique tenant name/slug pair and writes a `Tenant` row.
         3.  Hashes the password, creates an `admin` user scoped to the new tenant, and logs an `auth.register` audit entry.
-        4.  Sends a best-effort welcome email (if SMTP is configured) and returns `{ tenant_id, tenant_slug, user_id, requires_verification: false }`.
+        4.  Issues an email verification token via `app/services/email_verification.py`, sends a branded email using `app/services/email_service.py`, and returns `{ tenant_id, tenant_slug, user_id, requires_verification: true }`. Tests receive a `test_verification_token` field so they can complete the loop without polling an inbox.
 
 #### 3.9.6 Endpoint: `GET /auth/me`
 
@@ -642,6 +656,15 @@ This section details the authentication endpoints located in `backend/app/routes
         3.  It extracts the `user_id` from the `sub` claim in the payload.
         4.  It queries the database for the user with that ID. If the user no longer exists, it raises a 404 Not Found error.
         5.  If the user is found, it constructs and returns a `UserOut` object containing the user's public profile information, including their role.
+
+#### 3.9.7 Endpoint: `POST /auth/verify-email`
+
+- **`verify_email(payload: VerifyEmailPayload, ...)`**
+    - **Purpose:** Completes the signup workflow by validating the emailed token and activating the account.
+    - **Logic:**
+        1.  The handler delegates token validation to `app/services/email_verification.py`. Tokens are SHA-256 hashed in the database and expire after `TENANTRA_VERIFY_TOKEN_HOURS` (48 by default).
+        2.  If the token resolves to a user, the route stamps `email_verified_at`, re-enables `is_active`, writes an `auth.email_verified` audit event, and sends a branded welcome email via `app/services/email_service.py`.
+        3.  Subsequent calls return `{ "status": "already_verified" }` instead of erroring, which makes the route idempotent for end users that double click the link.
 
 ### 3.10 API Route: User Management (`/users`)
 This section details the endpoints for managing users, which are split into two files: one for users managing their own profiles (`users_me.py`) and one for administrators managing all users (`users_admin.py`).
@@ -742,6 +765,22 @@ This section details the endpoints for managing users, which are split into two 
             b. It verifies the `current_password` against the stored hash using `verify_password()`. Raises 401 if it doesn't match.
             c. If verification passes, it hashes the `new_password` and updates the user's `password_hash`.
         4.  Commits the changes to the database and returns the updated user profile.
+
+#### 3.10.5 Tenant Join Requests (`/tenants/join-requests` + `/admin/tenant-join-requests`)
+
+- **File:** `app/routes/tenant_join_requests.py` registers both the public endpoints (no auth required) and the admin review endpoints.
+- **Public Search (`GET /tenants/search`):**
+    - Accepts `?q=` and performs a case-insensitive lookup across tenant names/slugs (limited to 10 results). The API powers the new React join form’s autocomplete.
+- **Public Request Submit (`POST /tenants/join-requests`):**
+    - Payload: `{ tenant_identifier, full_name, email, message }`.
+    - Resolves the tenant by slug or numeric ID, persists a `TenantJoinRequest` row, and emails all admins in that tenant via `email_service.notify_join_request_submitted`.
+    - Duplicate pending requests for the same tenant/email short-circuit and simply return `{ status: "pending" }`.
+- **Admin List (`GET /admin/tenant-join-requests`):**
+    - Requires `get_admin_user`. Returns up to 200 requests for the admin’s tenant so the UI can render an actionable table.
+- **Admin Decision (`POST /admin/tenant-join-requests/{id}/decision`):**
+    - Payload: `{ decision: "approved" | "denied", note? }`.
+    - Updates the row, stamps `decision_by/decision_at`, writes an `tenant_join_request.<decision>` audit log, and emails the requestor with the outcome.
+    - Tokens are not created automatically; the admin’s approval instructs the external requestor to follow up via the new UI and standard user creation flows.
 
 ### 3.11 API Route: Agents & Scanning
 This section details the endpoints related to agent management, scan scheduling, orchestration, and results processing. These routes form the core of Tenantra's data collection capabilities.
@@ -1427,6 +1466,8 @@ Use the control menu for deterministic stack bring-up (migrate + seed + health c
 # choose option 1 → build + up + migrate + seed
 ```
 The menu mirrors the `make up/migrate/seed` commands, adds health probes, and records failures per step. Command-line fallbacks (`make up`, `make migrate`, `make seed`) still work when you only need a subset.
+
+`run_migrate_fixed.sh` is the helper that now waits for the database via `scripts/wait_for_db.sh` before running `alembic upgrade head`, so you can re-run the migration step even if the database takes a moment to boot; it is safe to invoke directly when debugging schema drift without bringing up the entire compose stack.
 
 ### Local Development
 **Backend:**
