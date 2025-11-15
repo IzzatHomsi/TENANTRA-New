@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Join request received</title>
+    <style>
+      body { font-family: "Segoe UI", Tahoma, sans-serif; background: #f8fafc; color: #0f172a; }
+      .card { max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 16px; padding: 28px; box-shadow: 0 18px 35px rgba(15, 23, 42, 0.1); }
+      p { line-height: 1.5; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h3>We received your request</h3>
+      <p>Hi {{ full_name }},</p>
+      <p>
+        Thanks for requesting access to <strong>{{ tenant_name }}</strong>. Tenant administrators have been notified and
+        will review your message soon.
+      </p>
+      {% if message %}
+      <p><strong>Your message:</strong></p>
+      <blockquote>{{ message }}</blockquote>
+      {% endif %}
+      <p>You will receive an email once a decision is made.</p>
+    </div>
+  </body>
+</html>
